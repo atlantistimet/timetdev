@@ -13,7 +13,7 @@ App per prenotare il tempo delle persone (solo 18+). Un'unica base di codice per
 ## Struttura
 
 ```
-App.tsx                         punto di ingresso
+src/app/                        schermate (Expo Router): ogni file è una route
 src/i18n/                       configurazione lingue e file di traduzione (locales/it.json, en.json)
 src/lib/supabase.ts             client Supabase
 supabase/migrations/0001_init.sql   schema iniziale (tabelle, vincoli, RLS, categorie)

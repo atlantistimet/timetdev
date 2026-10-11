@@ -1,15 +1,12 @@
-import './src/i18n';
-import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-export default function App() {
+export default function Home() {
   const { t } = useTranslation();
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{t('home.title')}</Text>
       <Text>{t('home.subtitle')}</Text>
-      <StatusBar style="auto" />
     </View>
   );
 }
