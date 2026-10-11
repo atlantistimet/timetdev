@@ -1,0 +1,12 @@
+{
+  "common": { "appName": "Timeet", "loading": "Loading…", "cancel": "Cancel", "confirm": "Confirm", "translate": "Translate", "translatedAuto": "Automatically translated", "showOriginal": "Show original" },
+  "home": { "title": "Timeet Marketplace", "subtitle": "Book people's time." },
+  "categories": {
+    "design": "Design", "fisco": "Tax", "carriera": "Career", "tech": "Tech", "musica": "Music",
+    "bellezza": "Beauty", "foto": "Photo", "benessere": "Wellbeing", "lingue": "Languages", "legale": "Legal",
+    "marketing": "Marketing", "cucina": "Cooking", "fitness": "Fitness", "casa": "Home and repairs",
+    "viaggi": "Travel", "animali": "Pets"
+  },
+  "booking": { "status": { "confirmed": "Confirmed", "completed": "Completed", "cancelled": "Cancelled", "no_show": "No-show" } },
+  "errors": { "generic": "Something went wrong. Please try again." }
+}

@@ -1,0 +1,12 @@
+{
+  "common": { "appName": "Timeet", "loading": "Caricamento…", "cancel": "Annulla", "confirm": "Conferma", "translate": "Traduci", "translatedAuto": "Tradotto automaticamente", "showOriginal": "Mostra originale" },
+  "home": { "title": "Timeet Marketplace", "subtitle": "Prenota il tempo delle persone." },
+  "categories": {
+    "design": "Design", "fisco": "Fisco", "carriera": "Carriera", "tech": "Tech", "musica": "Musica",
+    "bellezza": "Bellezza", "foto": "Foto", "benessere": "Benessere", "lingue": "Lingue", "legale": "Legale",
+    "marketing": "Marketing", "cucina": "Cucina", "fitness": "Fitness", "casa": "Casa e riparazioni",
+    "viaggi": "Viaggi", "animali": "Animali"
+  },
+  "booking": { "status": { "confirmed": "Confermata", "completed": "Conclusa", "cancelled": "Annullata", "no_show": "Assente" } },
+  "errors": { "generic": "Qualcosa è andato storto. Riprova." }
+}
