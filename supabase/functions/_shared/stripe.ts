@@ -2,6 +2,11 @@
 // Segreti letti dall'ambiente della funzione: STRIPE_SECRET_KEY, STRIPE_API_VERSION (facoltativo).
 
 const STRIPE_BASE = 'https://api.stripe.com';
+// Versioni API fissate nel codice (indicate nella documentazione Stripe di ottobre 2026). Si cambiano solo di proposito.
+// La versione stabile non permette dashboard Express con saldi negativi a carico di Stripe: serve l'anteprima.
+export const STABLE_API_VERSION = '2026-09-30.endive';
+export const PREVIEW_API_VERSION = '2026-09-30.preview';
+const DEFAULT_API_VERSION = STABLE_API_VERSION;
 
 type FormValue = string | number | boolean | null | undefined | FormValue[] | { [key: string]: FormValue };
 
@@ -30,13 +35,12 @@ export async function stripeRequest<T>(
   method: 'GET' | 'POST',
   path: string,
   params?: Record<string, FormValue>,
-  options: { idempotencyKey?: string; stripeAccount?: string } = {},
+  options: { idempotencyKey?: string; stripeAccount?: string; version?: string } = {},
 ): Promise<T> {
   const key = Deno.env.get('STRIPE_SECRET_KEY');
   if (!key) throw new Error('STRIPE_SECRET_KEY mancante');
   const headers: Record<string, string> = { Authorization: `Bearer ${key}` };
-  const apiVersion = Deno.env.get('STRIPE_API_VERSION');
-  if (apiVersion) headers['Stripe-Version'] = apiVersion;
+  headers['Stripe-Version'] = options.version ?? Deno.env.get('STRIPE_API_VERSION') ?? DEFAULT_API_VERSION;
   if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
   if (options.stripeAccount) headers['Stripe-Account'] = options.stripeAccount;
 
@@ -51,6 +55,27 @@ export async function stripeRequest<T>(
     }
   }
   const response = await fetch(url, { method, headers, body });
+  const json = await response.json();
+  if (!response.ok) throw new StripeError(response.status, json);
+  return json as T;
+}
+
+/** Chiamate all'API v2 di Stripe (Accounts v2, Account Links v2): corpo JSON. */
+export async function stripeV2<T>(
+  method: 'GET' | 'POST',
+  path: string,
+  body?: Record<string, unknown>,
+  options: { idempotencyKey?: string; version?: string } = {},
+): Promise<T> {
+  const key = Deno.env.get('STRIPE_SECRET_KEY');
+  if (!key) throw new Error('STRIPE_SECRET_KEY mancante');
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${key}`,
+    'Stripe-Version': options.version ?? Deno.env.get('STRIPE_API_VERSION') ?? DEFAULT_API_VERSION,
+  };
+  if (options.idempotencyKey) headers['Idempotency-Key'] = options.idempotencyKey;
+  if (body) headers['Content-Type'] = 'application/json';
+  const response = await fetch(`${STRIPE_BASE}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
   const json = await response.json();
   if (!response.ok) throw new StripeError(response.status, json);
   return json as T;

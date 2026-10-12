@@ -6,7 +6,7 @@ App per prenotare il tempo delle persone (solo 18+). Un'unica base di codice per
 
 - **App**: Expo (React Native, TypeScript), development build
 - **Backend**: Supabase (database, login, storage, chat realtime, edge functions)
-- **Pagamenti**: Stripe Connect con **addebiti diretti** (direct charges). Il cliente paga direttamente il venditore (PaymentIntent sull'account Stripe del venditore); Atlantis incassa solo la propria commissione (application fee) e fattura solo quella. Account dei venditori creati con le controller properties (API v1, come nella guida all'onboarding ospitato): dashboard Express, commissioni Stripe a carico del venditore, saldi negativi a carico di Stripe, verifica d'identità raccolta da Stripe. Per le chiamate al minuto si blocca l'importo sulla carta (manual capture) e si incassano solo i minuti effettivi. Nessun wallet, nessun trasferimento da parte nostra.
+- **Pagamenti**: Stripe Connect con **addebiti diretti** (direct charges). Il cliente paga direttamente il venditore (PaymentIntent sull'account Stripe del venditore); Atlantis incassa solo la propria commissione (application fee) e fattura solo quella. Account dei venditori: Accounts v2, dashboard Express, commissioni Stripe a carico del venditore, saldi negativi a carico di Stripe, verifica d'identità raccolta da Stripe. Questa combinazione richiede oggi la versione API di anteprima `2026-09-30.preview` (la stabile `2026-09-30.endive` la rifiuta): da rivalutare prima del lancio. Per le chiamate al minuto si blocca l'importo sulla carta (manual capture) e si incassano solo i minuti effettivi. Nessun wallet, nessun trasferimento da parte nostra.
 - **Videochiamate**: LiveKit
 - **Lingue**: i18next + expo-localization, italiano e inglese dal lancio
 
@@ -35,7 +35,7 @@ cp .env.example .env     # inserisci URL e anon key del progetto Supabase
 npm run web              # oppure npm run ios / npm run android
 ```
 
-Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono già applicate la 0001 e la 0002; la 0003 è scritta e provata su un database locale, da applicare.
+Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono già applicate la 0001 e la 0002; applicata anche la 0003.
 
 ## Login
 
@@ -46,10 +46,10 @@ Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di 
 
 ## Funzioni Stripe (supabase/functions)
 
-- `stripe-connect-onboarding`: chiamata dall'app con la sessione dell'utente (richiede 18+ dichiarato). Crea una sola volta l'account Stripe del venditore e restituisce il link all'onboarding ospitato.
+- `stripe-connect-onboarding`: chiamata dall'app con la sessione dell'utente (richiede 18+ dichiarato). `{action:'onboard'}` crea una sola volta l'account Stripe del venditore e restituisce il link all'onboarding ospitato; `{action:'refresh'}` rilegge lo stato da Stripe.
 - `stripe-webhook`: riceve gli eventi Connect (firma verificata) e aggiorna `stripe_accounts` (abilitazioni e requisiti mancanti).
 - Segreti (Supabase → Edge Functions → Secrets): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`; facoltativi `STRIPE_API_VERSION`, `ONBOARDING_RETURN_URL`, `ONBOARDING_REFRESH_URL` (di prova puntano a localhost:8081).
-- Le funzioni non sono ancora pubblicate. Stripe è chiamata via REST senza libreria. Sono escluse da lint e typecheck dell'app (girano su Deno).
+- Funzioni pubblicate su Supabase (onboarding provato dal vivo sulla sandbox; webhook ancora da collegare in Stripe). Stripe è chiamata via REST senza libreria. Le versioni API sono fissate in `_shared/stripe.ts`. Sono escluse da lint e typecheck dell'app (girano su Deno).
 
 ## Regole di progetto
 
