@@ -8,6 +8,8 @@ import en from './locales/en.json';
 export const resources = { it: { translation: it }, en: { translation: en } } as const;
 export const supportedLanguages = Object.keys(resources);
 export const fallbackLanguage = 'it';
+/** Ogni lingua è scritta nella propria lingua, così si riconosce da qualsiasi interfaccia. */
+export const languageNames: Record<string, string> = { it: 'Italiano', en: 'English' };
 
 export function deviceLanguage(): string {
   const code = getLocales()[0]?.languageCode ?? fallbackLanguage;

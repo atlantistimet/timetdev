@@ -14,8 +14,13 @@ App per prenotare il tempo delle persone (solo 18+). Un'unica base di codice per
 
 ```
 src/app/                        schermate (Expo Router): ogni file è una route
+  login, register, adult        accesso, registrazione, conferma maggiore età (visibili senza sessione / senza 18+)
+  (app)/                        area protetta: raggiungibile solo con sessione e 18+ confermato
+src/components/ui.tsx           componenti base (campi, pulsanti, checkbox, schermata)
 src/i18n/                       configurazione lingue e file di traduzione (locales/it.json, en.json)
 src/lib/supabase.ts             client Supabase
+src/lib/auth.tsx                sessione e profilo (AuthProvider, useAuth)
+src/lib/auth-errors.ts          errori di Supabase Auth → messaggi tradotti
 supabase/migrations/0001_init.sql            schema iniziale (tabelle, vincoli, RLS, categorie)
 supabase/migrations/0002_stripe_connect.sql  da Mangopay a Stripe Connect (pagamenti, trasferimenti, cursore chiamate)
 ```
@@ -28,7 +33,14 @@ cp .env.example .env     # inserisci URL e anon key del progetto Supabase
 npm run web              # oppure npm run ios / npm run android
 ```
 
-La migrazione `0001_init.sql` si applica dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`).
+Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono già applicate la 0001 e la 0002.
+
+## Login
+
+- Registrazione e accesso con email e password. La registrazione richiede la dichiarazione di avere almeno 18 anni, salvata in `profiles.adult_confirmed_at`.
+- Chi ha un account ma non ha dichiarato la maggiore età (per esempio chi entrerà con Apple o Google) passa dalla schermata `adult` prima di vedere l'app.
+- Per ora la conferma email è **spenta** sul progetto Supabase (il mittente incluso è limitato a 2 email all'ora). Prima del lancio va riattivata insieme a un servizio SMTP proprio; l'app gestisce già il caso "controlla la tua email". Con la conferma attiva servono anche il Site URL e i Redirect URLs (`timeet://login-callback/`) in Authentication → URL Configuration.
+- La dichiarazione 18+ è un'autodichiarazione: le azioni sensibili (prenotare, vendere) vanno controllate di nuovo lato server su `adult_confirmed_at`.
 
 ## Regole di progetto
 
@@ -40,6 +52,7 @@ La migrazione `0001_init.sql` si applica dal SQL editor di Supabase o con la Sup
 
 ## Prossimi passi tecnici
 
-1. Applicare la migrazione 0002 al progetto Supabase (la 0001 è già applicata).
+1. Account Stripe di Atlantis srl (modalità test), poi edge functions per account Express dei venditori, pagamenti e trasferimenti.
 2. Prototipo LiveKit + Expo (chiamate in background, CallKit su iOS, webhook per il conteggio minuti).
-3. Login (email, Apple, Google) con conferma 18+.
+3. Login con Apple e Google (servono gli account sviluppatore di Atlantis srl).
+4. Prima del lancio: SMTP proprio e conferma email attiva; sessione in storage cifrato (oggi AsyncStorage).

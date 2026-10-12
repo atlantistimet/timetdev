@@ -1,12 +1,98 @@
 {
-  "common": { "appName": "Timeet", "loading": "Loading…", "cancel": "Cancel", "confirm": "Confirm", "translate": "Translate", "translatedAuto": "Automatically translated", "showOriginal": "Show original" },
-  "home": { "title": "Timeet Marketplace", "subtitle": "Book people's time." },
-  "categories": {
-    "design": "Design", "fisco": "Tax", "carriera": "Career", "tech": "Tech", "musica": "Music",
-    "bellezza": "Beauty", "foto": "Photo", "benessere": "Wellbeing", "lingue": "Languages", "legale": "Legal",
-    "marketing": "Marketing", "cucina": "Cooking", "fitness": "Fitness", "casa": "Home and repairs",
-    "viaggi": "Travel", "animali": "Pets"
+  "common": {
+    "appName": "Timeet",
+    "loading": "Loading…",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "retry": "Try again",
+    "translate": "Translate",
+    "translatedAuto": "Automatically translated",
+    "showOriginal": "Show original"
   },
-  "booking": { "status": { "confirmed": "Confirmed", "completed": "Completed", "cancelled": "Cancelled", "no_show": "No-show" } },
-  "errors": { "generic": "Something went wrong. Please try again." }
+  "home": {
+    "title": "Timeet Marketplace",
+    "subtitle": "Book people's time.",
+    "greeting": "Hi, {{name}}",
+    "signedInAs": "Signed in as {{email}}"
+  },
+  "settings": {
+    "language": "Language",
+    "signOut": "Sign out"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Log in to your Timeet account.",
+      "submit": "Sign in",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Sign up"
+    },
+    "register": {
+      "title": "Create your account",
+      "subtitle": "Timeet Marketplace is for people aged 18 or over.",
+      "name": "Full name",
+      "passwordHint": "At least {{count}} characters",
+      "adult": "I confirm that I am at least 18 years old",
+      "submit": "Create account",
+      "hasAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "checkEmailTitle": "Check your email",
+      "checkEmailBody": "We sent a confirmation link to {{email}}. Open it to activate your account, then sign in.",
+      "backToLogin": "Go to sign in"
+    },
+    "adultGate": {
+      "title": "Confirm your age",
+      "body": "Timeet Marketplace is for people aged 18 or over. To continue, please confirm that you are an adult.",
+      "confirm": "I confirm that I am at least 18 years old"
+    },
+    "validation": {
+      "nameRequired": "Enter your name.",
+      "emailInvalid": "Enter a valid email address.",
+      "passwordShort": "Your password must be at least {{count}} characters.",
+      "passwordRequired": "Enter your password.",
+      "adultRequired": "To sign up you must confirm that you are at least 18 years old."
+    },
+    "errors": {
+      "invalidCredentials": "Incorrect email or password.",
+      "emailExists": "An account with this email already exists.",
+      "weakPassword": "That password is too weak. Choose a longer one.",
+      "emailNotConfirmed": "Please confirm your email first. Check your inbox.",
+      "rateLimit": "Too many attempts. Please try again in a few minutes.",
+      "emailInvalid": "That email address is not valid.",
+      "signupDisabled": "Sign-ups are temporarily closed.",
+      "network": "No or unstable connection. Please try again."
+    }
+  },
+  "categories": {
+    "design": "Design",
+    "fisco": "Tax",
+    "carriera": "Career",
+    "tech": "Tech",
+    "musica": "Music",
+    "bellezza": "Beauty",
+    "foto": "Photo",
+    "benessere": "Wellbeing",
+    "lingue": "Languages",
+    "legale": "Legal",
+    "marketing": "Marketing",
+    "cucina": "Cooking",
+    "fitness": "Fitness",
+    "casa": "Home and repairs",
+    "viaggi": "Travel",
+    "animali": "Pets"
+  },
+  "booking": {
+    "status": {
+      "confirmed": "Confirmed",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "no_show": "No-show"
+    }
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "profileLoad": "We couldn't load your profile."
+  }
 }

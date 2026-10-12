@@ -1,12 +1,98 @@
 {
-  "common": { "appName": "Timeet", "loading": "Caricamento…", "cancel": "Annulla", "confirm": "Conferma", "translate": "Traduci", "translatedAuto": "Tradotto automaticamente", "showOriginal": "Mostra originale" },
-  "home": { "title": "Timeet Marketplace", "subtitle": "Prenota il tempo delle persone." },
-  "categories": {
-    "design": "Design", "fisco": "Fisco", "carriera": "Carriera", "tech": "Tech", "musica": "Musica",
-    "bellezza": "Bellezza", "foto": "Foto", "benessere": "Benessere", "lingue": "Lingue", "legale": "Legale",
-    "marketing": "Marketing", "cucina": "Cucina", "fitness": "Fitness", "casa": "Casa e riparazioni",
-    "viaggi": "Viaggi", "animali": "Animali"
+  "common": {
+    "appName": "Timeet",
+    "loading": "Caricamento…",
+    "cancel": "Annulla",
+    "confirm": "Conferma",
+    "retry": "Riprova",
+    "translate": "Traduci",
+    "translatedAuto": "Tradotto automaticamente",
+    "showOriginal": "Mostra originale"
   },
-  "booking": { "status": { "confirmed": "Confermata", "completed": "Conclusa", "cancelled": "Annullata", "no_show": "Assente" } },
-  "errors": { "generic": "Qualcosa è andato storto. Riprova." }
+  "home": {
+    "title": "Timeet Marketplace",
+    "subtitle": "Prenota il tempo delle persone.",
+    "greeting": "Ciao, {{name}}",
+    "signedInAs": "Accesso effettuato come {{email}}"
+  },
+  "settings": {
+    "language": "Lingua",
+    "signOut": "Esci"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "login": {
+      "title": "Accedi",
+      "subtitle": "Entra nel tuo account Timeet.",
+      "submit": "Accedi",
+      "noAccount": "Non hai un account?",
+      "createAccount": "Registrati"
+    },
+    "register": {
+      "title": "Crea il tuo account",
+      "subtitle": "Timeet Marketplace è riservato a chi ha almeno 18 anni.",
+      "name": "Nome e cognome",
+      "passwordHint": "Almeno {{count}} caratteri",
+      "adult": "Confermo di avere almeno 18 anni",
+      "submit": "Crea account",
+      "hasAccount": "Hai già un account?",
+      "signIn": "Accedi",
+      "checkEmailTitle": "Controlla la tua email",
+      "checkEmailBody": "Abbiamo inviato un link di conferma a {{email}}. Aprilo per attivare l'account, poi accedi.",
+      "backToLogin": "Vai all'accesso"
+    },
+    "adultGate": {
+      "title": "Conferma la tua età",
+      "body": "Timeet Marketplace è riservato a chi ha almeno 18 anni. Per continuare conferma di essere maggiorenne.",
+      "confirm": "Confermo di avere almeno 18 anni"
+    },
+    "validation": {
+      "nameRequired": "Inserisci il tuo nome.",
+      "emailInvalid": "Inserisci un indirizzo email valido.",
+      "passwordShort": "La password deve avere almeno {{count}} caratteri.",
+      "passwordRequired": "Inserisci la password.",
+      "adultRequired": "Per registrarti devi confermare di avere almeno 18 anni."
+    },
+    "errors": {
+      "invalidCredentials": "Email o password non corrette.",
+      "emailExists": "Esiste già un account con questa email.",
+      "weakPassword": "La password è troppo debole. Scegline una più lunga.",
+      "emailNotConfirmed": "Devi prima confermare la tua email. Controlla la posta.",
+      "rateLimit": "Troppi tentativi. Riprova tra qualche minuto.",
+      "emailInvalid": "L'indirizzo email non è valido.",
+      "signupDisabled": "Le registrazioni sono temporaneamente chiuse.",
+      "network": "Connessione assente o instabile. Riprova."
+    }
+  },
+  "categories": {
+    "design": "Design",
+    "fisco": "Fisco",
+    "carriera": "Carriera",
+    "tech": "Tech",
+    "musica": "Musica",
+    "bellezza": "Bellezza",
+    "foto": "Foto",
+    "benessere": "Benessere",
+    "lingue": "Lingue",
+    "legale": "Legale",
+    "marketing": "Marketing",
+    "cucina": "Cucina",
+    "fitness": "Fitness",
+    "casa": "Casa e riparazioni",
+    "viaggi": "Viaggi",
+    "animali": "Animali"
+  },
+  "booking": {
+    "status": {
+      "confirmed": "Confermata",
+      "completed": "Conclusa",
+      "cancelled": "Annullata",
+      "no_show": "Assente"
+    }
+  },
+  "errors": {
+    "generic": "Qualcosa è andato storto. Riprova.",
+    "profileLoad": "Non riusciamo a caricare il tuo profilo."
+  }
 }
