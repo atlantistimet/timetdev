@@ -7,13 +7,15 @@
     "retry": "Riprova",
     "translate": "Traduci",
     "translatedAuto": "Tradotto automaticamente",
-    "showOriginal": "Mostra originale"
+    "showOriginal": "Mostra originale",
+    "back": "Indietro"
   },
   "home": {
     "title": "Timeet Marketplace",
     "subtitle": "Prenota il tempo delle persone.",
     "greeting": "Ciao, {{name}}",
-    "signedInAs": "Accesso effettuato come {{email}}"
+    "signedInAs": "Accesso effettuato come {{email}}",
+    "sellerArea": "Area venditore"
   },
   "settings": {
     "language": "Lingua",
@@ -93,6 +95,19 @@
   },
   "errors": {
     "generic": "Qualcosa è andato storto. Riprova.",
-    "profileLoad": "Non riusciamo a caricare il tuo profilo."
+    "profileLoad": "Non riusciamo a caricare il tuo profilo.",
+    "adultRequired": "Per vendere devi aver dichiarato di avere almeno 18 anni."
+  },
+  "seller": {
+    "title": "Area venditore",
+    "state": {
+      "none": "Per vendere il tuo tempo serve registrarsi su Stripe: è Stripe a verificare i tuoi dati e a pagarti.",
+      "pending": "Registrazione in corso: completa i dati su Stripe per poter ricevere pagamenti.",
+      "ready": "Tutto pronto: puoi ricevere pagamenti."
+    },
+    "start": "Inizia la registrazione",
+    "continue": "Continua la registrazione",
+    "returnTitle": "Registrazione venditore",
+    "goToSeller": "Vai all'area venditore"
   }
 }

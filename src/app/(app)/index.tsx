@@ -1,4 +1,5 @@
 import { StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -14,6 +15,8 @@ export default function Home() {
       <Body muted>{t('home.subtitle')}</Body>
       <Spacer size={8} />
       <Body muted>{t('home.signedInAs', { email: session?.user.email })}</Body>
+      <Spacer size={24} />
+      <Button title={t('home.sellerArea')} onPress={() => router.push('/seller')} />
       <Spacer size={32} />
       <Body>{t('settings.language')}</Body>
       <Spacer size={8} />

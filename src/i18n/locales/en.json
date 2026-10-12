@@ -7,13 +7,15 @@
     "retry": "Try again",
     "translate": "Translate",
     "translatedAuto": "Automatically translated",
-    "showOriginal": "Show original"
+    "showOriginal": "Show original",
+    "back": "Back"
   },
   "home": {
     "title": "Timeet Marketplace",
     "subtitle": "Book people's time.",
     "greeting": "Hi, {{name}}",
-    "signedInAs": "Signed in as {{email}}"
+    "signedInAs": "Signed in as {{email}}",
+    "sellerArea": "Seller area"
   },
   "settings": {
     "language": "Language",
@@ -93,6 +95,19 @@
   },
   "errors": {
     "generic": "Something went wrong. Please try again.",
-    "profileLoad": "We couldn't load your profile."
+    "profileLoad": "We couldn't load your profile.",
+    "adultRequired": "To sell you must have declared that you are at least 18."
+  },
+  "seller": {
+    "title": "Seller area",
+    "state": {
+      "none": "To sell your time you need to sign up with Stripe: Stripe verifies your details and pays you.",
+      "pending": "Sign-up in progress: complete your details on Stripe to start receiving payments.",
+      "ready": "All set: you can receive payments."
+    },
+    "start": "Start sign-up",
+    "continue": "Continue sign-up",
+    "returnTitle": "Seller sign-up",
+    "goToSeller": "Go to the seller area"
   }
 }
