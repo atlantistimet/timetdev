@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
   // Vendere richiede la maggiore età dichiarata (controllo lato server).
   const { data: profile } = await admin
     .from('profiles')
-    .select('adult_confirmed_at, full_name, preferred_lang')
+    .select('adult_confirmed_at, full_name, preferred_lang, handle')
     .eq('id', user.id)
     .maybeSingle();
   if (!profile?.adult_confirmed_at) return json({ error: 'adult_required' }, 403);
@@ -80,7 +80,11 @@ Deno.serve(async (req) => {
           identity: {
             country: 'it',
             entity_type: 'individual',
-            business_details: { product_description: 'Servizi di consulenza e compagnia prenotati online tramite Timeet' },
+            business_details: {
+              product_description: 'Servizi di consulenza e compagnia prenotati online tramite Timeet',
+              // Il profilo pubblico Timeet fa da sito del venditore (se ha già scelto un handle).
+              ...(profile.handle ? { url: `${Deno.env.get('PUBLIC_PROFILE_BASE_URL') ?? 'https://timeet.com'}/${profile.handle}` } : {}),
+            },
           },
           configuration: {
             merchant: {
