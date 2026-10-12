@@ -7,6 +7,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/http.ts';
 import { bookingFees } from '../_shared/fees.ts';
+import { STANDARD_TIERS } from '../_shared/cancel.ts';
 import { stripeRequest, StripeError } from '../_shared/stripe.ts';
 
 type PI = { id: string; client_secret: string };
@@ -49,12 +50,14 @@ Deno.serve(async (req) => {
 
   const endsAt = new Date(startsAt.getTime() + service.duration_min! * 60_000);
 
-  const [{ data: seller }, { data: account }, { data: window }] = await Promise.all([
-    admin.from('profiles').select('is_pro, cancel_policy, travel_fee_cents').eq('id', service.seller_id).single(),
+  const [{ data: seller }, { data: account }, { data: window }, { data: policy }] = await Promise.all([
+    admin.from('profiles').select('is_pro, travel_fee_cents').eq('id', service.seller_id).single(),
     admin.from('stripe_accounts').select('stripe_account_id, charges_enabled').eq('seller_id', service.seller_id).maybeSingle(),
     // lo slot richiesto deve stare dentro una disponibilità aperta del venditore
     admin.from('availability_slots').select('id').eq('seller_id', service.seller_id).eq('status', 'open')
       .lte('starts_at', startsAt.toISOString()).gte('ends_at', endsAt.toISOString()).limit(1),
+    // policy predefinita del venditore (se non ne ha, vale quella standard)
+    admin.from('cancel_policies').select('tiers').eq('seller_id', service.seller_id).eq('is_default', true).maybeSingle(),
   ]);
   if (!account?.charges_enabled) return json({ error: 'seller_not_ready' }, 409);
   if (!window?.length) return json({ error: 'slot_unavailable' }, 409);
@@ -70,7 +73,7 @@ Deno.serve(async (req) => {
       client_address: place === 'domicilio' ? body.client_address!.trim() : null,
       price_cents: service.price_cents, extra_cents: extraCents,
       client_fee_cents: fees.clientFeeCents, seller_fee_cents: fees.sellerFeeCents,
-      cancel_policy: seller!.cancel_policy, source: 'app',
+      cancel_tiers: policy?.tiers ?? STANDARD_TIERS, source: 'app',
     })
     .select('id')
     .single();
