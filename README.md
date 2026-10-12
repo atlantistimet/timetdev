@@ -6,7 +6,7 @@ App per prenotare il tempo delle persone (solo 18+). Un'unica base di codice per
 
 - **App**: Expo (React Native, TypeScript), development build
 - **Backend**: Supabase (database, login, storage, chat realtime, edge functions)
-- **Pagamenti**: Stripe Connect con **addebiti diretti** (direct charges). Il cliente paga direttamente il venditore (PaymentIntent sull'account Stripe del venditore); Atlantis incassa solo la propria commissione (application fee) e fattura solo quella. Account dei venditori: Accounts v2 (configurazione merchant), dashboard Express, saldi negativi a carico di Stripe. Per le chiamate al minuto si blocca l'importo sulla carta (manual capture) e si incassano solo i minuti effettivi. Nessun wallet, nessun trasferimento da parte nostra.
+- **Pagamenti**: Stripe Connect con **addebiti diretti** (direct charges). Il cliente paga direttamente il venditore (PaymentIntent sull'account Stripe del venditore); Atlantis incassa solo la propria commissione (application fee) e fattura solo quella. Account dei venditori creati con le controller properties (API v1, come nella guida all'onboarding ospitato): dashboard Express, commissioni Stripe a carico del venditore, saldi negativi a carico di Stripe, verifica d'identità raccolta da Stripe. Per le chiamate al minuto si blocca l'importo sulla carta (manual capture) e si incassano solo i minuti effettivi. Nessun wallet, nessun trasferimento da parte nostra.
 - **Videochiamate**: LiveKit
 - **Lingue**: i18next + expo-localization, italiano e inglese dal lancio
 
@@ -21,6 +21,7 @@ src/i18n/                       configurazione lingue e file di traduzione (loca
 src/lib/supabase.ts             client Supabase
 src/lib/auth.tsx                sessione e profilo (AuthProvider, useAuth)
 src/lib/auth-errors.ts          errori di Supabase Auth → messaggi tradotti
+supabase/functions/             funzioni server (Deno): stripe-connect-onboarding, stripe-webhook, _shared
 supabase/migrations/0001_init.sql            schema iniziale (tabelle, vincoli, RLS, categorie)
 supabase/migrations/0002_stripe_connect.sql  da Mangopay a Stripe Connect (pagamenti, cursore chiamate)
 supabase/migrations/0003_direct_charges.sql  addebiti diretti: via i trasferimenti, commissione (application fee) sui pagamenti
@@ -42,6 +43,13 @@ Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di 
 - Chi ha un account ma non ha dichiarato la maggiore età (per esempio chi entrerà con Apple o Google) passa dalla schermata `adult` prima di vedere l'app.
 - Per ora la conferma email è **spenta** sul progetto Supabase (il mittente incluso è limitato a 2 email all'ora). Prima del lancio va riattivata insieme a un servizio SMTP proprio; l'app gestisce già il caso "controlla la tua email". Con la conferma attiva servono anche il Site URL e i Redirect URLs (`timeet://login-callback/`) in Authentication → URL Configuration.
 - La dichiarazione 18+ è un'autodichiarazione: le azioni sensibili (prenotare, vendere) vanno controllate di nuovo lato server su `adult_confirmed_at`.
+
+## Funzioni Stripe (supabase/functions)
+
+- `stripe-connect-onboarding`: chiamata dall'app con la sessione dell'utente (richiede 18+ dichiarato). Crea una sola volta l'account Stripe del venditore e restituisce il link all'onboarding ospitato.
+- `stripe-webhook`: riceve gli eventi Connect (firma verificata) e aggiorna `stripe_accounts` (abilitazioni e requisiti mancanti).
+- Segreti (Supabase → Edge Functions → Secrets): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`; facoltativi `STRIPE_API_VERSION`, `ONBOARDING_RETURN_URL`, `ONBOARDING_REFRESH_URL` (di prova puntano a localhost:8081).
+- Le funzioni non sono ancora pubblicate. Stripe è chiamata via REST senza libreria. Sono escluse da lint e typecheck dell'app (girano su Deno).
 
 ## Regole di progetto
 
