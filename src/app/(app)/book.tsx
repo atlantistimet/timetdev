@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PaymentForm } from '@/components/PaymentForm';
+import { TierLines } from '@/components/TierLines';
 import { Body, Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import {
   createBookingPayment,
@@ -12,8 +13,9 @@ import {
   type PaymentIntentInfo,
   type SlotService,
 } from '@/lib/booking';
+import { loadDefaultTiers, type Tier } from '@/lib/cancel-policy';
 
-type Loaded = { service: SlotService; slots: OpenSlot[] } | 'missing';
+type Loaded = { service: SlotService; slots: OpenSlot[]; tiers: Tier[] } | 'missing';
 
 export default function BookScreen() {
   const { t, i18n } = useTranslation();
@@ -29,7 +31,13 @@ export default function BookScreen() {
     let active = true;
     (async () => {
       const service = serviceId ? await loadSlotService(serviceId) : null;
-      const result: Loaded = service ? { service, slots: await loadOpenSlots(service.seller_id, service.duration_min) } : 'missing';
+      const result: Loaded = service
+        ? {
+            service,
+            slots: await loadOpenSlots(service.seller_id, service.duration_min),
+            tiers: await loadDefaultTiers(service.seller_id),
+          }
+        : 'missing';
       if (active) setLoaded(result);
     })();
     return () => {
@@ -49,7 +57,7 @@ export default function BookScreen() {
     );
   }
 
-  const { service, slots } = loaded;
+  const { service, slots, tiers } = loaded;
   const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'full', timeStyle: 'short' });
 
   const start = async () => {
@@ -104,6 +112,9 @@ export default function BookScreen() {
           onPress={() => setSlotId(slot.id)}
         />
       ))}
+      <Spacer />
+      <Body>{t('policy.cancelRules')}</Body>
+      <TierLines tiers={tiers} />
       <Spacer />
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
       {slotId ? <Button title={t('book.continue')} onPress={() => void start()} loading={starting} /> : null}

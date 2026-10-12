@@ -89,3 +89,25 @@ export async function createBookingPayment(input: {
 export function formatEuro(cents: number, language: string): string {
   return (cents / 100).toLocaleString(language, { style: 'currency', currency: 'EUR' });
 }
+
+export type MyBooking = {
+  id: string;
+  client_id: string;
+  seller_id: string;
+  service_title: string;
+  starts_at: string;
+  status: 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+  price_cents: number;
+  refund_cents: number;
+};
+
+/** Prenotazioni dell'utente, fatte o ricevute (la policy di lettura mostra solo quelle in cui è coinvolto). */
+export async function listMyBookings(): Promise<{ bookings: MyBooking[]; errorKey: string | null }> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('id, client_id, seller_id, service_title, starts_at, status, price_cents, refund_cents')
+    .order('starts_at', { ascending: false })
+    .limit(50);
+  if (error) return { bookings: [], errorKey: 'errors.generic' };
+  return { bookings: (data ?? []) as MyBooking[], errorKey: null };
+}

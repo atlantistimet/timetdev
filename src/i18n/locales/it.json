@@ -16,7 +16,8 @@
     "greeting": "Ciao, {{name}}",
     "signedInAs": "Accesso effettuato come {{email}}",
     "sellerArea": "Area venditore",
-    "servicesLink": "Prenota un servizio"
+    "servicesLink": "Prenota un servizio",
+    "bookingsLink": "Le mie prenotazioni"
   },
   "settings": {
     "language": "Lingua",
@@ -136,6 +137,65 @@
       "place_not_offered": "Il venditore non offre questa modalità.",
       "address_required": "Serve l'indirizzo.",
       "unsupported_service_kind": "Questo tipo di servizio non è ancora prenotabile."
+    }
+  },
+  "policy": {
+    "title": "Policy di cancellazione",
+    "intro": "Decidi quanto rimborsi se un cliente annulla. Puoi avere più policy e usarne una come predefinita. Se il venditore annulla, il cliente è sempre rimborsato per intero.",
+    "standardName": "Standard Timeet",
+    "usingStandard": "Non hai ancora policy tue: vale la standard.",
+    "default": "predefinita",
+    "edit": "Modifica",
+    "new": "Nuova policy",
+    "newTitle": "Nuova policy",
+    "editTitle": "Modifica policy",
+    "editHelp": "Ogni riga dice: se il cliente annulla con almeno quelle ore di anticipo, rimborsi quella percentuale. Serve sempre una riga a 0 ore, che vale anche in caso di assenza.",
+    "name": "Nome della policy",
+    "hoursLabel": "Ore di anticipo",
+    "pctLabel": "Rimborso %",
+    "addTier": "Aggiungi una fascia",
+    "makeDefault": "Usala come predefinita",
+    "save": "Salva",
+    "delete": "Elimina policy",
+    "cancelRules": "Se annulli",
+    "line": "Con almeno {{when}} di anticipo: rimborso {{pct}}%",
+    "lineLast": "Dopo (o se non ti presenti): rimborso {{pct}}%",
+    "days_one": "{{count}} giorno",
+    "days_other": "{{count}} giorni",
+    "hours_one": "{{count}} ora",
+    "hours_other": "{{count}} ore",
+    "errors": {
+      "count": "Servono da 1 a 8 fasce.",
+      "hours": "Le ore devono essere un numero intero da 0 a 720.",
+      "percent": "Il rimborso deve essere da 0 a 100.",
+      "duplicate": "Due fasce hanno le stesse ore.",
+      "increasing": "Il rimborso non può aumentare quando l'anticipo diminuisce.",
+      "needZero": "Serve una fascia a 0 ore.",
+      "empty": "Compila ore e percentuale in ogni riga.",
+      "name": "Dai un nome alla policy."
+    }
+  },
+  "bookings": {
+    "title": "Le mie prenotazioni",
+    "empty": "Non hai ancora prenotazioni.",
+    "roleClient": "Hai prenotato",
+    "roleSeller": "Ricevuta",
+    "status": {
+      "confirmed": "confermata",
+      "completed": "conclusa",
+      "cancelled": "annullata",
+      "no_show": "assente"
+    },
+    "refunded": "rimborsati {{amount}}",
+    "cancel": "Annulla prenotazione",
+    "refundPreview": "Se annulli ora ti vengono rimborsati {{amount}} ({{pct}}%).",
+    "noPayment": "Non risulta ancora un pagamento: l'annullamento è senza costi.",
+    "confirmCancel": "Conferma annullamento",
+    "keep": "Tieni la prenotazione",
+    "errors": {
+      "already_started": "La sessione è già iniziata.",
+      "not_cancellable": "Questa prenotazione non si può più annullare.",
+      "payment_in_progress": "Il pagamento è in corso: riprova tra un momento."
     }
   }
 }

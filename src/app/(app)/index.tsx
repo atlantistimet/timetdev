@@ -18,6 +18,8 @@ export default function Home() {
       <Spacer size={24} />
       <Button title={t('home.servicesLink')} onPress={() => router.push('/services')} />
       <Spacer size={12} />
+      <Button title={t('home.bookingsLink')} variant="ghost" onPress={() => router.push('/bookings')} />
+      <Spacer size={12} />
       <Button title={t('home.sellerArea')} variant="ghost" onPress={() => router.push('/seller')} />
       <Spacer size={32} />
       <Body>{t('settings.language')}</Body>

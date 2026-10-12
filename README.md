@@ -21,10 +21,11 @@ src/i18n/                       configurazione lingue e file di traduzione (loca
 src/lib/supabase.ts             client Supabase
 src/lib/auth.tsx                sessione e profilo (AuthProvider, useAuth)
 src/lib/auth-errors.ts          errori di Supabase Auth → messaggi tradotti
-supabase/functions/             funzioni server (Deno): stripe-connect-onboarding, stripe-webhook, _shared
+supabase/functions/             funzioni server (Deno): stripe-connect-onboarding, stripe-webhook, create-booking-payment, cancel-booking, expire-unpaid-bookings, _shared
 supabase/migrations/0001_init.sql            schema iniziale (tabelle, vincoli, RLS, categorie)
 supabase/migrations/0002_stripe_connect.sql  da Mangopay a Stripe Connect (pagamenti, cursore chiamate)
 supabase/migrations/0003_direct_charges.sql  addebiti diretti: via i trasferimenti, commissione (application fee) sui pagamenti
+supabase/migrations/0004_cancel_policies.sql policy di cancellazione a fasce decise dal venditore (standard: 100% fino a 48 h, 50% fino a 2 h, poi 0%)
 ```
 
 ## Avvio
@@ -35,7 +36,7 @@ cp .env.example .env     # inserisci URL e anon key del progetto Supabase
 npm run web              # oppure npm run ios / npm run android
 ```
 
-Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono già applicate la 0001 e la 0002; applicata anche la 0003.
+Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono applicate la 0001, 0002, 0003 e 0004.
 
 ## Login
 
@@ -49,6 +50,7 @@ Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di 
 - `stripe-connect-onboarding`: chiamata dall'app con la sessione dell'utente (richiede 18+ dichiarato). `{action:'onboard'}` crea una sola volta l'account Stripe del venditore e restituisce il link all'onboarding ospitato; `{action:'refresh'}` rilegge lo stato da Stripe.
 - `stripe-webhook`: due destinazioni Stripe, due segreti di firma. "Il tuo account" (payload Thin, eventi `v2.core.account...`) aggiorna `stripe_accounts`; "Account connessi" (payload Snapshot, `payment_intent.succeeded|payment_failed|canceled`) aggiorna `payments` e libera lo slot se il pagamento è annullato.
 - `create-booking-payment`: l'app la chiama con la sessione dell'utente per prenotare uno slot; calcola le commissioni (`_shared/fees.ts`), crea la prenotazione e il PaymentIntent (addebito diretto con application fee) e restituisce il `client_secret`.
+- `cancel-booking`: annulla una prenotazione (cliente o venditore) e rimborsa secondo le fasce congelate nella prenotazione (`bookings.cancel_tiers`); se annulla il venditore il rimborso è totale. Il rimborso include la quota proporzionale della commissione Timeet. `preview:true` restituisce solo l'importo.
 - `expire-unpaid-bookings`: annulla (PaymentIntent e prenotazione) i pagamenti non completati dopo 15 minuti. Protetta dal segreto `CRON_SECRET` (header `x-cron-secret`), chiamata ogni 5 minuti da pg_cron. Il job non sta nelle migrazioni perché contiene il segreto; per ricrearlo (SQL Editor, con pg_net e pg_cron attivi):
   `select cron.schedule('expire-unpaid-bookings','*/5 * * * *', $$select net.http_post(url:='https://<ref>.supabase.co/functions/v1/expire-unpaid-bookings', headers:=jsonb_build_object('x-cron-secret','<CRON_SECRET>','Content-Type','application/json'), body:='{}'::jsonb)$$);`
 - Segreti (Supabase → Edge Functions → Secrets): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_WEBHOOK_SECRET`, `CRON_SECRET`; facoltativi `PUBLIC_PROFILE_BASE_URL` (default `https://timeet.world`), `STRIPE_API_VERSION`, `ONBOARDING_RETURN_URL`, `ONBOARDING_REFRESH_URL` (di prova puntano a localhost:8081).

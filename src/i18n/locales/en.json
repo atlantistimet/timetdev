@@ -16,7 +16,8 @@
     "greeting": "Hi, {{name}}",
     "signedInAs": "Signed in as {{email}}",
     "sellerArea": "Seller area",
-    "servicesLink": "Book a service"
+    "servicesLink": "Book a service",
+    "bookingsLink": "My bookings"
   },
   "settings": {
     "language": "Language",
@@ -136,6 +137,65 @@
       "place_not_offered": "The seller doesn't offer this option.",
       "address_required": "An address is required.",
       "unsupported_service_kind": "This kind of service can't be booked yet."
+    }
+  },
+  "policy": {
+    "title": "Cancellation policy",
+    "intro": "Decide how much you refund when a client cancels. You can have several policies and set one as default. If the seller cancels, the client is always fully refunded.",
+    "standardName": "Timeet standard",
+    "usingStandard": "You don't have your own policies yet: the standard one applies.",
+    "default": "default",
+    "edit": "Edit",
+    "new": "New policy",
+    "newTitle": "New policy",
+    "editTitle": "Edit policy",
+    "editHelp": "Each row says: if the client cancels at least that many hours ahead, you refund that percentage. A row at 0 hours is always required; it also applies to no-shows.",
+    "name": "Policy name",
+    "hoursLabel": "Hours ahead",
+    "pctLabel": "Refund %",
+    "addTier": "Add a tier",
+    "makeDefault": "Use as default",
+    "save": "Save",
+    "delete": "Delete policy",
+    "cancelRules": "If you cancel",
+    "line": "At least {{when}} ahead: {{pct}}% refund",
+    "lineLast": "After that (or no-show): {{pct}}% refund",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "hours_one": "{{count}} hour",
+    "hours_other": "{{count}} hours",
+    "errors": {
+      "count": "You need 1 to 8 tiers.",
+      "hours": "Hours must be a whole number from 0 to 720.",
+      "percent": "Refund must be from 0 to 100.",
+      "duplicate": "Two tiers have the same hours.",
+      "increasing": "The refund can't increase as the notice gets shorter.",
+      "needZero": "A tier at 0 hours is required.",
+      "empty": "Fill in hours and percentage on every row.",
+      "name": "Give the policy a name."
+    }
+  },
+  "bookings": {
+    "title": "My bookings",
+    "empty": "You have no bookings yet.",
+    "roleClient": "You booked",
+    "roleSeller": "Received",
+    "status": {
+      "confirmed": "confirmed",
+      "completed": "completed",
+      "cancelled": "cancelled",
+      "no_show": "no-show"
+    },
+    "refunded": "{{amount}} refunded",
+    "cancel": "Cancel booking",
+    "refundPreview": "If you cancel now you'll be refunded {{amount}} ({{pct}}%).",
+    "noPayment": "No payment recorded yet: cancelling is free.",
+    "confirmCancel": "Confirm cancellation",
+    "keep": "Keep the booking",
+    "errors": {
+      "already_started": "The session has already started.",
+      "not_cancellable": "This booking can no longer be cancelled.",
+      "payment_in_progress": "Payment is in progress: try again in a moment."
     }
   }
 }
