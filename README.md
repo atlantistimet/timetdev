@@ -6,7 +6,7 @@ App per prenotare il tempo delle persone (solo 18+). Un'unica base di codice per
 
 - **App**: Expo (React Native, TypeScript), development build
 - **Backend**: Supabase (database, login, storage, chat realtime, edge functions)
-- **Pagamenti**: Stripe Connect (account Express per i venditori). Il cliente paga sul conto della piattaforma; a sessione conclusa il server trasferisce al venditore l'importo meno la commissione. Per le chiamate al minuto si blocca l'importo sulla carta (manual capture) e si incassano solo i minuti effettivi. Nessun wallet.
+- **Pagamenti**: Stripe Connect con **addebiti diretti** (direct charges). Il cliente paga direttamente il venditore (PaymentIntent sull'account Stripe del venditore); Atlantis incassa solo la propria commissione (application fee) e fattura solo quella. Account dei venditori: Accounts v2 (configurazione merchant), dashboard Express, saldi negativi a carico di Stripe. Per le chiamate al minuto si blocca l'importo sulla carta (manual capture) e si incassano solo i minuti effettivi. Nessun wallet, nessun trasferimento da parte nostra.
 - **Videochiamate**: LiveKit
 - **Lingue**: i18next + expo-localization, italiano e inglese dal lancio
 
@@ -22,7 +22,8 @@ src/lib/supabase.ts             client Supabase
 src/lib/auth.tsx                sessione e profilo (AuthProvider, useAuth)
 src/lib/auth-errors.ts          errori di Supabase Auth → messaggi tradotti
 supabase/migrations/0001_init.sql            schema iniziale (tabelle, vincoli, RLS, categorie)
-supabase/migrations/0002_stripe_connect.sql  da Mangopay a Stripe Connect (pagamenti, trasferimenti, cursore chiamate)
+supabase/migrations/0002_stripe_connect.sql  da Mangopay a Stripe Connect (pagamenti, cursore chiamate)
+supabase/migrations/0003_direct_charges.sql  addebiti diretti: via i trasferimenti, commissione (application fee) sui pagamenti
 ```
 
 ## Avvio
@@ -33,7 +34,7 @@ cp .env.example .env     # inserisci URL e anon key del progetto Supabase
 npm run web              # oppure npm run ios / npm run android
 ```
 
-Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono già applicate la 0001 e la 0002.
+Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono già applicate la 0001 e la 0002; la 0003 è scritta e provata su un database locale, da applicare.
 
 ## Login
 
@@ -52,7 +53,7 @@ Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di 
 
 ## Prossimi passi tecnici
 
-1. Account Stripe di Atlantis srl (modalità test), poi edge functions per account Express dei venditori, pagamenti e trasferimenti.
+1. Stripe (sandbox `timeet-test` di Atlantis srl creata): attivare Connect, poi edge functions per onboarding dei venditori (Accounts v2, dashboard Express), PaymentIntent sull'account del venditore con `application_fee_amount`, cattura parziale per le chiamate al minuto, webhook. Da verificare in sandbox: commissione alla cattura parziale, pianificazione dei payout, carte salvate per account venditore.
 2. Prototipo LiveKit + Expo (chiamate in background, CallKit su iOS, webhook per il conteggio minuti).
 3. Login con Apple e Google (servono gli account sviluppatore di Atlantis srl).
 4. Prima del lancio: SMTP proprio e conferma email attiva; sessione in storage cifrato (oggi AsyncStorage).
