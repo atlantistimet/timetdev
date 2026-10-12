@@ -15,7 +15,8 @@
     "subtitle": "Prenota il tempo delle persone.",
     "greeting": "Ciao, {{name}}",
     "signedInAs": "Accesso effettuato come {{email}}",
-    "sellerArea": "Area venditore"
+    "sellerArea": "Area venditore",
+    "servicesLink": "Prenota un servizio"
   },
   "settings": {
     "language": "Lingua",
@@ -109,5 +110,32 @@
     "continue": "Continua la registrazione",
     "returnTitle": "Registrazione venditore",
     "goToSeller": "Vai all'area venditore"
+  },
+  "book": {
+    "servicesTitle": "Servizi disponibili",
+    "noServices": "Per ora non ci sono servizi da prenotare.",
+    "choose": "Scegli",
+    "title": "Prenota",
+    "pickSlot": "Scegli quando",
+    "noSlots": "Il venditore non ha orari liberi.",
+    "online": "online",
+    "continue": "Vai al pagamento",
+    "payTitle": "Pagamento",
+    "total": "Totale: {{amount}} (commissione di servizio inclusa)",
+    "pay": "Paga",
+    "paidTitle": "Prenotazione confermata",
+    "paidBody": "Il pagamento è andato a buon fine. Troverai la prenotazione tra le tue.",
+    "nativeNotReady": "Il pagamento da app mobile non è ancora disponibile: per ora si prova dal web.",
+    "errors": {
+      "adult_required": "Per prenotare devi confermare di essere maggiorenne.",
+      "slot_unavailable": "Questo orario non è più disponibile: scegline un altro.",
+      "seller_not_ready": "Questo venditore non può ancora ricevere pagamenti.",
+      "service_not_found": "Servizio non trovato.",
+      "own_service": "Non puoi prenotare un tuo servizio.",
+      "in_the_past": "Questo orario è già passato.",
+      "place_not_offered": "Il venditore non offre questa modalità.",
+      "address_required": "Serve l'indirizzo.",
+      "unsupported_service_kind": "Questo tipo di servizio non è ancora prenotabile."
+    }
   }
 }

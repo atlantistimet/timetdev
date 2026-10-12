@@ -15,7 +15,8 @@
     "subtitle": "Book people's time.",
     "greeting": "Hi, {{name}}",
     "signedInAs": "Signed in as {{email}}",
-    "sellerArea": "Seller area"
+    "sellerArea": "Seller area",
+    "servicesLink": "Book a service"
   },
   "settings": {
     "language": "Language",
@@ -109,5 +110,32 @@
     "continue": "Continue sign-up",
     "returnTitle": "Seller sign-up",
     "goToSeller": "Go to the seller area"
+  },
+  "book": {
+    "servicesTitle": "Available services",
+    "noServices": "There are no services to book yet.",
+    "choose": "Choose",
+    "title": "Book",
+    "pickSlot": "Pick a time",
+    "noSlots": "The seller has no free times.",
+    "online": "online",
+    "continue": "Go to payment",
+    "payTitle": "Payment",
+    "total": "Total: {{amount}} (service fee included)",
+    "pay": "Pay",
+    "paidTitle": "Booking confirmed",
+    "paidBody": "Payment went through. You'll find the booking among yours.",
+    "nativeNotReady": "Payment from the mobile app isn't available yet: for now, try it on the web.",
+    "errors": {
+      "adult_required": "You must confirm you are over 18 to book.",
+      "slot_unavailable": "This time is no longer available: pick another.",
+      "seller_not_ready": "This seller can't receive payments yet.",
+      "service_not_found": "Service not found.",
+      "own_service": "You can't book your own service.",
+      "in_the_past": "This time has already passed.",
+      "place_not_offered": "The seller doesn't offer this option.",
+      "address_required": "An address is required.",
+      "unsupported_service_kind": "This kind of service can't be booked yet."
+    }
   }
 }

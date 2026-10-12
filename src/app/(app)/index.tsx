@@ -16,7 +16,9 @@ export default function Home() {
       <Spacer size={8} />
       <Body muted>{t('home.signedInAs', { email: session?.user.email })}</Body>
       <Spacer size={24} />
-      <Button title={t('home.sellerArea')} onPress={() => router.push('/seller')} />
+      <Button title={t('home.servicesLink')} onPress={() => router.push('/services')} />
+      <Spacer size={12} />
+      <Button title={t('home.sellerArea')} variant="ghost" onPress={() => router.push('/seller')} />
       <Spacer size={32} />
       <Body>{t('settings.language')}</Body>
       <Spacer size={8} />
