@@ -75,8 +75,20 @@ Deno.serve(async (req) => {
           contact_email: user.email,
           display_name: profile.full_name || user.email,
           dashboard: 'express',
-          identity: { country: 'it' },
-          configuration: { merchant: { capabilities: { card_payments: { requested: true } } } },
+          // Dati noti a priori: Stripe non li richiede più al venditore.
+          // Tipo "persona fisica", categoria "servizi personali vari" (MCC 7299) e descrizione fissa.
+          identity: {
+            country: 'it',
+            entity_type: 'individual',
+            business_details: { product_description: 'Servizi di consulenza e compagnia prenotati online tramite Timeet' },
+          },
+          configuration: {
+            merchant: {
+              mcc: '7299',
+              support: { email: user.email },
+              capabilities: { card_payments: { requested: true } },
+            },
+          },
           defaults: {
             currency: 'eur',
             responsibilities: { fees_collector: 'stripe', losses_collector: 'stripe' },
