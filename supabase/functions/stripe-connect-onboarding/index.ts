@@ -76,20 +76,19 @@ Deno.serve(async (req) => {
           display_name: profile.full_name || user.email,
           dashboard: 'express',
           // Dati noti a priori: Stripe non li richiede più al venditore.
-          // Tipo "persona fisica", categoria "servizi personali vari" (MCC 7299) e descrizione fissa.
+          // Tipo "persona fisica", categoria "servizi personali vari" (MCC 7299), contatto di assistenza.
           identity: {
             country: 'it',
             entity_type: 'individual',
-            business_details: {
-              product_description: 'Servizi di consulenza e compagnia prenotati online tramite Timeet',
-              // Il profilo pubblico Timeet fa da sito del venditore (se ha già scelto un handle).
-              ...(profile.handle ? { url: `${Deno.env.get('PUBLIC_PROFILE_BASE_URL') ?? 'https://timeet.world'}/${profile.handle}` } : {}),
-            },
           },
           configuration: {
             merchant: {
               mcc: '7299',
-              support: { email: user.email },
+              support: {
+                email: user.email,
+                // Il profilo pubblico Timeet fa da sito del venditore (se ha già scelto un handle).
+                ...(profile.handle ? { url: `${Deno.env.get('PUBLIC_PROFILE_BASE_URL') ?? 'https://timeet.world'}/${profile.handle}` } : {}),
+              },
               capabilities: { card_payments: { requested: true } },
             },
           },
