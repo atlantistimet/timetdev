@@ -1,14 +1,17 @@
-// Webhook Stripe (endpoint Connect: eventi degli account collegati).
-// Per ora aggiorna lo stato dei venditori (account.updated). Si estenderà ai pagamenti.
+// Webhook Stripe. Per ora tiene aggiornato lo stato dei venditori (stripe_accounts).
+//  - Eventi "thin" degli Accounts v2 (v2.core.account...): il corpo contiene solo l'id dell'account;
+//    lo stato aggiornato si rilegge da Stripe. Destinazione Stripe: "Il tuo account", stile Thin.
+//  - Evento classico account.updated (stile Snapshot), se mai arrivasse.
 // La firma (Stripe-Signature) è obbligatoria: senza firma valida non si scrive nulla.
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { verifyStripeSignature } from '../_shared/stripe.ts';
+import { syncAccountStatus } from '../_shared/account-sync.ts';
+import { StripeError, verifyStripeSignature } from '../_shared/stripe.ts';
 
 type StripeEvent = {
   id: string;
   type: string;
-  account?: string;
-  data: { object: Record<string, unknown> };
+  related_object?: { id?: string; type?: string }; // eventi thin
+  data?: { object?: { id?: string } }; // eventi snapshot
 };
 
 Deno.serve(async (req) => {
@@ -22,29 +25,16 @@ Deno.serve(async (req) => {
   if (!valid) return new Response('invalid signature', { status: 400 });
 
   const event = JSON.parse(payload) as StripeEvent;
-  const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const isAccountEvent = event.type.startsWith('v2.core.account') || event.type === 'account.updated';
+  const accountId = event.related_object?.id ?? event.data?.object?.id;
 
-  if (event.type === 'account.updated') {
-    const account = event.data.object as {
-      id: string;
-      details_submitted?: boolean;
-      charges_enabled?: boolean;
-      payouts_enabled?: boolean;
-      requirements?: { currently_due?: string[]; past_due?: string[] };
-    };
-    const due = [...new Set([...(account.requirements?.currently_due ?? []), ...(account.requirements?.past_due ?? [])])];
-    const { error } = await admin
-      .from('stripe_accounts')
-      .update({
-        details_submitted: account.details_submitted ?? false,
-        charges_enabled: account.charges_enabled ?? false,
-        payouts_enabled: account.payouts_enabled ?? false,
-        requirements_due: due,
-      })
-      .eq('stripe_account_id', account.id);
-    if (error) {
-      console.error('Aggiornamento account fallito', error);
-      return new Response('db error', { status: 500 }); // Stripe riproverà
+  if (isAccountEvent && accountId?.startsWith('acct_')) {
+    const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    try {
+      await syncAccountStatus(admin, accountId);
+    } catch (error) {
+      console.error('Aggiornamento account fallito', accountId, error instanceof StripeError ? JSON.stringify(error.body) : error);
+      return new Response('sync error', { status: 500 }); // Stripe riproverà
     }
   }
 

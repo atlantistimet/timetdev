@@ -47,7 +47,7 @@ Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di 
 ## Funzioni Stripe (supabase/functions)
 
 - `stripe-connect-onboarding`: chiamata dall'app con la sessione dell'utente (richiede 18+ dichiarato). `{action:'onboard'}` crea una sola volta l'account Stripe del venditore e restituisce il link all'onboarding ospitato; `{action:'refresh'}` rilegge lo stato da Stripe.
-- `stripe-webhook`: riceve gli eventi Connect (firma verificata) e aggiorna `stripe_accounts` (abilitazioni e requisiti mancanti).
+- `stripe-webhook`: riceve gli eventi `v2.core.account...` (destinazione Stripe "Il tuo account", payload Thin; firma verificata), rilegge lo stato dell'account e aggiorna `stripe_accounts`. Per i pagamenti serviranno eventi sulla destinazione "Account connessi".
 - Segreti (Supabase → Edge Functions → Secrets): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`; facoltativi `STRIPE_API_VERSION`, `ONBOARDING_RETURN_URL`, `ONBOARDING_REFRESH_URL` (di prova puntano a localhost:8081).
 - Funzioni pubblicate su Supabase (onboarding provato dal vivo sulla sandbox; webhook ancora da collegare in Stripe). Stripe è chiamata via REST senza libreria. Le versioni API sono fissate in `_shared/stripe.ts`. Sono escluse da lint e typecheck dell'app (girano su Deno).
 

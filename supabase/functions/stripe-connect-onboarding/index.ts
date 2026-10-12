@@ -8,21 +8,15 @@
 //  dashboard Express; commissioni Stripe a carico del venditore; saldi negativi a carico di Stripe;
 //  verifica d'identità raccolta da Stripe; paese Italia; capability card_payments.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { syncAccountStatus } from '../_shared/account-sync.ts';
 import { corsHeaders, json } from '../_shared/http.ts';
-import { PREVIEW_API_VERSION, stripeRequest, stripeV2, StripeError } from '../_shared/stripe.ts';
+import { PREVIEW_API_VERSION, stripeV2, StripeError } from '../_shared/stripe.ts';
 
 // Express + saldi negativi a carico di Stripe è disponibile solo nella versione API di anteprima.
 const V = { version: PREVIEW_API_VERSION };
 
 type V2Account = { id: string };
 type V2AccountLink = { url: string; expires_at: string };
-type V1Account = {
-  id: string;
-  details_submitted?: boolean;
-  charges_enabled?: boolean;
-  payouts_enabled?: boolean;
-  requirements?: { currently_due?: string[]; past_due?: string[] };
-};
 type V2AccountDefaults = { defaults?: { responsibilities?: { fees_collector?: string; losses_collector?: string } } };
 
 Deno.serve(async (req) => {
@@ -65,24 +59,10 @@ Deno.serve(async (req) => {
 
     if (action === 'refresh') {
       if (!accountId) return json({ error: 'no_account' }, 404);
-      // Per gli account v2 la lettura "v1" restituisce i campi di stato classici.
-      const status = await stripeRequest<V1Account>('GET', `/v1/accounts/${accountId}`, undefined, V);
-      const due = [...new Set([...(status.requirements?.currently_due ?? []), ...(status.requirements?.past_due ?? [])])];
-      await admin
-        .from('stripe_accounts')
-        .update({
-          details_submitted: status.details_submitted ?? false,
-          charges_enabled: status.charges_enabled ?? false,
-          payouts_enabled: status.payouts_enabled ?? false,
-          requirements_due: due,
-        })
-        .eq('stripe_account_id', accountId);
+      const status = await syncAccountStatus(admin, accountId);
       const defaults = await stripeV2<V2AccountDefaults>('GET', `/v2/core/accounts/${accountId}?include[0]=defaults`, undefined, V);
       return json({
-        details_submitted: status.details_submitted ?? false,
-        charges_enabled: status.charges_enabled ?? false,
-        payouts_enabled: status.payouts_enabled ?? false,
-        requirements_due: due,
+        ...status,
         responsibilities: defaults.defaults?.responsibilities ?? null,
       });
     }
