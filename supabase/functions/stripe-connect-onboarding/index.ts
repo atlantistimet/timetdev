@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
             business_details: {
               product_description: 'Servizi di consulenza e compagnia prenotati online tramite Timeet',
               // Il profilo pubblico Timeet fa da sito del venditore (se ha già scelto un handle).
-              ...(profile.handle ? { url: `${Deno.env.get('PUBLIC_PROFILE_BASE_URL') ?? 'https://timeet.com'}/${profile.handle}` } : {}),
+              ...(profile.handle ? { url: `${Deno.env.get('PUBLIC_PROFILE_BASE_URL') ?? 'https://timeet.world'}/${profile.handle}` } : {}),
             },
           },
           configuration: {
