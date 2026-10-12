@@ -6,7 +6,7 @@ App per prenotare il tempo delle persone (solo 18+). Un'unica base di codice per
 
 - **App**: Expo (React Native, TypeScript), development build
 - **Backend**: Supabase (database, login, storage, chat realtime, edge functions)
-- **Pagamenti**: Mangopay (wallet per utente; la fonte di verità del saldo è Mangopay, il database ne tiene una copia)
+- **Pagamenti**: Stripe Connect (account Express per i venditori). Il cliente paga sul conto della piattaforma; a sessione conclusa il server trasferisce al venditore l'importo meno la commissione. Per le chiamate al minuto si blocca l'importo sulla carta (manual capture) e si incassano solo i minuti effettivi. Nessun wallet.
 - **Videochiamate**: LiveKit
 - **Lingue**: i18next + expo-localization, italiano e inglese dal lancio
 
@@ -16,7 +16,8 @@ App per prenotare il tempo delle persone (solo 18+). Un'unica base di codice per
 src/app/                        schermate (Expo Router): ogni file è una route
 src/i18n/                       configurazione lingue e file di traduzione (locales/it.json, en.json)
 src/lib/supabase.ts             client Supabase
-supabase/migrations/0001_init.sql   schema iniziale (tabelle, vincoli, RLS, categorie)
+supabase/migrations/0001_init.sql            schema iniziale (tabelle, vincoli, RLS, categorie)
+supabase/migrations/0002_stripe_connect.sql  da Mangopay a Stripe Connect (pagamenti, trasferimenti, cursore chiamate)
 ```
 
 ## Avvio
@@ -39,6 +40,6 @@ La migrazione `0001_init.sql` si applica dal SQL editor di Supabase o con la Sup
 
 ## Prossimi passi tecnici
 
-1. Creare il progetto Supabase e applicare la migrazione.
+1. Applicare la migrazione 0002 al progetto Supabase (la 0001 è già applicata).
 2. Prototipo LiveKit + Expo (chiamate in background, CallKit su iOS, webhook per il conteggio minuti).
 3. Login (email, Apple, Google) con conferma 18+.
