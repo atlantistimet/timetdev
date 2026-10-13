@@ -1,7 +1,7 @@
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Body, Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro, listSlotServices, type SlotService } from '@/lib/booking';
 
@@ -26,14 +26,13 @@ export default function ServicesScreen() {
   if (!result) return <LoadingView />;
 
   return (
-    <Screen>
+    <Screen tabs>
       <Title>{t('book.servicesTitle')}</Title>
       <Spacer />
       {result.errorKey ? <ErrorText>{t(result.errorKey)}</ErrorText> : null}
       {!result.errorKey && result.services.length === 0 ? <Body muted>{t('book.noServices')}</Body> : null}
       {result.services.map((service) => (
-        <Fragment key={service.id}>
-          <Spacer size={12} />
+        <Card key={service.id}>
           <Body>{service.title}</Body>
           <Body muted>
             {formatEuro(service.price_cents, i18n.language)} · {service.duration_min} min
@@ -44,10 +43,8 @@ export default function ServicesScreen() {
             variant="ghost"
             onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })}
           />
-        </Fragment>
+        </Card>
       ))}
-      <Spacer size={24} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/')} />
     </Screen>
   );
 }

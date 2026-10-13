@@ -1,8 +1,8 @@
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { TierLines } from '@/components/TierLines';
-import { Body, Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { listPolicies, STANDARD_TIERS, type CancelPolicy } from '@/lib/cancel-policy';
 
@@ -41,8 +41,7 @@ export default function PoliciesScreen() {
         </>
       ) : null}
       {result.policies.map((policy) => (
-        <Fragment key={policy.id}>
-          <Spacer size={12} />
+        <Card key={policy.id}>
           <Body>
             {policy.name}
             {policy.is_default ? ` · ${t('policy.default')}` : ''}
@@ -50,7 +49,7 @@ export default function PoliciesScreen() {
           <TierLines tiers={policy.tiers} />
           <Spacer size={8} />
           <Button title={t('policy.edit')} variant="ghost" onPress={() => router.push({ pathname: '/policy-edit', params: { id: policy.id } })} />
-        </Fragment>
+        </Card>
       ))}
       <Spacer size={24} />
       <Button title={t('policy.new')} onPress={() => router.push('/policy-edit')} />

@@ -1,25 +1,36 @@
 import { useColorScheme } from 'react-native';
 
-// Palette neutra provvisoria: la palette definitiva del prodotto non è ancora stata scelta.
+// Stile "Mono" del prototipo: fondo grigio chiaro, card bianche senza bordi, campi e pulsanti secondari pieni grigi,
+// nero come colore principale, verde solo per gli accenti.
 const light = {
-  bg: '#FFFFFF',
-  surface: '#F5F5F4',
-  text: '#171717',
-  muted: '#5F5F5A',
-  line: '#D9D9D4',
-  primary: '#171717',
+  bg: '#F4F4F5',
+  surface: '#FFFFFF',
+  fill: '#EBEBED',
+  text: '#000000',
+  muted: '#6E6E73',
+  line: '#EFEFF1',
+  primary: '#000000',
   onPrimary: '#FFFFFF',
+  accent: '#05A660',
+  accentSoft: '#E3F7EC',
+  glass: 'rgba(246,246,248,0.92)',
+  glassOn: '#FFFFFF',
   danger: '#B42318',
 };
 
 const dark: typeof light = {
-  bg: '#0F0F0F',
-  surface: '#1A1A19',
-  text: '#F5F5F4',
-  muted: '#A3A39E',
-  line: '#34342F',
-  primary: '#F5F5F4',
-  onPrimary: '#0F0F0F',
+  bg: '#000000',
+  surface: '#161618',
+  fill: '#232326',
+  text: '#FFFFFF',
+  muted: '#9A9AA0',
+  line: '#232326',
+  primary: '#FFFFFF',
+  onPrimary: '#000000',
+  accent: '#1ED37A',
+  accentSoft: '#0F2A1C',
+  glass: 'rgba(40,40,44,0.92)',
+  glassOn: 'rgba(255,255,255,0.16)',
   danger: '#F97066',
 };
 

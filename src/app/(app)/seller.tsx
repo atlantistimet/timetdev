@@ -66,7 +66,7 @@ export default function SellerScreen() {
       <Spacer size={12} />
       <Button title={t('policy.title')} variant="ghost" onPress={() => router.push('/policies')} />
       <Spacer size={12} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/')} />
+      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/profile')} />
     </Screen>
   );
 }

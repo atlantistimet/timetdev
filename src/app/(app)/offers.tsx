@@ -1,7 +1,7 @@
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Body, Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { listMyServices, type MyService } from '@/lib/offers';
 import { formatEuro } from '@/lib/booking';
@@ -38,8 +38,7 @@ export default function OffersScreen() {
       {loaded.errorKey ? <ErrorText>{t(loaded.errorKey)}</ErrorText> : null}
       {!loaded.errorKey && loaded.services.length === 0 ? <Body muted>{t('offers.empty')}</Body> : null}
       {loaded.services.map((service) => (
-        <Fragment key={service.id}>
-          <Spacer size={12} />
+        <Card key={service.id}>
           <Body>
             {service.title}
             {service.active ? '' : ` · ${t('offers.paused')}`}
@@ -50,7 +49,7 @@ export default function OffersScreen() {
           <Body muted>{t('offers.policyLine', { name: policyLabel(service) })}</Body>
           <Spacer size={8} />
           <Button title={t('offers.edit')} variant="ghost" onPress={() => router.push({ pathname: '/offer-edit', params: { id: service.id } })} />
-        </Fragment>
+        </Card>
       ))}
       <Spacer size={24} />
       <Button title={t('offers.new')} onPress={() => router.push('/offer-edit')} />

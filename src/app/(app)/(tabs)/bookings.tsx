@@ -1,7 +1,6 @@
-import { Fragment, useEffect, useState } from 'react';
-import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Body, Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro, listMyBookings, type MyBooking } from '@/lib/booking';
 import { cancelBooking, previewCancel, type CancelPreview } from '@/lib/cancel-policy';
@@ -70,7 +69,7 @@ export default function BookingsScreen() {
   };
 
   return (
-    <Screen>
+    <Screen tabs>
       <Title>{t('bookings.title')}</Title>
       <Spacer />
       {listError ? <ErrorText>{t(listError)}</ErrorText> : null}
@@ -80,8 +79,7 @@ export default function BookingsScreen() {
         const preview = previews[booking.id];
         const future = new Date(booking.starts_at).getTime() > now;
         return (
-          <Fragment key={booking.id}>
-            <Spacer size={12} />
+          <Card key={booking.id}>
             <Body>{booking.service_title}</Body>
             <Body muted>{dateFormat.format(new Date(booking.starts_at))}</Body>
             <Body muted>
@@ -120,11 +118,9 @@ export default function BookingsScreen() {
                 </>
               )
             ) : null}
-          </Fragment>
+          </Card>
         );
       })}
-      <Spacer size={24} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/')} />
     </Screen>
   );
 }

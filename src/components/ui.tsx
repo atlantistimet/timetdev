@@ -15,13 +15,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
 
 /** Contenitore di schermata: area sicura, tastiera che non copre i campi, contenuto centrato e largo al massimo 440. */
-export function Screen({ children }: { children: ReactNode }) {
+export function Screen({ children, tabs }: { children: ReactNode; tabs?: boolean }) {
   const theme = useTheme();
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: theme.bg }]}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={styles.screenContent}
+          contentContainerStyle={[styles.screenContent, tabs && styles.screenTabs]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <View style={styles.screenColumn}>{children}</View>
@@ -61,7 +61,7 @@ export const TextField = forwardRef<TextInput, TextFieldProps>(function TextFiel
         placeholderTextColor={theme.muted}
         style={[
           styles.input,
-          { color: theme.text, backgroundColor: theme.surface, borderColor: error ? theme.danger : theme.line },
+          { color: theme.text, backgroundColor: theme.fill, borderColor: theme.danger, borderWidth: error ? 1.5 : 0 },
           style,
         ]}
         {...inputProps}
@@ -100,7 +100,7 @@ export function Button({ title, onPress, loading, variant = 'primary' }: ButtonP
         styles.button,
         primary
           ? { backgroundColor: theme.primary }
-          : { backgroundColor: 'transparent', borderColor: theme.line, borderWidth: 1 },
+          : { backgroundColor: theme.fill },
         pressed && styles.pressed,
         loading && styles.disabled,
       ]}>
@@ -150,6 +150,26 @@ export function Checkbox({
   );
 }
 
+/** Card bianca senza bordo, come nel prototipo. */
+export function Card({ children }: { children: ReactNode }) {
+  const theme = useTheme();
+  return <View style={[styles.card, { backgroundColor: theme.surface }]}>{children}</View>;
+}
+
+/** Card toccabile con titolo e riga di spiegazione. */
+export function CardButton({ title, subtitle, onPress }: { title: string; subtitle?: string; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.card, { backgroundColor: theme.surface }, pressed && styles.pressed]}>
+      <Text style={[styles.cardTitle, { color: theme.text }]}>{title}</Text>
+      {subtitle ? <Text style={[styles.body, { color: theme.muted }]}>{subtitle}</Text> : null}
+    </Pressable>
+  );
+}
+
 export function LoadingView() {
   const theme = useTheme();
   return (
@@ -166,16 +186,19 @@ export function Spacer({ size = 16 }: { size?: number }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   screenContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 24 },
+  screenTabs: { justifyContent: 'flex-start', paddingBottom: 120 },
+  card: { borderRadius: 24, padding: 16, marginBottom: 10 },
+  cardTitle: { fontSize: 17, fontWeight: '700', marginBottom: 2 },
   screenColumn: { width: '100%', maxWidth: 440, alignSelf: 'center' },
-  title: { fontSize: 28, fontWeight: '700', marginBottom: 8 },
+  title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.8, marginBottom: 8 },
   body: { fontSize: 16, lineHeight: 22 },
   field: { marginBottom: 16 },
   label: { fontSize: 14, fontWeight: '600', marginBottom: 6 },
-  input: { minHeight: 48, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, fontSize: 16 },
+  input: { minHeight: 50, borderRadius: 14, paddingHorizontal: 14, fontSize: 16 },
   hint: { fontSize: 13, marginTop: 6 },
   error: { fontSize: 13, marginTop: 6 },
-  button: { minHeight: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  buttonText: { fontSize: 16, fontWeight: '600' },
+  button: { minHeight: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
+  buttonText: { fontSize: 15, fontWeight: '700' },
   pressed: { opacity: 0.8 },
   disabled: { opacity: 0.7 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', minHeight: 48 },

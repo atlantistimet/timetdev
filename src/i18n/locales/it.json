@@ -17,7 +17,10 @@
     "signedInAs": "Accesso effettuato come {{email}}",
     "sellerArea": "Area venditore",
     "servicesLink": "Prenota un servizio",
-    "bookingsLink": "Le mie prenotazioni"
+    "bookingsLink": "Le mie prenotazioni",
+    "servicesHint": "Scegli un servizio e un orario.",
+    "bookingsHint": "Quelle fatte e quelle ricevute.",
+    "sellerHint": "Offerte, policy di cancellazione e pagamenti."
   },
   "settings": {
     "language": "Lingua",
@@ -247,5 +250,11 @@
     "policyCustom": "policy propria",
     "policyCustomLabel": "Personalizza per questa offerta",
     "startFrom": "Parti da:"
+  },
+  "tabs": {
+    "home": "Home",
+    "explore": "Esplora",
+    "agenda": "Agenda",
+    "profile": "Profilo"
   }
 }

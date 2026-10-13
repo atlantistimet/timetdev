@@ -17,7 +17,10 @@
     "signedInAs": "Signed in as {{email}}",
     "sellerArea": "Seller area",
     "servicesLink": "Book a service",
-    "bookingsLink": "My bookings"
+    "bookingsLink": "My bookings",
+    "servicesHint": "Pick a service and a time.",
+    "bookingsHint": "Made and received.",
+    "sellerHint": "Offers, cancellation policies and payments."
   },
   "settings": {
     "language": "Language",
@@ -247,5 +250,11 @@
     "policyCustom": "own policy",
     "policyCustomLabel": "Customize for this offer",
     "startFrom": "Start from:"
+  },
+  "tabs": {
+    "home": "Home",
+    "explore": "Explore",
+    "agenda": "Agenda",
+    "profile": "Profile"
   }
 }
