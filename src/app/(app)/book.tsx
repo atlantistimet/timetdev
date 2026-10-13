@@ -35,7 +35,7 @@ export default function BookScreen() {
         ? {
             service,
             slots: await loadOpenSlots(service.seller_id, service.duration_min),
-            tiers: await loadServiceTiers(service.seller_id, service.cancel_policy_id),
+            tiers: await loadServiceTiers(service.seller_id, service.cancel_tiers),
           }
         : 'missing';
       if (active) setLoaded(result);

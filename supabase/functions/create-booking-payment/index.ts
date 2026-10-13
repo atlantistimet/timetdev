@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
 
   const { data: service } = await admin
     .from('services')
-    .select('id, seller_id, kind, title, price_cents, duration_min, places, active, cancel_policy_id')
+    .select('id, seller_id, kind, title, price_cents, duration_min, places, active, cancel_tiers')
     .eq('id', body.service_id)
     .maybeSingle();
   if (!service || !service.active) return json({ error: 'service_not_found' }, 404);
@@ -56,10 +56,8 @@ Deno.serve(async (req) => {
     // lo slot richiesto deve stare dentro una disponibilità aperta del venditore
     admin.from('availability_slots').select('id').eq('seller_id', service.seller_id).eq('status', 'open')
       .lte('starts_at', startsAt.toISOString()).gte('ends_at', endsAt.toISOString()).limit(1),
-    // policy del servizio, altrimenti predefinita del venditore (se non ne ha, vale la standard)
-    service.cancel_policy_id
-      ? admin.from('cancel_policies').select('tiers').eq('id', service.cancel_policy_id).eq('seller_id', service.seller_id).maybeSingle()
-      : admin.from('cancel_policies').select('tiers').eq('seller_id', service.seller_id).eq('is_default', true).maybeSingle(),
+    // fasce proprie dell'offerta, altrimenti policy predefinita del venditore (se non ne ha, vale la standard)
+    admin.from('cancel_policies').select('tiers').eq('seller_id', service.seller_id).eq('is_default', true).maybeSingle(),
   ]);
   if (!account?.charges_enabled) return json({ error: 'seller_not_ready' }, 409);
   if (!window?.length) return json({ error: 'slot_unavailable' }, 409);
@@ -75,7 +73,7 @@ Deno.serve(async (req) => {
       client_address: place === 'domicilio' ? body.client_address!.trim() : null,
       price_cents: service.price_cents, extra_cents: extraCents,
       client_fee_cents: fees.clientFeeCents, seller_fee_cents: fees.sellerFeeCents,
-      cancel_tiers: policy?.tiers ?? STANDARD_TIERS, source: 'app',
+      cancel_tiers: service.cancel_tiers ?? policy?.tiers ?? STANDARD_TIERS, source: 'app',
     })
     .select('id')
     .single();

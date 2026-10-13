@@ -27,6 +27,7 @@ supabase/migrations/0002_stripe_connect.sql  da Mangopay a Stripe Connect (pagam
 supabase/migrations/0003_direct_charges.sql  addebiti diretti: via i trasferimenti, commissione (application fee) sui pagamenti
 supabase/migrations/0004_cancel_policies.sql policy di cancellazione a fasce decise dal venditore (standard: 100% fino a 48 h, 50% fino a 2 h, poi 0%)
 supabase/migrations/0005_service_cancel_policy.sql policy di cancellazione per servizio (vuoto = predefinita del venditore)
+supabase/migrations/0006_service_cancel_tiers.sql fasce di rimborso proprie di ogni offerta (sostituisce la 0005; vuoto = predefinita del venditore)
 ```
 
 ## Avvio
@@ -37,7 +38,7 @@ cp .env.example .env     # inserisci URL e anon key del progetto Supabase
 npm run web              # oppure npm run ios / npm run android
 ```
 
-Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono applicate la 0001, 0002, 0003, 0004 e 0005.
+Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono applicate la 0001–0006.
 
 ## Login
 

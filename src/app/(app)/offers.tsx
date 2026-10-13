@@ -3,11 +3,10 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { listPolicies, type CancelPolicy } from '@/lib/cancel-policy';
 import { listMyServices, type MyService } from '@/lib/offers';
 import { formatEuro } from '@/lib/booking';
 
-type Loaded = { services: MyService[]; policies: CancelPolicy[]; errorKey: string | null };
+type Loaded = { services: MyService[]; errorKey: string | null };
 
 export default function OffersScreen() {
   const { t, i18n } = useTranslation();
@@ -19,8 +18,8 @@ export default function OffersScreen() {
     if (!userId) return;
     let active = true;
     (async () => {
-      const [s, p] = await Promise.all([listMyServices(userId), listPolicies(userId)]);
-      if (active) setLoaded({ services: s.services, policies: p.policies, errorKey: s.errorKey ?? p.errorKey });
+      const s = await listMyServices(userId);
+      if (active) setLoaded(s);
     })();
     return () => {
       active = false;
@@ -29,10 +28,7 @@ export default function OffersScreen() {
 
   if (!loaded) return <LoadingView />;
 
-  const policyLabel = (service: MyService) => {
-    const own = loaded.policies.find((p) => p.id === service.cancel_policy_id);
-    return own ? own.name : t('offers.policyDefault');
-  };
+  const policyLabel = (service: MyService) => t(service.cancel_tiers ? 'offers.policyCustom' : 'offers.policyDefault');
 
   return (
     <Screen>

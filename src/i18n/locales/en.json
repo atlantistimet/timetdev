@@ -236,14 +236,16 @@
     "fieldDuration": "Duration in minutes",
     "activeLabel": "Visible and bookable",
     "policySection": "Offer policy",
-    "policyHelp": "Choose how much you refund if the client cancels. Existing bookings keep the policy that applied when they were made.",
+    "policyHelp": "Choose how much you refund if the client cancels. Use your default or edit the tiers for this offer only. Existing bookings keep the policy that applied when they were made.",
     "policyDefaultNamed": "Default: {{name}}",
     "policyDefaultStandard": "Default: Timeet standard",
-    "managePolicies": "Add or edit policies",
     "errors": {
       "title": "Give the offer a title.",
       "price": "Enter a price of at least €1.",
       "duration": "Duration must be between 5 and 480 minutes."
-    }
+    },
+    "policyCustom": "own policy",
+    "policyCustomLabel": "Customize for this offer",
+    "startFrom": "Start from:"
   }
 }

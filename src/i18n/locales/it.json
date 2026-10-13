@@ -236,14 +236,16 @@
     "fieldDuration": "Durata in minuti",
     "activeLabel": "Visibile e prenotabile",
     "policySection": "Policy dell'offerta",
-    "policyHelp": "Scegli quanto rimborsi se il cliente annulla. Le prenotazioni già fatte mantengono la policy che c'era al momento della prenotazione.",
+    "policyHelp": "Scegli quanto rimborsi se il cliente annulla. Puoi usare la tua predefinita o modificare le fasce solo per questa offerta. Le prenotazioni già fatte mantengono la policy che c'era al momento della prenotazione.",
     "policyDefaultNamed": "Predefinita: {{name}}",
     "policyDefaultStandard": "Predefinita: standard Timeet",
-    "managePolicies": "Aggiungi o modifica policy",
     "errors": {
       "title": "Dai un titolo all'offerta.",
       "price": "Inserisci un prezzo di almeno 1 €.",
       "duration": "La durata deve essere tra 5 e 480 minuti."
-    }
+    },
+    "policyCustom": "policy propria",
+    "policyCustomLabel": "Personalizza per questa offerta",
+    "startFrom": "Parti da:"
   }
 }

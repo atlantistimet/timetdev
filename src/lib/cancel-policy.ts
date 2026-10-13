@@ -50,13 +50,9 @@ export async function loadDefaultTiers(sellerId: string): Promise<Tier[]> {
   return (data?.tiers as Tier[] | undefined) ?? STANDARD_TIERS;
 }
 
-/** Fasce di un servizio: la sua policy, altrimenti la predefinita del venditore, altrimenti la standard. */
-export async function loadServiceTiers(sellerId: string, policyId: string | null): Promise<Tier[]> {
-  if (policyId) {
-    const policy = await loadPolicy(policyId);
-    if (policy) return policy.tiers;
-  }
-  return loadDefaultTiers(sellerId);
+/** Fasce di un'offerta: le sue proprie, altrimenti la policy predefinita del venditore, altrimenti la standard. */
+export async function loadServiceTiers(sellerId: string, ownTiers: Tier[] | null): Promise<Tier[]> {
+  return ownTiers ?? (await loadDefaultTiers(sellerId));
 }
 
 export async function savePolicy(input: {

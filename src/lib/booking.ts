@@ -1,4 +1,5 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
+import { type Tier } from '@/lib/cancel-policy';
 import { supabase } from '@/lib/supabase';
 
 export type SlotService = {
@@ -9,7 +10,7 @@ export type SlotService = {
   price_cents: number;
   duration_min: number;
   places: string[];
-  cancel_policy_id: string | null;
+  cancel_tiers: Tier[] | null;
 };
 
 export type OpenSlot = { id: string; starts_at: string; ends_at: string };
@@ -21,7 +22,7 @@ export type PaymentIntentInfo = {
   amount_cents: number;
 };
 
-const SERVICE_COLUMNS = 'id, seller_id, title, description, price_cents, duration_min, places, cancel_policy_id';
+const SERVICE_COLUMNS = 'id, seller_id, title, description, price_cents, duration_min, places, cancel_tiers';
 
 /** Servizi a slot attivi di altri venditori. */
 export async function listSlotServices(userId: string): Promise<{ services: SlotService[]; errorKey: string | null }> {

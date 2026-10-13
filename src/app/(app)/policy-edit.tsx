@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { TierEditor, fromRows, rowsIncomplete, toRows, type TierRow } from '@/components/TierEditor';
 import { Body, Button, Checkbox, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { deletePolicy, loadPolicy, savePolicy, STANDARD_TIERS, validateTiers, type Tier } from '@/lib/cancel-policy';
-
-type Row = { hours: string; pct: string };
-const toRows = (tiers: Tier[]): Row[] => tiers.map((tier) => ({ hours: String(tier.hours_before), pct: String(tier.refund_pct) }));
+import { deletePolicy, loadPolicy, savePolicy, STANDARD_TIERS, validateTiers } from '@/lib/cancel-policy';
 
 export default function PolicyEditScreen() {
   const { t } = useTranslation();
@@ -16,7 +13,7 @@ export default function PolicyEditScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [ready, setReady] = useState(!id);
   const [name, setName] = useState('');
-  const [rows, setRows] = useState<Row[]>(toRows(STANDARD_TIERS)); // si parte dalla policy standard
+  const [rows, setRows] = useState<TierRow[]>(toRows(STANDARD_TIERS)); // si parte dalla policy standard
   const [isDefault, setIsDefault] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -41,12 +38,10 @@ export default function PolicyEditScreen() {
 
   if (!ready) return <LoadingView />;
 
-  const update = (index: number, patch: Partial<Row>) => setRows((current) => current.map((row, i) => (i === index ? { ...row, ...patch } : row)));
-
   const save = async () => {
     if (!userId) return;
-    const tiers: Tier[] = rows.map((row) => ({ hours_before: Number(row.hours), refund_pct: Number(row.pct) }));
-    if (rows.some((row) => row.hours.trim() === '' || row.pct.trim() === '') || !name.trim()) {
+    const tiers = fromRows(rows);
+    if (rowsIncomplete(rows) || !name.trim()) {
       setErrorKey(name.trim() ? 'policy.errors.empty' : 'policy.errors.name');
       return;
     }
@@ -78,20 +73,7 @@ export default function PolicyEditScreen() {
       <Body muted>{t('policy.editHelp')}</Body>
       <Spacer />
       <TextField label={t('policy.name')} value={name} onChangeText={setName} maxLength={60} />
-      {rows.map((row, index) => (
-        <View key={index} style={styles.row}>
-          <View style={styles.cell}>
-            <TextField label={t('policy.hoursLabel')} value={row.hours} onChangeText={(v) => update(index, { hours: v.replace(/\D/g, '') })} keyboardType="number-pad" />
-          </View>
-          <View style={styles.cell}>
-            <TextField label={t('policy.pctLabel')} value={row.pct} onChangeText={(v) => update(index, { pct: v.replace(/\D/g, '') })} keyboardType="number-pad" />
-          </View>
-          <View style={styles.remove}>
-            <Button title="✕" variant="ghost" onPress={() => setRows((current) => current.filter((_, i) => i !== index))} />
-          </View>
-        </View>
-      ))}
-      {rows.length < 8 ? <Button title={t('policy.addTier')} variant="ghost" onPress={() => setRows((current) => [...current, { hours: '', pct: '' }])} /> : null}
+      <TierEditor rows={rows} onChange={setRows} />
       <Spacer size={8} />
       <Checkbox label={t('policy.makeDefault')} checked={isDefault} onChange={setIsDefault} />
       <Spacer size={8} />
@@ -109,8 +91,3 @@ export default function PolicyEditScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 8, alignItems: 'flex-end' },
-  cell: { flex: 1 },
-  remove: { width: 56, paddingBottom: 16 },
-});

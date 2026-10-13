@@ -1,3 +1,4 @@
+import { type Tier } from '@/lib/cancel-policy';
 import { supabase } from '@/lib/supabase';
 
 export type MyService = {
@@ -7,10 +8,10 @@ export type MyService = {
   price_cents: number;
   duration_min: number;
   active: boolean;
-  cancel_policy_id: string | null;
+  cancel_tiers: Tier[] | null;
 };
 
-const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_policy_id';
+const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers';
 
 /** Servizi a slot del venditore (anche quelli in pausa). */
 export async function listMyServices(sellerId: string): Promise<{ services: MyService[]; errorKey: string | null }> {
@@ -50,7 +51,7 @@ export async function saveService(input: {
   priceCents: number;
   durationMin: number;
   active: boolean;
-  cancelPolicyId: string | null;
+  cancelTiers: Tier[] | null;
 }): Promise<string | null> {
   const row = {
     title: input.title.trim(),
@@ -58,7 +59,7 @@ export async function saveService(input: {
     price_cents: input.priceCents,
     duration_min: input.durationMin,
     active: input.active,
-    cancel_policy_id: input.cancelPolicyId,
+    cancel_tiers: input.cancelTiers,
   };
   const { error } = input.id
     ? await supabase.from('services').update(row).eq('id', input.id)
