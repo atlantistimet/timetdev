@@ -4,19 +4,20 @@ import { useTranslation } from 'react-i18next';
 import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro, listSlotServices, type SlotService } from '@/lib/booking';
+import { finalPriceCents, listPublicOffers, validityText, type Offer } from '@/lib/offers';
 
 export default function ServicesScreen() {
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
-  const [result, setResult] = useState<{ services: SlotService[]; errorKey: string | null } | null>(null);
+  const [result, setResult] = useState<{ services: SlotService[]; offers: Offer[]; errorKey: string | null } | null>(null);
 
   useEffect(() => {
     if (!userId) return;
     let active = true;
     (async () => {
-      const r = await listSlotServices(userId);
-      if (active) setResult(r);
+      const [r, o] = await Promise.all([listSlotServices(userId), listPublicOffers(userId)]);
+      if (active) setResult({ services: r.services, offers: o.offers, errorKey: r.errorKey ?? o.errorKey });
     })();
     return () => {
       active = false;
@@ -30,7 +31,28 @@ export default function ServicesScreen() {
       <Title>{t('book.servicesTitle')}</Title>
       <Spacer />
       {result.errorKey ? <ErrorText>{t(result.errorKey)}</ErrorText> : null}
-      {!result.errorKey && result.services.length === 0 ? <Body muted>{t('book.noServices')}</Body> : null}
+      {result.offers.length > 0 ? <Body>{t('book.offersTitle')}</Body> : null}
+      {result.offers.map((offer) => (
+        <Card key={offer.id}>
+          <Body>
+            {offer.service_title}
+            {offer.discount_pct ? ` · −${offer.discount_pct}%` : ''}
+          </Body>
+          <Body muted>
+            {formatEuro(finalPriceCents(offer), i18n.language)} · {offer.duration_min} min
+          </Body>
+          <Body muted>{validityText(offer.validity, i18n.language, t)}</Body>
+          {offer.message ? <Body muted>{offer.message}</Body> : null}
+          <Spacer size={8} />
+          <Button
+            title={t('book.choose')}
+            variant="ghost"
+            onPress={() => router.push({ pathname: '/book', params: { serviceId: offer.service_id, offerId: offer.id } })}
+          />
+        </Card>
+      ))}
+      {result.offers.length > 0 && result.services.length > 0 ? <Body>{t('book.servicesSection')}</Body> : null}
+      {!result.errorKey && result.services.length === 0 && result.offers.length === 0 ? <Body muted>{t('book.noServices')}</Body> : null}
       {result.services.map((service) => (
         <Card key={service.id}>
           <Body>{service.title}</Body>

@@ -1,5 +1,6 @@
 // Prenota uno slot e prepara il pagamento (addebito diretto sull'account Stripe del venditore).
-// Corpo: { service_id, starts_at (ISO), place: 'online'|'sede'|'domicilio', client_address? }
+// Corpo: { service_id, starts_at (ISO), place: 'online'|'sede'|'domicilio', client_address?, offer_id? }
+// Con offer_id vale il prezzo scontato e la durata dell'offerta, se lo slot rientra nella sua validità.
 // Risposta: { booking_id, client_secret, stripe_account, amount_cents }
 // Il prezzo, le commissioni e l'orario si leggono dal database: dal client si fidano solo gli identificativi.
 // La prenotazione nasce "confirmed" (il vincolo del database impedisce le sovrapposizioni) e viene annullata
@@ -8,6 +9,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/http.ts';
 import { bookingFees } from '../_shared/fees.ts';
 import { STANDARD_TIERS } from '../_shared/cancel.ts';
+import { discountedCents, offerApplies, type Validity } from '../_shared/validity.ts';
 import { stripeRequest, StripeError } from '../_shared/stripe.ts';
 
 type PI = { id: string; client_secret: string };
@@ -24,7 +26,7 @@ Deno.serve(async (req) => {
   if (userError || !userData.user) return json({ error: 'unauthorized' }, 401);
   const user = userData.user;
 
-  const body = (await req.json().catch(() => ({}))) as { service_id?: string; starts_at?: string; place?: string; client_address?: string };
+  const body = (await req.json().catch(() => ({}))) as { service_id?: string; starts_at?: string; place?: string; client_address?: string; offer_id?: string };
   const startsAt = body.starts_at ? new Date(body.starts_at) : null;
   if (!body.service_id || !startsAt || Number.isNaN(startsAt.getTime()) || !['online', 'sede', 'domicilio'].includes(body.place ?? '')) {
     return json({ error: 'bad_request' }, 400);
@@ -48,7 +50,26 @@ Deno.serve(async (req) => {
   if (service.seller_id === user.id) return json({ error: 'own_service' }, 400);
   if (!(service.places as string[]).includes(place)) return json({ error: 'place_not_offered' }, 400);
 
-  const endsAt = new Date(startsAt.getTime() + service.duration_min! * 60_000);
+  let priceCents = service.price_cents!;
+  let durationMin = service.duration_min!;
+  let offerTiers: unknown = null;
+  if (body.offer_id) {
+    const { data: offer } = await admin
+      .from('offers')
+      .select('id, service_id, seller_id, price_cents, duration_min, discount_pct, validity, active, cancel_tiers')
+      .eq('id', body.offer_id)
+      .maybeSingle();
+    if (!offer || !offer.active || offer.service_id !== service.id || offer.seller_id !== service.seller_id) {
+      return json({ error: 'offer_not_found' }, 404);
+    }
+    const offerEnd = new Date(startsAt.getTime() + offer.duration_min * 60_000);
+    if (!offerApplies(offer.validity as Validity, startsAt, offerEnd)) return json({ error: 'offer_not_valid' }, 409);
+    priceCents = discountedCents(offer.price_cents, offer.discount_pct);
+    durationMin = offer.duration_min;
+    offerTiers = offer.cancel_tiers;
+  }
+
+  const endsAt = new Date(startsAt.getTime() + durationMin * 60_000);
 
   const [{ data: seller }, { data: account }, { data: window }, { data: policy }] = await Promise.all([
     admin.from('profiles').select('is_pro, travel_fee_cents').eq('id', service.seller_id).single(),
@@ -63,7 +84,7 @@ Deno.serve(async (req) => {
   if (!window?.length) return json({ error: 'slot_unavailable' }, 409);
 
   const extraCents = place === 'domicilio' ? seller!.travel_fee_cents : 0;
-  const fees = bookingFees(service.price_cents! + extraCents, seller!.is_pro);
+  const fees = bookingFees(priceCents + extraCents, seller!.is_pro);
 
   const { data: booking, error: bookingError } = await admin
     .from('bookings')
@@ -71,9 +92,9 @@ Deno.serve(async (req) => {
       client_id: user.id, seller_id: service.seller_id, service_id: service.id, service_title: service.title,
       starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString(), place,
       client_address: place === 'domicilio' ? body.client_address!.trim() : null,
-      price_cents: service.price_cents, extra_cents: extraCents,
+      price_cents: priceCents, extra_cents: extraCents,
       client_fee_cents: fees.clientFeeCents, seller_fee_cents: fees.sellerFeeCents,
-      cancel_tiers: service.cancel_tiers ?? policy?.tiers ?? STANDARD_TIERS, source: 'app',
+      cancel_tiers: offerTiers ?? service.cancel_tiers ?? policy?.tiers ?? STANDARD_TIERS, source: 'app',
     })
     .select('id')
     .single();

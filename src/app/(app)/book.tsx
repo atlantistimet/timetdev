@@ -13,13 +13,15 @@ import {
   type PaymentIntentInfo,
   type SlotService,
 } from '@/lib/booking';
+import { offerApplies } from '@/lib/validity';
+import { finalPriceCents, loadOffer, type Offer } from '@/lib/offers';
 import { loadServiceTiers, type Tier } from '@/lib/cancel-policy';
 
-type Loaded = { service: SlotService; slots: OpenSlot[]; tiers: Tier[] } | 'missing';
+type Loaded = { service: SlotService; offer: Offer | null; slots: OpenSlot[]; tiers: Tier[] } | 'missing';
 
 export default function BookScreen() {
   const { t, i18n } = useTranslation();
-  const { serviceId } = useLocalSearchParams<{ serviceId: string }>();
+  const { serviceId, offerId } = useLocalSearchParams<{ serviceId: string; offerId?: string }>();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [slotId, setSlotId] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
@@ -31,19 +33,24 @@ export default function BookScreen() {
     let active = true;
     (async () => {
       const service = serviceId ? await loadSlotService(serviceId) : null;
-      const result: Loaded = service
-        ? {
-            service,
-            slots: await loadOpenSlots(service.seller_id, service.duration_min),
-            tiers: await loadServiceTiers(service.seller_id, service.cancel_tiers),
-          }
-        : 'missing';
+      const found = offerId ? await loadOffer(offerId) : null;
+      const offer = found && found.active && found.service_id === service?.id ? found : null;
+      let result: Loaded = 'missing';
+      if (service && !(offerId && !offer)) {
+        const durationMin = offer?.duration_min ?? service.duration_min;
+        const open = await loadOpenSlots(service.seller_id, durationMin);
+        // con un'offerta si mostrano solo gli orari che rientrano nella sua validità
+        const slots = offer
+          ? open.filter((s) => offerApplies(offer.validity, new Date(s.starts_at), new Date(new Date(s.starts_at).getTime() + durationMin * 60_000)))
+          : open;
+        result = { service, offer, slots, tiers: offer?.cancel_tiers ?? (await loadServiceTiers(service.seller_id, service.cancel_tiers)) };
+      }
       if (active) setLoaded(result);
     })();
     return () => {
       active = false;
     };
-  }, [serviceId]);
+  }, [serviceId, offerId]);
 
   if (!loaded) return <LoadingView />;
   if (loaded === 'missing') {
@@ -57,7 +64,9 @@ export default function BookScreen() {
     );
   }
 
-  const { service, slots, tiers } = loaded;
+  const { service, offer, slots, tiers } = loaded;
+  const priceCents = offer ? finalPriceCents(offer) : service.price_cents;
+  const durationMin = offer?.duration_min ?? service.duration_min;
   const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'full', timeStyle: 'short' });
 
   const start = async () => {
@@ -65,7 +74,7 @@ export default function BookScreen() {
     if (!slot) return;
     setStarting(true);
     setErrorKey(null);
-    const result = await createBookingPayment({ serviceId: service.id, startsAt: slot.starts_at, place: 'online' });
+    const result = await createBookingPayment({ serviceId: service.id, startsAt: slot.starts_at, place: 'online', offerId: offer?.id });
     setStarting(false);
     if (result.payment) setPayment(result.payment);
     else setErrorKey(result.errorKey);
@@ -98,8 +107,10 @@ export default function BookScreen() {
     <Screen>
       <Title>{service.title}</Title>
       <Body muted>
-        {formatEuro(service.price_cents, i18n.language)} · {service.duration_min} min · {t('book.online')}
+        {offer && offer.discount_pct ? `−${offer.discount_pct}% · ` : ''}
+        {formatEuro(priceCents, i18n.language)} · {durationMin} min · {t('book.online')}
       </Body>
+      {offer?.message ? <Body muted>{offer.message}</Body> : null}
       <Spacer />
       <Body>{t('book.pickSlot')}</Body>
       <Spacer size={8} />

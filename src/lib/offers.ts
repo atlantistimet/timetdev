@@ -1,68 +1,106 @@
 import { type Tier } from '@/lib/cancel-policy';
 import { supabase } from '@/lib/supabase';
+import { discountedCents, type Validity } from '@/lib/validity';
 
-export type MyService = {
+export type Offer = {
   id: string;
-  title: string;
-  description: string | null;
+  service_id: string;
+  seller_id: string;
   price_cents: number;
   duration_min: number;
+  discount_pct: number;
+  validity: Validity;
+  message: string | null;
   active: boolean;
   cancel_tiers: Tier[] | null;
+  service_title: string;
 };
 
-const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers';
+const COLUMNS = 'id, service_id, seller_id, price_cents, duration_min, discount_pct, validity, message, active, cancel_tiers, services(title)';
 
-/** Servizi a slot del venditore (anche quelli in pausa). */
-export async function listMyServices(sellerId: string): Promise<{ services: MyService[]; errorKey: string | null }> {
+type Row = Omit<Offer, 'service_title'> & { services: { title: string } | { title: string }[] | null };
+
+const toOffer = (row: Row): Offer => {
+  const { services, ...rest } = row;
+  const service = Array.isArray(services) ? services[0] : services;
+  return { ...rest, service_title: service?.title ?? '' };
+};
+
+export const finalPriceCents = (offer: Pick<Offer, 'price_cents' | 'discount_pct'>) => discountedCents(offer.price_cents, offer.discount_pct);
+
+export async function listMyOffers(sellerId: string): Promise<{ offers: Offer[]; errorKey: string | null }> {
+  const { data, error } = await supabase.from('offers').select(COLUMNS).eq('seller_id', sellerId).order('created_at', { ascending: false });
+  if (error) return { offers: [], errorKey: 'errors.generic' };
+  return { offers: ((data ?? []) as unknown as Row[]).map(toOffer), errorKey: null };
+}
+
+export async function loadOffer(id: string): Promise<Offer | null> {
+  const { data } = await supabase.from('offers').select(COLUMNS).eq('id', id).maybeSingle();
+  return data ? toOffer(data as unknown as Row) : null;
+}
+
+/** Offerte attive di altri venditori, visibili a chi cerca. */
+export async function listPublicOffers(userId: string): Promise<{ offers: Offer[]; errorKey: string | null }> {
   const { data, error } = await supabase
-    .from('services')
-    .select(COLUMNS)
-    .eq('seller_id', sellerId)
-    .eq('kind', 'slot')
-    .order('created_at', { ascending: false });
-  if (error) return { services: [], errorKey: 'errors.generic' };
-  return { services: (data ?? []) as MyService[], errorKey: null };
+    .from('offers')
+    .select(`${COLUMNS.replace('services(title)', 'services!inner(title, active)')}`)
+    .eq('active', true)
+    .eq('services.active', true)
+    .neq('seller_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) return { offers: [], errorKey: 'errors.generic' };
+  return { offers: ((data ?? []) as unknown as Row[]).map(toOffer), errorKey: null };
 }
 
-export async function loadMyService(id: string): Promise<MyService | null> {
-  const { data } = await supabase.from('services').select(COLUMNS).eq('id', id).eq('kind', 'slot').maybeSingle();
-  return (data as MyService | null) ?? null;
-}
-
-/** "20", "20,50" o "20.5" → centesimi; null se non valido. */
-export function parseEuroToCents(text: string): number | null {
-  const normalized = text.trim().replace(',', '.');
-  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return null;
-  return Math.round(Number(normalized) * 100);
-}
-
-export function centsToEuroText(cents: number): string {
-  return (cents / 100).toFixed(2).replace(/\.00$/, '');
-}
-
-export const MIN_PRICE_CENTS = 100;
-
-export async function saveService(input: {
+export async function saveOffer(input: {
   id: string | null;
   sellerId: string;
-  title: string;
-  description: string;
+  serviceId: string;
   priceCents: number;
   durationMin: number;
+  discountPct: number;
+  validity: Validity;
+  message: string;
   active: boolean;
   cancelTiers: Tier[] | null;
 }): Promise<string | null> {
   const row = {
-    title: input.title.trim(),
-    description: input.description.trim() || null,
+    service_id: input.serviceId,
     price_cents: input.priceCents,
     duration_min: input.durationMin,
+    discount_pct: input.discountPct,
+    validity: input.validity,
+    message: input.message.trim() || null,
     active: input.active,
     cancel_tiers: input.cancelTiers,
   };
   const { error } = input.id
-    ? await supabase.from('services').update(row).eq('id', input.id)
-    : await supabase.from('services').insert({ ...row, seller_id: input.sellerId, kind: 'slot', places: ['online'] });
+    ? await supabase.from('offers').update(row).eq('id', input.id)
+    : await supabase.from('offers').insert({ ...row, seller_id: input.sellerId });
   return error ? 'errors.generic' : null;
+}
+
+export async function deleteOffer(id: string): Promise<string | null> {
+  const { error } = await supabase.from('offers').delete().eq('id', id);
+  return error ? 'errors.generic' : null;
+}
+
+/** Descrizione leggibile della validità ("martedì, giovedì · dalle 09:00 alle 13:00"). */
+export function validityText(v: Validity, language: string, t: (key: string) => string): string {
+  const parts: string[] = [];
+  const day = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Intl.DateTimeFormat(language, { day: 'numeric', month: 'short' }).format(new Date(y, m - 1, d));
+  };
+  if (v.modes.includes('giorni') && v.days.length) parts.push([...v.days].sort().map(day).join(', '));
+  if (v.modes.includes('periodo') && (v.from || v.to)) {
+    parts.push(v.from && v.to ? `${day(v.from)} – ${day(v.to)}` : v.from ? `${t('offers.from')} ${day(v.from)}` : `${t('offers.until')} ${day(v.to)}`);
+  }
+  if (v.modes.includes('settimana') && v.wdays.length) {
+    const name = (w: number) => new Intl.DateTimeFormat(language, { weekday: 'short' }).format(new Date(2024, 0, 7 + w));
+    parts.push([1, 2, 3, 4, 5, 6, 0].filter((w) => v.wdays.includes(w)).map(name).join(', '));
+  }
+  if (v.modes.includes('orari') && v.ranges.length) parts.push(v.ranges.map((r) => `${r.from}–${r.to}`).join(' · '));
+  return parts.length ? parts.join(' · ') : t('offers.always');
 }

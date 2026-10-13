@@ -159,8 +159,12 @@
       "in_the_past": "Questo orario è già passato.",
       "place_not_offered": "Il venditore non offre questa modalità.",
       "address_required": "Serve l'indirizzo.",
-      "unsupported_service_kind": "Questo tipo di servizio non è ancora prenotabile."
-    }
+      "unsupported_service_kind": "Questo tipo di servizio non è ancora prenotabile.",
+      "offer_not_valid": "Questo orario non rientra nella validità dell'offerta.",
+      "offer_not_found": "Offerta non disponibile."
+    },
+    "offersTitle": "Offerte",
+    "servicesSection": "Servizi"
   },
   "policy": {
     "title": "Policy di cancellazione",
@@ -221,15 +225,21 @@
       "payment_in_progress": "Il pagamento è in corso: riprova tra un momento."
     }
   },
-  "offers": {
-    "title": "Le mie offerte",
-    "intro": "I servizi che i clienti possono prenotare. Per ognuno scegli prezzo, durata e policy di cancellazione.",
-    "empty": "Non hai ancora offerte. Creane una per iniziare.",
+  "tabs": {
+    "home": "Home",
+    "explore": "Esplora",
+    "agenda": "Agenda",
+    "profile": "Profilo"
+  },
+  "myServices": {
+    "title": "I miei servizi",
+    "intro": "Quello che i clienti possono prenotare. Per ogni servizio scegli prezzo, durata e policy di cancellazione; poi, se vuoi, crea offerte con sconto.",
+    "empty": "Non hai ancora servizi. Creane uno per iniziare.",
     "paused": "in pausa",
     "edit": "Modifica",
-    "new": "Nuova offerta",
-    "newTitle": "Nuova offerta",
-    "editTitle": "Modifica offerta",
+    "new": "Nuovo servizio",
+    "newTitle": "Nuovo servizio",
+    "editTitle": "Modifica servizio",
     "policyLine": "Policy: {{name}}",
     "policyDefault": "predefinita",
     "fieldTitle": "Titolo",
@@ -249,12 +259,56 @@
     },
     "policyCustom": "policy propria",
     "policyCustomLabel": "Personalizza per questa offerta",
-    "startFrom": "Parti da:"
+    "startFrom": "Parti da:",
+    "createOffer": "Crea un'offerta"
   },
-  "tabs": {
-    "home": "Home",
-    "explore": "Esplora",
-    "agenda": "Agenda",
-    "profile": "Profilo"
+  "offers": {
+    "title": "Le mie offerte",
+    "intro": "Un'offerta è una variante di un tuo servizio, con sconto e validità: giorni, periodo, giorni della settimana o fasce orarie.",
+    "empty": "Non hai ancora offerte.",
+    "paused": "in pausa",
+    "edit": "Modifica",
+    "new": "Nuova offerta",
+    "newTitle": "Nuova offerta",
+    "editTitle": "Modifica offerta",
+    "needService": "Per creare un'offerta serve prima un servizio.",
+    "service": "Servizio",
+    "priceHint": "Prezzo pieno: lo sconto si applica sopra. Minimo 1 €.",
+    "duration": "Durata dello slot",
+    "discount": "Sconto",
+    "fullPrice": "Prezzo pieno",
+    "finalPrice": "Prezzo finale: {{amount}}",
+    "validity": "Valida",
+    "always": "Sempre",
+    "mode": {
+      "giorni": "Giorni specifici",
+      "periodo": "Periodo",
+      "settimana": "Giorni della settimana",
+      "orari": "Orari"
+    },
+    "periodFrom": "Dal (AAAA-MM-GG)",
+    "periodTo": "Al (AAAA-MM-GG)",
+    "rangeFrom": "Dalle (HH:MM)",
+    "rangeTo": "Alle (HH:MM)",
+    "addRange": "Aggiungi una fascia oraria",
+    "removeRange": "Rimuovi fascia",
+    "validityNow": "Validità: {{text}}",
+    "from": "dal",
+    "until": "fino al",
+    "policySection": "Policy dell'offerta",
+    "policyHelp": "Scegli quanto rimborsi se il cliente annulla: quella del servizio o fasce solo per questa offerta.",
+    "policyOfService": "Quella del servizio",
+    "message": "Messaggio (facoltativo)",
+    "errors": {
+      "service": "Scegli un servizio.",
+      "days": "Scegli almeno un giorno.",
+      "period": "Controlla le date del periodo.",
+      "weekdays": "Scegli almeno un giorno della settimana.",
+      "ranges": "Controlla le fasce orarie: da ora a ora, es. 09:00 – 13:00."
+    },
+    "onlyValid": "Offerta valida",
+    "bookWithOffer": "Prenota questa offerta",
+    "notValid": "Questo orario non rientra nella validità dell'offerta.",
+    "notFound": "Offerta non disponibile."
   }
 }

@@ -150,6 +150,25 @@ export function Checkbox({
   );
 }
 
+/** Pillola selezionabile (sconti, giorni, durate...). */
+export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      style={[styles.chip, { backgroundColor: selected ? theme.primary : theme.fill }]}>
+      <Text style={[styles.chipText, { color: selected ? theme.onPrimary : theme.text }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** Righe di pillole che vanno a capo. */
+export function ChipRow({ children }: { children: ReactNode }) {
+  return <View style={styles.chipRow}>{children}</View>;
+}
+
 /** Card bianca senza bordo, come nel prototipo. */
 export function Card({ children }: { children: ReactNode }) {
   const theme = useTheme();
@@ -187,6 +206,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   screenContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 24 },
   screenTabs: { justifyContent: 'flex-start', paddingBottom: 120 },
+  chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999 },
+  chipText: { fontSize: 13, fontWeight: '600' },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   card: { borderRadius: 24, padding: 16, marginBottom: 10 },
   cardTitle: { fontSize: 17, fontWeight: '700', marginBottom: 2 },
   screenColumn: { width: '100%', maxWidth: 440, alignSelf: 'center' },

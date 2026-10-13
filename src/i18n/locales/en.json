@@ -159,8 +159,12 @@
       "in_the_past": "This time has already passed.",
       "place_not_offered": "The seller doesn't offer this option.",
       "address_required": "An address is required.",
-      "unsupported_service_kind": "This kind of service can't be booked yet."
-    }
+      "unsupported_service_kind": "This kind of service can't be booked yet.",
+      "offer_not_valid": "This time is outside the offer's validity.",
+      "offer_not_found": "Offer not available."
+    },
+    "offersTitle": "Offers",
+    "servicesSection": "Services"
   },
   "policy": {
     "title": "Cancellation policy",
@@ -221,15 +225,21 @@
       "payment_in_progress": "Payment is in progress: try again in a moment."
     }
   },
-  "offers": {
-    "title": "My offers",
-    "intro": "The services clients can book. For each one choose price, duration and cancellation policy.",
-    "empty": "You have no offers yet. Create one to get started.",
+  "tabs": {
+    "home": "Home",
+    "explore": "Explore",
+    "agenda": "Agenda",
+    "profile": "Profile"
+  },
+  "myServices": {
+    "title": "My services",
+    "intro": "What clients can book. For each service choose price, duration and cancellation policy; then, if you like, create discounted offers.",
+    "empty": "You have no services yet. Create one to get started.",
     "paused": "paused",
     "edit": "Edit",
-    "new": "New offer",
-    "newTitle": "New offer",
-    "editTitle": "Edit offer",
+    "new": "New service",
+    "newTitle": "New service",
+    "editTitle": "Edit service",
     "policyLine": "Policy: {{name}}",
     "policyDefault": "default",
     "fieldTitle": "Title",
@@ -249,12 +259,56 @@
     },
     "policyCustom": "own policy",
     "policyCustomLabel": "Customize for this offer",
-    "startFrom": "Start from:"
+    "startFrom": "Start from:",
+    "createOffer": "Create an offer"
   },
-  "tabs": {
-    "home": "Home",
-    "explore": "Explore",
-    "agenda": "Agenda",
-    "profile": "Profile"
+  "offers": {
+    "title": "My offers",
+    "intro": "An offer is a variant of one of your services, with a discount and validity: specific days, a period, weekdays or time ranges.",
+    "empty": "You have no offers yet.",
+    "paused": "paused",
+    "edit": "Edit",
+    "new": "New offer",
+    "newTitle": "New offer",
+    "editTitle": "Edit offer",
+    "needService": "You need a service before you can create an offer.",
+    "service": "Service",
+    "priceHint": "Full price: the discount is applied on top. Minimum €1.",
+    "duration": "Slot length",
+    "discount": "Discount",
+    "fullPrice": "Full price",
+    "finalPrice": "Final price: {{amount}}",
+    "validity": "Valid",
+    "always": "Always",
+    "mode": {
+      "giorni": "Specific days",
+      "periodo": "Period",
+      "settimana": "Weekdays",
+      "orari": "Times"
+    },
+    "periodFrom": "From (YYYY-MM-DD)",
+    "periodTo": "To (YYYY-MM-DD)",
+    "rangeFrom": "From (HH:MM)",
+    "rangeTo": "To (HH:MM)",
+    "addRange": "Add a time range",
+    "removeRange": "Remove range",
+    "validityNow": "Validity: {{text}}",
+    "from": "from",
+    "until": "until",
+    "policySection": "Offer policy",
+    "policyHelp": "Choose how much you refund if the client cancels: the service's policy or tiers just for this offer.",
+    "policyOfService": "The service's policy",
+    "message": "Message (optional)",
+    "errors": {
+      "service": "Choose a service.",
+      "days": "Choose at least one day.",
+      "period": "Check the period dates.",
+      "weekdays": "Choose at least one weekday.",
+      "ranges": "Check the time ranges: from time to time, e.g. 09:00 – 13:00."
+    },
+    "onlyValid": "Valid offer",
+    "bookWithOffer": "Book this offer",
+    "notValid": "This time is outside the offer's validity.",
+    "notFound": "Offer not available."
   }
 }
