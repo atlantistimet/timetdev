@@ -217,5 +217,33 @@
       "not_cancellable": "This booking can no longer be cancelled.",
       "payment_in_progress": "Payment is in progress: try again in a moment."
     }
+  },
+  "offers": {
+    "title": "My offers",
+    "intro": "The services clients can book. For each one choose price, duration and cancellation policy.",
+    "empty": "You have no offers yet. Create one to get started.",
+    "paused": "paused",
+    "edit": "Edit",
+    "new": "New offer",
+    "newTitle": "New offer",
+    "editTitle": "Edit offer",
+    "policyLine": "Policy: {{name}}",
+    "policyDefault": "default",
+    "fieldTitle": "Title",
+    "fieldDescription": "Description (optional)",
+    "fieldPrice": "Price in euros",
+    "priceHint": "Minimum €1. The service fee is added for the client.",
+    "fieldDuration": "Duration in minutes",
+    "activeLabel": "Visible and bookable",
+    "policySection": "Offer policy",
+    "policyHelp": "Choose how much you refund if the client cancels. Existing bookings keep the policy that applied when they were made.",
+    "policyDefaultNamed": "Default: {{name}}",
+    "policyDefaultStandard": "Default: Timeet standard",
+    "managePolicies": "Add or edit policies",
+    "errors": {
+      "title": "Give the offer a title.",
+      "price": "Enter a price of at least €1.",
+      "duration": "Duration must be between 5 and 480 minutes."
+    }
   }
 }

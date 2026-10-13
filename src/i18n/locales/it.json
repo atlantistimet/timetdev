@@ -217,5 +217,33 @@
       "not_cancellable": "Questa prenotazione non si può più annullare.",
       "payment_in_progress": "Il pagamento è in corso: riprova tra un momento."
     }
+  },
+  "offers": {
+    "title": "Le mie offerte",
+    "intro": "I servizi che i clienti possono prenotare. Per ognuno scegli prezzo, durata e policy di cancellazione.",
+    "empty": "Non hai ancora offerte. Creane una per iniziare.",
+    "paused": "in pausa",
+    "edit": "Modifica",
+    "new": "Nuova offerta",
+    "newTitle": "Nuova offerta",
+    "editTitle": "Modifica offerta",
+    "policyLine": "Policy: {{name}}",
+    "policyDefault": "predefinita",
+    "fieldTitle": "Titolo",
+    "fieldDescription": "Descrizione (facoltativa)",
+    "fieldPrice": "Prezzo in euro",
+    "priceHint": "Minimo 1 €. La commissione di servizio si aggiunge per il cliente.",
+    "fieldDuration": "Durata in minuti",
+    "activeLabel": "Visibile e prenotabile",
+    "policySection": "Policy dell'offerta",
+    "policyHelp": "Scegli quanto rimborsi se il cliente annulla. Le prenotazioni già fatte mantengono la policy che c'era al momento della prenotazione.",
+    "policyDefaultNamed": "Predefinita: {{name}}",
+    "policyDefaultStandard": "Predefinita: standard Timeet",
+    "managePolicies": "Aggiungi o modifica policy",
+    "errors": {
+      "title": "Dai un titolo all'offerta.",
+      "price": "Inserisci un prezzo di almeno 1 €.",
+      "duration": "La durata deve essere tra 5 e 480 minuti."
+    }
   }
 }

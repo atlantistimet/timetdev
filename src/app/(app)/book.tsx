@@ -13,7 +13,7 @@ import {
   type PaymentIntentInfo,
   type SlotService,
 } from '@/lib/booking';
-import { loadDefaultTiers, type Tier } from '@/lib/cancel-policy';
+import { loadServiceTiers, type Tier } from '@/lib/cancel-policy';
 
 type Loaded = { service: SlotService; slots: OpenSlot[]; tiers: Tier[] } | 'missing';
 
@@ -35,7 +35,7 @@ export default function BookScreen() {
         ? {
             service,
             slots: await loadOpenSlots(service.seller_id, service.duration_min),
-            tiers: await loadDefaultTiers(service.seller_id),
+            tiers: await loadServiceTiers(service.seller_id, service.cancel_policy_id),
           }
         : 'missing';
       if (active) setLoaded(result);
