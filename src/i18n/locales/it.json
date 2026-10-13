@@ -31,7 +31,8 @@
       "subtitle": "Entra nel tuo account Timeet.",
       "submit": "Accedi",
       "noAccount": "Non hai un account?",
-      "createAccount": "Registrati"
+      "createAccount": "Registrati",
+      "forgot": "Password dimenticata?"
     },
     "register": {
       "title": "Crea il tuo account",
@@ -56,7 +57,8 @@
       "emailInvalid": "Inserisci un indirizzo email valido.",
       "passwordShort": "La password deve avere almeno {{count}} caratteri.",
       "passwordRequired": "Inserisci la password.",
-      "adultRequired": "Per registrarti devi confermare di avere almeno 18 anni."
+      "adultRequired": "Per registrarti devi confermare di avere almeno 18 anni.",
+      "passwordMismatch": "Le due password non coincidono."
     },
     "errors": {
       "invalidCredentials": "Email o password non corrette.",
@@ -66,7 +68,25 @@
       "rateLimit": "Troppi tentativi. Riprova tra qualche minuto.",
       "emailInvalid": "L'indirizzo email non è valido.",
       "signupDisabled": "Le registrazioni sono temporaneamente chiuse.",
-      "network": "Connessione assente o instabile. Riprova."
+      "network": "Connessione assente o instabile. Riprova.",
+      "samePassword": "La nuova password deve essere diversa da quella attuale."
+    },
+    "forgot": {
+      "title": "Recupera la password",
+      "subtitle": "Scrivi l'email del tuo account: ti mandiamo un link per sceglierne una nuova.",
+      "submit": "Invia il link",
+      "sentTitle": "Controlla la tua email",
+      "sentBody": "Se esiste un account con {{email}}, ti abbiamo inviato un link per scegliere una nuova password. Aprilo dallo stesso browser (o dallo stesso telefono) da cui l'hai richiesto."
+    },
+    "reset": {
+      "title": "Scegli una nuova password",
+      "subtitle": "Dopo averla salvata entri nel tuo account.",
+      "newPassword": "Nuova password",
+      "confirmPassword": "Ripeti la nuova password",
+      "submit": "Salva la password",
+      "invalidTitle": "Link non valido",
+      "invalidLink": "Il link è scaduto o è già stato usato. Richiedine uno nuovo e aprilo dallo stesso browser da cui l'hai richiesto.",
+      "requestNew": "Richiedi un nuovo link"
     }
   },
   "categories": {

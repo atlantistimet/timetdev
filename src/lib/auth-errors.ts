@@ -9,6 +9,8 @@ export function authErrorKey(error: AuthError | null | undefined): string | null
     case 'user_already_exists':
     case 'email_exists':
       return 'auth.errors.emailExists';
+    case 'same_password':
+      return 'auth.errors.samePassword';
     case 'weak_password':
       return 'auth.errors.weakPassword';
     case 'email_not_confirmed':

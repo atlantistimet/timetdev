@@ -68,6 +68,10 @@ export default function Login() {
         onSubmitEditing={onSubmit}
       />
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
+      <Spacer size={8} />
+      <Link href="/forgot-password" accessibilityRole="link" style={[styles.link, { color: theme.text }]}>
+        {t('auth.login.forgot')}
+      </Link>
       <Spacer />
       <Button title={t('auth.login.submit')} onPress={onSubmit} loading={busy} />
       <Spacer size={20} />

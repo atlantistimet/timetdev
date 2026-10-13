@@ -13,6 +13,8 @@ export const supabase = createClient(url, anonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+    // Il recupero password usa PKCE: il link contiene un codice monouso, non le chiavi di accesso.
+    flowType: 'pkce',
   },
 });
 

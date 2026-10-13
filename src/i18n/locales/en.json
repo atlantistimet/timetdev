@@ -31,7 +31,8 @@
       "subtitle": "Log in to your Timeet account.",
       "submit": "Sign in",
       "noAccount": "Don't have an account?",
-      "createAccount": "Sign up"
+      "createAccount": "Sign up",
+      "forgot": "Forgot your password?"
     },
     "register": {
       "title": "Create your account",
@@ -56,7 +57,8 @@
       "emailInvalid": "Enter a valid email address.",
       "passwordShort": "Your password must be at least {{count}} characters.",
       "passwordRequired": "Enter your password.",
-      "adultRequired": "To sign up you must confirm that you are at least 18 years old."
+      "adultRequired": "To sign up you must confirm that you are at least 18 years old.",
+      "passwordMismatch": "The two passwords don't match."
     },
     "errors": {
       "invalidCredentials": "Incorrect email or password.",
@@ -66,7 +68,25 @@
       "rateLimit": "Too many attempts. Please try again in a few minutes.",
       "emailInvalid": "That email address is not valid.",
       "signupDisabled": "Sign-ups are temporarily closed.",
-      "network": "No or unstable connection. Please try again."
+      "network": "No or unstable connection. Please try again.",
+      "samePassword": "The new password must be different from the current one."
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "subtitle": "Enter your account email and we'll send you a link to choose a new one.",
+      "submit": "Send the link",
+      "sentTitle": "Check your email",
+      "sentBody": "If an account exists for {{email}}, we've sent a link to choose a new password. Open it in the same browser (or phone) you requested it from."
+    },
+    "reset": {
+      "title": "Choose a new password",
+      "subtitle": "Once saved, you'll be signed in to your account.",
+      "newPassword": "New password",
+      "confirmPassword": "Repeat the new password",
+      "submit": "Save password",
+      "invalidTitle": "Invalid link",
+      "invalidLink": "The link has expired or was already used. Request a new one and open it in the same browser you requested it from.",
+      "requestNew": "Request a new link"
     }
   },
   "categories": {

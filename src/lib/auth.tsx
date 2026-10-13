@@ -7,6 +7,8 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import * as Linking from 'expo-linking';
+import { Platform } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import i18n, { supportedLanguages } from '@/i18n';
 import { authErrorKey } from '@/lib/auth-errors';
@@ -37,6 +39,11 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<string | null>;
   signUp: (input: SignUpInput) => Promise<SignUpResult>;
   signOut: () => Promise<void>;
+  /** True dal momento in cui l'utente arriva dal link di recupero password fino a quando sceglie la nuova password. */
+  recovering: boolean;
+  requestPasswordReset: (email: string) => Promise<string | null>;
+  exchangeRecoveryCode: (code: string) => Promise<string | null>;
+  updatePassword: (password: string) => Promise<string | null>;
   confirmAdult: () => Promise<string | null>;
   setLanguage: (lang: string) => Promise<void>;
   reloadProfile: () => void;
@@ -50,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Esito del caricamento del profilo, legato all'utente a cui appartiene.
   const [loaded, setLoaded] = useState<{ userId: string; profile: Profile | null; error: boolean } | null>(null);
   const [reloadCounter, setReloadCounter] = useState(0);
+  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -59,9 +67,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSessionLoaded(true);
     });
     // Nel callback non si chiamano altre funzioni di Supabase: si aggiorna solo lo stato.
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => {
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
       setSessionLoaded(true);
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true);
+      if (event === 'SIGNED_OUT') setRecovering(false);
     });
     return () => {
       active = false;
@@ -136,6 +146,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
+  const requestPasswordReset = useCallback(async (email: string) => {
+    // Il link di recupero riporta in app: su web all'indirizzo del sito, su mobile al link profondo timeet://reset-password.
+    const redirectTo = Platform.OS === 'web' ? `${window.location.origin}/reset-password` : Linking.createURL('reset-password');
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+    return authErrorKey(error);
+  }, []);
+
+  const exchangeRecoveryCode = useCallback(async (code: string) => {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    return error ? 'auth.reset.invalidLink' : null;
+  }, []);
+
+  const updatePassword = useCallback(async (password: string) => {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) return authErrorKey(error);
+    setRecovering(false);
+    return null;
+  }, []);
+
   const confirmAdult = useCallback(async () => {
     if (!userId) return 'errors.generic';
     const now = new Date().toISOString();
@@ -177,6 +206,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
+      recovering,
+      requestPasswordReset,
+      exchangeRecoveryCode,
+      updatePassword,
       confirmAdult,
       setLanguage,
       reloadProfile,
@@ -189,6 +222,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn,
       signUp,
       signOut,
+      recovering,
+      requestPasswordReset,
+      exchangeRecoveryCode,
+      updatePassword,
       confirmAdult,
       setLanguage,
       reloadProfile,

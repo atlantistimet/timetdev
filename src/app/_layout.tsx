@@ -12,7 +12,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootNavigator() {
   const { t } = useTranslation();
-  const { session, isLoading, profileError, isAdultConfirmed, reloadProfile, signOut } = useAuth();
+  const { session, isLoading, profileError, isAdultConfirmed, recovering, reloadProfile, signOut } = useAuth();
 
   useEffect(() => {
     if (!isLoading) SplashScreen.hideAsync().catch(() => {});
@@ -38,11 +38,16 @@ function RootNavigator() {
       <Stack.Protected guard={!session}>
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
+        <Stack.Screen name="forgot-password" />
       </Stack.Protected>
-      <Stack.Protected guard={!!session && !isAdultConfirmed}>
+      {/* Chi arriva dal link di recupero ha già una sessione, ma deve prima scegliere la nuova password. */}
+      <Stack.Protected guard={!session || recovering}>
+        <Stack.Screen name="reset-password" />
+      </Stack.Protected>
+      <Stack.Protected guard={!!session && !recovering && !isAdultConfirmed}>
         <Stack.Screen name="adult" />
       </Stack.Protected>
-      <Stack.Protected guard={!!session && isAdultConfirmed}>
+      <Stack.Protected guard={!!session && !recovering && isAdultConfirmed}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
     </Stack>
