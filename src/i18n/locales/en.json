@@ -310,5 +310,15 @@
     "bookWithOffer": "Book this offer",
     "notValid": "This time is outside the offer's validity.",
     "notFound": "Offer not available."
+  },
+  "availability": {
+    "title": "Availability",
+    "intro": "Open the hours when you can take bookings, over the next 14 days. Times are Rome time.",
+    "booked": "booked",
+    "legend": "Dark hour = open or already booked. Tap to open or close.",
+    "openAll": "Open the whole day",
+    "closeAll": "Close the whole day",
+    "copyWeek": "Copy to the same weekday next week",
+    "link": "Availability"
   }
 }

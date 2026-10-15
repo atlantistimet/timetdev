@@ -9,6 +9,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/http.ts';
 import { bookingFees } from '../_shared/fees.ts';
 import { STANDARD_TIERS } from '../_shared/cancel.ts';
+import { isCovered } from '../_shared/slots.ts';
 import { discountedCents, offerApplies, type Validity } from '../_shared/validity.ts';
 import { stripeRequest, StripeError } from '../_shared/stripe.ts';
 
@@ -74,14 +75,15 @@ Deno.serve(async (req) => {
   const [{ data: seller }, { data: account }, { data: window }, { data: policy }] = await Promise.all([
     admin.from('profiles').select('is_pro, travel_fee_cents').eq('id', service.seller_id).single(),
     admin.from('stripe_accounts').select('stripe_account_id, charges_enabled').eq('seller_id', service.seller_id).maybeSingle(),
-    // lo slot richiesto deve stare dentro una disponibilità aperta del venditore
-    admin.from('availability_slots').select('id').eq('seller_id', service.seller_id).eq('status', 'open')
-      .lte('starts_at', startsAt.toISOString()).gte('ends_at', endsAt.toISOString()).limit(1),
+    // lo slot richiesto deve essere coperto senza buchi dalle ore aperte del venditore
+    admin.from('availability_slots').select('starts_at, ends_at').eq('seller_id', service.seller_id).eq('status', 'open')
+      .lt('starts_at', endsAt.toISOString()).gt('ends_at', startsAt.toISOString()),
     // fasce proprie dell'offerta, altrimenti policy predefinita del venditore (se non ne ha, vale la standard)
     admin.from('cancel_policies').select('tiers').eq('seller_id', service.seller_id).eq('is_default', true).maybeSingle(),
   ]);
   if (!account?.charges_enabled) return json({ error: 'seller_not_ready' }, 409);
-  if (!window?.length) return json({ error: 'slot_unavailable' }, 409);
+  const openRanges = (window ?? []).map((r) => ({ from: new Date(r.starts_at).getTime(), to: new Date(r.ends_at).getTime() }));
+  if (!isCovered(openRanges, startsAt.getTime(), endsAt.getTime())) return json({ error: 'slot_unavailable' }, 409);
 
   const extraCents = place === 'domicilio' ? seller!.travel_fee_cents : 0;
   const fees = bookingFees(priceCents + extraCents, seller!.is_pro);

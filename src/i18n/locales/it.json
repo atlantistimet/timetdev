@@ -310,5 +310,15 @@
     "bookWithOffer": "Prenota questa offerta",
     "notValid": "Questo orario non rientra nella validità dell'offerta.",
     "notFound": "Offerta non disponibile."
+  },
+  "availability": {
+    "title": "Disponibilità",
+    "intro": "Apri le ore in cui puoi ricevere prenotazioni, nei prossimi 14 giorni. Gli orari sono quelli di Roma.",
+    "booked": "prenotata",
+    "legend": "Ora scura = aperta o già prenotata. Tocca per aprire o chiudere.",
+    "openAll": "Apri tutto il giorno",
+    "closeAll": "Chiudi tutto il giorno",
+    "copyWeek": "Copia sullo stesso giorno della settimana dopo",
+    "link": "Disponibilità"
   }
 }

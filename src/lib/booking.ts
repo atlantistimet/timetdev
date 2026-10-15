@@ -1,5 +1,6 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { type Tier } from '@/lib/cancel-policy';
+import { bookableStarts } from '@/lib/slots';
 import { supabase } from '@/lib/supabase';
 
 export type SlotService = {
@@ -43,19 +44,25 @@ export async function loadSlotService(id: string): Promise<SlotService | null> {
   return (data as SlotService | null) ?? null;
 }
 
-/** Disponibilità aperte e future del venditore, abbastanza lunghe per il servizio. */
+/** Orari prenotabili del venditore nei prossimi 30 giorni: coperti da ore aperte per tutta la durata e non già occupati. */
 export async function loadOpenSlots(sellerId: string, durationMin: number): Promise<OpenSlot[]> {
-  const { data } = await supabase
-    .from('availability_slots')
-    .select('id, starts_at, ends_at')
-    .eq('seller_id', sellerId)
-    .eq('status', 'open')
-    .gt('starts_at', new Date().toISOString())
-    .order('starts_at')
-    .limit(30);
-  return ((data ?? []) as OpenSlot[]).filter(
-    (slot) => new Date(slot.ends_at).getTime() - new Date(slot.starts_at).getTime() >= durationMin * 60_000,
-  );
+  const now = Date.now();
+  const to = new Date(now + 30 * 86_400_000).toISOString();
+  const [slots, busy] = await Promise.all([
+    supabase
+      .from('availability_slots')
+      .select('starts_at, ends_at')
+      .eq('seller_id', sellerId)
+      .eq('status', 'open')
+      .gt('ends_at', new Date(now).toISOString())
+      .lt('starts_at', to),
+    supabase.rpc('seller_busy', { p_seller: sellerId, p_from: new Date(now).toISOString(), p_to: to }),
+  ]);
+  const open = ((slots.data ?? []) as { starts_at: string; ends_at: string }[]).map((r) => ({ from: new Date(r.starts_at).getTime(), to: new Date(r.ends_at).getTime() }));
+  const busyList = ((busy.data ?? []) as { starts_at: string; ends_at: string }[]).map((r) => ({ from: new Date(r.starts_at).getTime(), to: new Date(r.ends_at).getTime() }));
+  return bookableStarts(open, busyList, durationMin, now)
+    .slice(0, 60)
+    .map((ms) => ({ id: String(ms), starts_at: new Date(ms).toISOString(), ends_at: new Date(ms + durationMin * 60_000).toISOString() }));
 }
 
 const KNOWN_ERRORS = [
