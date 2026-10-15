@@ -164,7 +164,17 @@
       "offer_not_found": "Offer not available."
     },
     "offersTitle": "Offers",
-    "servicesSection": "Services"
+    "servicesSection": "Services",
+    "where": "Where",
+    "includesTitle": "What's included",
+    "sedeAt": "At: {{address}}",
+    "sedeNoAddress": "The seller hasn't added an address yet.",
+    "address": "Your address",
+    "addressHint": "Where the seller should come.",
+    "area": "Area covered: {{area}}",
+    "extraSpace": "Space cost: {{amount}}",
+    "extraTravel": "Travel: {{amount}}",
+    "summaryTotal": "Service + extras: {{amount}}"
   },
   "policy": {
     "title": "Cancellation policy",
@@ -255,12 +265,21 @@
     "errors": {
       "title": "Give the offer a title.",
       "price": "Enter a price of at least €1.",
-      "duration": "Duration must be between 5 and 480 minutes."
+      "duration": "Duration must be between 5 and 480 minutes.",
+      "places": "Choose at least one place.",
+      "spaceFee": "Invalid space cost.",
+      "includes": "Max 8 items, each up to 80 characters."
     },
     "policyCustom": "own policy",
     "policyCustomLabel": "Customize for this offer",
     "startFrom": "Start from:",
-    "createOffer": "Create an offer"
+    "createOffer": "Create an offer",
+    "where": "Where it takes place",
+    "fieldIncludes": "What's included (one per line, max 8)",
+    "includesHint": "E.g. “Materials included”, “Final report”.",
+    "spaceFee": "Space cost in euros (optional)",
+    "spaceFeeHint": "Added to the price when the client comes to you.",
+    "travelNote": "The travel fee is set in your seller profile."
   },
   "offers": {
     "title": "My offers",
@@ -320,5 +339,31 @@
     "closeAll": "Close the whole day",
     "copyWeek": "Copy to the same weekday next week",
     "link": "Availability"
+  },
+  "places": {
+    "online": "Online",
+    "sede": "At my place",
+    "domicilio": "At your address"
+  },
+  "profileEdit": {
+    "title": "Seller profile",
+    "link": "Profile and place",
+    "handle": "Username",
+    "handleHint": "3–30 characters: lowercase letters, numbers, _ and .",
+    "roleTitle": "Profession",
+    "city": "City",
+    "bio": "Bio",
+    "placeType": "Type of place",
+    "placeTypeHint": "E.g. studio, salon, office.",
+    "placeAddress": "Place address",
+    "placeAddressHint": "Shown to clients who book “at my place”.",
+    "serviceArea": "Area covered for home visits",
+    "travelFee": "Travel fee in euros",
+    "travelFeeHint": "Added to at-your-address services.",
+    "errors": {
+      "handle": "Invalid username.",
+      "handleTaken": "Username already taken.",
+      "travel": "Invalid travel fee."
+    }
   }
 }

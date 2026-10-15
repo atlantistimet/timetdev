@@ -9,9 +9,15 @@ export type MyService = {
   duration_min: number;
   active: boolean;
   cancel_tiers: Tier[] | null;
+  places: Place[];
+  includes: string[];
+  space_fee_cents: number;
 };
 
-const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers';
+export type Place = 'online' | 'sede' | 'domicilio';
+export const PLACES: Place[] = ['online', 'sede', 'domicilio'];
+
+const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers, places, includes, space_fee_cents';
 
 /** Servizi a slot del venditore (anche quelli in pausa). */
 export async function listMyServices(sellerId: string): Promise<{ services: MyService[]; errorKey: string | null }> {
@@ -52,6 +58,9 @@ export async function saveService(input: {
   durationMin: number;
   active: boolean;
   cancelTiers: Tier[] | null;
+  places: Place[];
+  includes: string[];
+  spaceFeeCents: number;
 }): Promise<string | null> {
   const row = {
     title: input.title.trim(),
@@ -60,9 +69,12 @@ export async function saveService(input: {
     duration_min: input.durationMin,
     active: input.active,
     cancel_tiers: input.cancelTiers,
+    places: input.places,
+    includes: input.includes,
+    space_fee_cents: input.places.includes('sede') ? input.spaceFeeCents : 0,
   };
   const { error } = input.id
     ? await supabase.from('services').update(row).eq('id', input.id)
-    : await supabase.from('services').insert({ ...row, seller_id: input.sellerId, kind: 'slot', places: ['online'] });
+    : await supabase.from('services').insert({ ...row, seller_id: input.sellerId, kind: 'slot' });
   return error ? 'errors.generic' : null;
 }

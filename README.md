@@ -30,6 +30,7 @@ supabase/migrations/0005_service_cancel_policy.sql policy di cancellazione per s
 supabase/migrations/0006_service_cancel_tiers.sql fasce di rimborso proprie di ogni offerta (sostituisce la 0005; vuoto = predefinita del venditore)
 supabase/migrations/0007_offers.sql offerte con sconto, validità (giorni, periodo, giorni della settimana, fasce orarie), messaggio e fasce di rimborso proprie
 supabase/migrations/0008_seller_busy.sql orari occupati di un venditore (solo intervalli, per chi prenota)
+supabase/migrations/0009_service_places.sql luoghi dei servizi (online, nel luogo del venditore, a domicilio), costo spazio, vincoli
 ```
 
 ## Avvio
@@ -40,7 +41,7 @@ cp .env.example .env     # inserisci URL e anon key del progetto Supabase
 npm run web              # oppure npm run ios / npm run android
 ```
 
-Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono applicate la 0001–0008.
+Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono applicate la 0001–0009.
 
 ## Login
 
@@ -53,7 +54,7 @@ Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di 
 
 - `stripe-connect-onboarding`: chiamata dall'app con la sessione dell'utente (richiede 18+ dichiarato). `{action:'onboard'}` crea una sola volta l'account Stripe del venditore e restituisce il link all'onboarding ospitato; `{action:'refresh'}` rilegge lo stato da Stripe.
 - `stripe-webhook`: due destinazioni Stripe, due segreti di firma. "Il tuo account" (payload Thin, eventi `v2.core.account...`) aggiorna `stripe_accounts`; "Account connessi" (payload Snapshot, `payment_intent.succeeded|payment_failed|canceled`) aggiorna `payments` e libera lo slot se il pagamento è annullato.
-- `create-booking-payment`: l'app la chiama con la sessione dell'utente per prenotare uno slot; calcola le commissioni (`_shared/fees.ts`), crea la prenotazione e il PaymentIntent (addebito diretto con application fee) e restituisce il `client_secret`.
+- `create-booking-payment`: l'app la chiama con la sessione dell'utente per prenotare uno slot; calcola le commissioni (`_shared/fees.ts`), crea la prenotazione e il PaymentIntent (addebito diretto con application fee), con luogo (online, sede, domicilio) ed extra di spazio o trasferta e restituisce il `client_secret`.
 - `cancel-booking`: annulla una prenotazione (cliente o venditore) e rimborsa secondo le fasce congelate nella prenotazione (`bookings.cancel_tiers`); se annulla il venditore il rimborso è totale. Il rimborso include la quota proporzionale della commissione Timeet. `preview:true` restituisce solo l'importo.
 - `expire-unpaid-bookings`: annulla (PaymentIntent e prenotazione) i pagamenti non completati dopo 15 minuti. Protetta dal segreto `CRON_SECRET` (header `x-cron-secret`), chiamata ogni 5 minuti da pg_cron. Il job non sta nelle migrazioni perché contiene il segreto; per ricrearlo (SQL Editor, con pg_net e pg_cron attivi):
   `select cron.schedule('expire-unpaid-bookings','*/5 * * * *', $$select net.http_post(url:='https://<ref>.supabase.co/functions/v1/expire-unpaid-bookings', headers:=jsonb_build_object('x-cron-secret','<CRON_SECRET>','Content-Type','application/json'), body:='{}'::jsonb)$$);`

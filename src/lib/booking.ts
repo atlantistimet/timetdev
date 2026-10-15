@@ -1,5 +1,6 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { type Tier } from '@/lib/cancel-policy';
+import { type Place } from '@/lib/my-services';
 import { bookableStarts } from '@/lib/slots';
 import { supabase } from '@/lib/supabase';
 
@@ -10,9 +11,13 @@ export type SlotService = {
   description: string | null;
   price_cents: number;
   duration_min: number;
-  places: string[];
+  places: Place[];
+  includes: string[];
+  space_fee_cents: number;
   cancel_tiers: Tier[] | null;
 };
+
+export type SellerPlace = { place_type: string | null; place_address: string | null; service_area: string | null; travel_fee_cents: number };
 
 export type OpenSlot = { id: string; starts_at: string; ends_at: string };
 
@@ -23,7 +28,12 @@ export type PaymentIntentInfo = {
   amount_cents: number;
 };
 
-const SERVICE_COLUMNS = 'id, seller_id, title, description, price_cents, duration_min, places, cancel_tiers';
+const SERVICE_COLUMNS = 'id, seller_id, title, description, price_cents, duration_min, places, includes, space_fee_cents, cancel_tiers';
+
+export async function loadSellerPlace(sellerId: string): Promise<SellerPlace> {
+  const { data } = await supabase.from('profiles').select('place_type, place_address, service_area, travel_fee_cents').eq('id', sellerId).maybeSingle();
+  return (data as SellerPlace | null) ?? { place_type: null, place_address: null, service_area: null, travel_fee_cents: 0 };
+}
 
 /** Servizi a slot attivi di altri venditori. */
 export async function listSlotServices(userId: string): Promise<{ services: SlotService[]; errorKey: string | null }> {

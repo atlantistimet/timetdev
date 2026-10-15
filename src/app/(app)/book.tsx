@@ -3,27 +3,32 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PaymentForm } from '@/components/PaymentForm';
 import { TierLines } from '@/components/TierLines';
-import { Body, Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { Body, Button, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import {
   createBookingPayment,
   formatEuro,
   loadOpenSlots,
+  loadSellerPlace,
   loadSlotService,
   type OpenSlot,
   type PaymentIntentInfo,
+  type SellerPlace,
   type SlotService,
 } from '@/lib/booking';
 import { offerApplies } from '@/lib/validity';
 import { finalPriceCents, loadOffer, type Offer } from '@/lib/offers';
 import { loadServiceTiers, type Tier } from '@/lib/cancel-policy';
+import { type Place } from '@/lib/my-services';
 
-type Loaded = { service: SlotService; offer: Offer | null; slots: OpenSlot[]; tiers: Tier[] } | 'missing';
+type Loaded = { service: SlotService; offer: Offer | null; slots: OpenSlot[]; tiers: Tier[]; sellerPlace: SellerPlace } | 'missing';
 
 export default function BookScreen() {
   const { t, i18n } = useTranslation();
   const { serviceId, offerId } = useLocalSearchParams<{ serviceId: string; offerId?: string }>();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [slotId, setSlotId] = useState<string | null>(null);
+  const [place, setPlace] = useState<Place | null>(null);
+  const [address, setAddress] = useState('');
   const [starting, setStarting] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [payment, setPayment] = useState<PaymentIntentInfo | null>(null);
@@ -43,7 +48,11 @@ export default function BookScreen() {
         const slots = offer
           ? open.filter((s) => offerApplies(offer.validity, new Date(s.starts_at), new Date(new Date(s.starts_at).getTime() + durationMin * 60_000)))
           : open;
-        result = { service, offer, slots, tiers: offer?.cancel_tiers ?? (await loadServiceTiers(service.seller_id, service.cancel_tiers)) };
+        const [tiers, sellerPlace] = await Promise.all([
+          offer?.cancel_tiers ? Promise.resolve(offer.cancel_tiers) : loadServiceTiers(service.seller_id, service.cancel_tiers),
+          loadSellerPlace(service.seller_id),
+        ]);
+        result = { service, offer, slots, tiers, sellerPlace };
       }
       if (active) setLoaded(result);
     })();
@@ -64,17 +73,22 @@ export default function BookScreen() {
     );
   }
 
-  const { service, offer, slots, tiers } = loaded;
+  const { service, offer, slots, tiers, sellerPlace } = loaded;
+  // sede solo se il venditore ha indicato l'indirizzo (stessa regola del server)
+  const places = service.places.filter((p) => p !== 'sede' || !!sellerPlace.place_address);
+  const chosen: Place | null = place && places.includes(place) ? place : places.length === 1 ? places[0] : null;
+  const extraCents = chosen === 'domicilio' ? sellerPlace.travel_fee_cents : chosen === 'sede' ? service.space_fee_cents : 0;
   const priceCents = offer ? finalPriceCents(offer) : service.price_cents;
   const durationMin = offer?.duration_min ?? service.duration_min;
   const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'full', timeStyle: 'short' });
 
   const start = async () => {
     const slot = slots.find((s) => s.id === slotId);
-    if (!slot) return;
+    if (!slot || !chosen) return;
+    if (chosen === 'domicilio' && !address.trim()) return setErrorKey('book.errors.address_required');
     setStarting(true);
     setErrorKey(null);
-    const result = await createBookingPayment({ serviceId: service.id, startsAt: slot.starts_at, place: 'online', offerId: offer?.id });
+    const result = await createBookingPayment({ serviceId: service.id, startsAt: slot.starts_at, place: chosen, clientAddress: chosen === 'domicilio' ? address.trim() : undefined, offerId: offer?.id });
     setStarting(false);
     if (result.payment) setPayment(result.payment);
     else setErrorKey(result.errorKey);
@@ -108,9 +122,43 @@ export default function BookScreen() {
       <Title>{service.title}</Title>
       <Body muted>
         {offer && offer.discount_pct ? `−${offer.discount_pct}% · ` : ''}
-        {formatEuro(priceCents, i18n.language)} · {durationMin} min · {t('book.online')}
+        {formatEuro(priceCents, i18n.language)} · {durationMin} min
       </Body>
       {offer?.message ? <Body muted>{offer.message}</Body> : null}
+      {service.includes.length > 0 ? (
+        <>
+          <Spacer size={8} />
+          <Body>{t('book.includesTitle')}</Body>
+          {service.includes.map((line) => (
+            <Body key={line} muted>
+              • {line}
+            </Body>
+          ))}
+        </>
+      ) : null}
+      <Spacer />
+      <Body>{t('book.where')}</Body>
+      <Spacer size={8} />
+      <ChipRow>
+        {places.map((p) => (
+          <Chip key={p} label={t(`places.${p}`)} selected={chosen === p} onPress={() => setPlace(p)} />
+        ))}
+      </ChipRow>
+      {chosen === 'sede' ? <Body muted>{t('book.sedeAt', { address: sellerPlace.place_address })}</Body> : null}
+      {chosen === 'domicilio' ? (
+        <>
+          {sellerPlace.service_area ? <Body muted>{t('book.area', { area: sellerPlace.service_area })}</Body> : null}
+          <Spacer size={8} />
+          <TextField label={t('book.address')} value={address} onChangeText={setAddress} maxLength={200} hint={t('book.addressHint')} />
+        </>
+      ) : null}
+      {extraCents > 0 ? (
+        <Body muted>
+          {t(chosen === 'domicilio' ? 'book.extraTravel' : 'book.extraSpace', { amount: formatEuro(extraCents, i18n.language) })}
+          {' · '}
+          {t('book.summaryTotal', { amount: formatEuro(priceCents + extraCents, i18n.language) })}
+        </Body>
+      ) : null}
       <Spacer />
       <Body>{t('book.pickSlot')}</Body>
       <Spacer size={8} />
@@ -128,7 +176,7 @@ export default function BookScreen() {
       <TierLines tiers={tiers} />
       <Spacer />
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
-      {slotId ? <Button title={t('book.continue')} onPress={() => void start()} loading={starting} /> : null}
+      {slotId && chosen ? <Button title={t('book.continue')} onPress={() => void start()} loading={starting} /> : null}
       <Spacer size={12} />
       <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/services')} />
     </Screen>

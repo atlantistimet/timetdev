@@ -3,10 +3,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PolicySection } from '@/components/PolicySection';
 import { fromRows, rowsIncomplete, toRows, type TierRow } from '@/components/TierEditor';
-import { Body, Button, Checkbox, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
+import { Body, Button, Checkbox, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { listPolicies, STANDARD_TIERS, validateTiers, type CancelPolicy, type Tier } from '@/lib/cancel-policy';
-import { centsToEuroText, loadMyService, MIN_PRICE_CENTS, parseEuroToCents, saveService } from '@/lib/my-services';
+import { PLACES, type Place, centsToEuroText, loadMyService, MIN_PRICE_CENTS, parseEuroToCents, saveService } from '@/lib/my-services';
 
 export default function ServiceEditScreen() {
   const { t } = useTranslation();
@@ -20,6 +20,9 @@ export default function ServiceEditScreen() {
   const [price, setPrice] = useState('');
   const [duration, setDuration] = useState('');
   const [active, setActive] = useState(true);
+  const [places, setPlaces] = useState<Place[]>(['online']);
+  const [spaceFee, setSpaceFee] = useState('');
+  const [includesText, setIncludesText] = useState('');
   const [custom, setCustom] = useState(false); // false = vale la policy predefinita del venditore
   const [rows, setRows] = useState<TierRow[]>(toRows(STANDARD_TIERS));
   const [errorKey, setErrorKey] = useState<string | null>(null);
@@ -40,6 +43,9 @@ export default function ServiceEditScreen() {
         setPrice(centsToEuroText(service.price_cents));
         setDuration(String(service.duration_min));
         setActive(service.active);
+        setPlaces(service.places);
+        setSpaceFee(service.space_fee_cents ? centsToEuroText(service.space_fee_cents) : '');
+        setIncludesText(service.includes.join('\n'));
         setCustom(service.cancel_tiers !== null);
       }
       setReady(true);
@@ -61,6 +67,11 @@ export default function ServiceEditScreen() {
     if (!title.trim()) return setErrorKey('myServices.errors.title');
     if (priceCents === null || priceCents < MIN_PRICE_CENTS) return setErrorKey('myServices.errors.price');
     if (!Number.isInteger(durationMin) || durationMin < 5 || durationMin > 480) return setErrorKey('myServices.errors.duration');
+    if (places.length === 0) return setErrorKey('myServices.errors.places');
+    const spaceFeeCents = places.includes('sede') && spaceFee.trim() ? parseEuroToCents(spaceFee) : 0;
+    if (spaceFeeCents === null) return setErrorKey('myServices.errors.spaceFee');
+    const includes = includesText.split('\n').map((x) => x.trim()).filter(Boolean);
+    if (includes.length > 8 || includes.some((x) => x.length > 80)) return setErrorKey('myServices.errors.includes');
     let cancelTiers: Tier[] | null = null;
     if (custom) {
       if (rowsIncomplete(rows)) return setErrorKey('policy.errors.empty');
@@ -70,7 +81,7 @@ export default function ServiceEditScreen() {
     }
     setSaving(true);
     setErrorKey(null);
-    const failure = await saveService({ id: id ?? null, sellerId: userId, title, description, priceCents, durationMin, active, cancelTiers });
+    const failure = await saveService({ id: id ?? null, sellerId: userId, title, description, priceCents, durationMin, active, cancelTiers, places, includes, spaceFeeCents });
     setSaving(false);
     if (failure) setErrorKey(failure);
     else router.replace('/my-services');
@@ -84,6 +95,24 @@ export default function ServiceEditScreen() {
       <TextField label={t('myServices.fieldDescription')} value={description} onChangeText={setDescription} multiline maxLength={500} />
       <TextField label={t('myServices.fieldPrice')} value={price} onChangeText={setPrice} keyboardType="decimal-pad" hint={t('myServices.priceHint')} />
       <TextField label={t('myServices.fieldDuration')} value={duration} onChangeText={(v) => setDuration(v.replace(/\D/g, ''))} keyboardType="number-pad" />
+      <TextField label={t('myServices.fieldIncludes')} value={includesText} onChangeText={setIncludesText} multiline hint={t('myServices.includesHint')} />
+      <Body>{t('myServices.where')}</Body>
+      <Spacer size={8} />
+      <ChipRow>
+        {PLACES.map((p) => (
+          <Chip
+            key={p}
+            label={t(`places.${p}`)}
+            selected={places.includes(p)}
+            onPress={() => setPlaces((current) => (current.includes(p) ? current.filter((x) => x !== p) : [...current, p]))}
+          />
+        ))}
+      </ChipRow>
+      {places.includes('sede') ? (
+        <TextField label={t('myServices.spaceFee')} value={spaceFee} onChangeText={setSpaceFee} keyboardType="decimal-pad" hint={t('myServices.spaceFeeHint')} />
+      ) : null}
+      {places.includes('domicilio') ? <Body muted>{t('myServices.travelNote')}</Body> : null}
+      <Spacer size={8} />
       <Checkbox label={t('myServices.activeLabel')} checked={active} onChange={setActive} />
 
       <Spacer />

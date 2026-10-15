@@ -164,7 +164,17 @@
       "offer_not_found": "Offerta non disponibile."
     },
     "offersTitle": "Offerte",
-    "servicesSection": "Servizi"
+    "servicesSection": "Servizi",
+    "where": "Dove",
+    "includesTitle": "Cosa include",
+    "sedeAt": "Presso: {{address}}",
+    "sedeNoAddress": "Indirizzo del venditore non ancora indicato.",
+    "address": "Il tuo indirizzo",
+    "addressHint": "Dove deve arrivare il venditore.",
+    "area": "Zona coperta: {{area}}",
+    "extraSpace": "Costo dello spazio: {{amount}}",
+    "extraTravel": "Trasferta: {{amount}}",
+    "summaryTotal": "Servizio + extra: {{amount}}"
   },
   "policy": {
     "title": "Policy di cancellazione",
@@ -255,12 +265,21 @@
     "errors": {
       "title": "Dai un titolo all'offerta.",
       "price": "Inserisci un prezzo di almeno 1 €.",
-      "duration": "La durata deve essere tra 5 e 480 minuti."
+      "duration": "La durata deve essere tra 5 e 480 minuti.",
+      "places": "Scegli almeno un luogo.",
+      "spaceFee": "Costo dello spazio non valido.",
+      "includes": "Massimo 8 voci, ognuna fino a 80 caratteri."
     },
     "policyCustom": "policy propria",
     "policyCustomLabel": "Personalizza per questa offerta",
     "startFrom": "Parti da:",
-    "createOffer": "Crea un'offerta"
+    "createOffer": "Crea un'offerta",
+    "where": "Dove si svolge",
+    "fieldIncludes": "Cosa include (una voce per riga, max 8)",
+    "includesHint": "Es. “Materiali inclusi”, “Report finale”.",
+    "spaceFee": "Costo dello spazio in euro (facoltativo)",
+    "spaceFeeHint": "Si aggiunge al prezzo quando il cliente viene da te.",
+    "travelNote": "Il costo di trasferta si imposta nel profilo venditore."
   },
   "offers": {
     "title": "Le mie offerte",
@@ -320,5 +339,31 @@
     "closeAll": "Chiudi tutto il giorno",
     "copyWeek": "Copia sullo stesso giorno della settimana dopo",
     "link": "Disponibilità"
+  },
+  "places": {
+    "online": "Online",
+    "sede": "Nel mio luogo",
+    "domicilio": "A domicilio"
+  },
+  "profileEdit": {
+    "title": "Profilo venditore",
+    "link": "Profilo e luogo",
+    "handle": "Nome utente",
+    "handleHint": "3–30 caratteri: lettere minuscole, numeri, _ e .",
+    "roleTitle": "Professione",
+    "city": "Città",
+    "bio": "Bio",
+    "placeType": "Tipo di luogo",
+    "placeTypeHint": "Es. studio, salone, ufficio.",
+    "placeAddress": "Indirizzo del luogo",
+    "placeAddressHint": "Lo vedono i clienti che prenotano “nel mio luogo”.",
+    "serviceArea": "Zona coperta a domicilio",
+    "travelFee": "Costo di trasferta in euro",
+    "travelFeeHint": "Si aggiunge ai servizi a domicilio.",
+    "errors": {
+      "handle": "Nome utente non valido.",
+      "handleTaken": "Nome utente già in uso.",
+      "travel": "Costo di trasferta non valido."
+    }
   }
 }

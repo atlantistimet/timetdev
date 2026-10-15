@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
 
   const { data: service } = await admin
     .from('services')
-    .select('id, seller_id, kind, title, price_cents, duration_min, places, active, cancel_tiers')
+    .select('id, seller_id, kind, title, price_cents, duration_min, places, active, cancel_tiers, space_fee_cents')
     .eq('id', body.service_id)
     .maybeSingle();
   if (!service || !service.active) return json({ error: 'service_not_found' }, 404);
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
   const endsAt = new Date(startsAt.getTime() + durationMin * 60_000);
 
   const [{ data: seller }, { data: account }, { data: window }, { data: policy }] = await Promise.all([
-    admin.from('profiles').select('is_pro, travel_fee_cents').eq('id', service.seller_id).single(),
+    admin.from('profiles').select('is_pro, travel_fee_cents, place_address').eq('id', service.seller_id).single(),
     admin.from('stripe_accounts').select('stripe_account_id, charges_enabled').eq('seller_id', service.seller_id).maybeSingle(),
     // lo slot richiesto deve essere coperto senza buchi dalle ore aperte del venditore
     admin.from('availability_slots').select('starts_at, ends_at').eq('seller_id', service.seller_id).eq('status', 'open')
@@ -85,7 +85,9 @@ Deno.serve(async (req) => {
   const openRanges = (window ?? []).map((r) => ({ from: new Date(r.starts_at).getTime(), to: new Date(r.ends_at).getTime() }));
   if (!isCovered(openRanges, startsAt.getTime(), endsAt.getTime())) return json({ error: 'slot_unavailable' }, 409);
 
-  const extraCents = place === 'domicilio' ? seller!.travel_fee_cents : 0;
+  if (place === 'sede' && !seller!.place_address) return json({ error: 'place_not_offered' }, 400);
+  // costi aggiuntivi: trasferta (profilo) a domicilio, spazio (servizio) nel luogo del venditore
+  const extraCents = place === 'domicilio' ? seller!.travel_fee_cents : place === 'sede' ? service.space_fee_cents : 0;
   const fees = bookingFees(priceCents + extraCents, seller!.is_pro);
 
   const { data: booking, error: bookingError } = await admin

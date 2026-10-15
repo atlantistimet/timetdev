@@ -62,6 +62,8 @@ export default function SellerScreen() {
         />
       ) : null}
       <Spacer size={12} />
+      <Button title={t('profileEdit.link')} variant="ghost" onPress={() => router.push('/profile-edit')} />
+      <Spacer size={12} />
       <Button title={t('myServices.title')} variant="ghost" onPress={() => router.push('/my-services')} />
       <Spacer size={12} />
       <Button title={t('offers.title')} variant="ghost" onPress={() => router.push('/my-offers')} />
