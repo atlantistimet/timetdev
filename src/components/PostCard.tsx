@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { CommentsSection } from '@/components/CommentsSection';
 import { MediaGallery } from '@/components/MediaView';
 import { Body, Button, Card, Spacer } from '@/components/ui';
 import { formatEuro } from '@/lib/booking';
 import { deletePost, setLike, type Post } from '@/lib/feed';
 import { initials } from '@/lib/public-profile';
+import { postUrl, shareLink } from '@/lib/share';
 import { dayLabel } from '@/lib/time';
 import { discountedCents } from '@/lib/validity';
 import { useTheme } from '@/theme';
@@ -20,11 +22,14 @@ function timeAgo(iso: string, language: string, nowMs: number): string {
   return rtf.format(Math.round(diff / 86_400), 'day');
 }
 
-export function PostCard({ post, userId, nowMs, onDeleted }: { post: Post; userId: string; nowMs: number; onDeleted: () => void }) {
+export function PostCard({ post, userId, nowMs, onDeleted, openComments = false }: { post: Post; userId: string; nowMs: number; onDeleted: () => void; openComments?: boolean }) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const [liked, setLiked] = useState(post.liked);
   const [likes, setLikes] = useState(post.likes);
+  const [showComments, setShowComments] = useState(openComments);
+  const [commentCount, setCommentCount] = useState(post.comments);
+  const [shareNote, setShareNote] = useState<string | null>(null);
   const mine = post.author_id === userId;
   const fmt = (cents: number) => formatEuro(cents, i18n.language);
 
@@ -37,6 +42,11 @@ export function PostCard({ post, userId, nowMs, onDeleted }: { post: Post; userI
       setLiked(!next);
       setLikes((n) => n + (next ? -1 : 1));
     }
+  };
+  const share = async () => {
+    const text = post.body ? `${post.author.full_name}: ${post.body.slice(0, 120)}` : post.author.full_name;
+    const result = await shareLink(text, postUrl(post.id));
+    setShareNote(result === 'copied' ? t('feed.linkCopied') : null);
   };
   const openAuthor = () => post.author.handle && router.push({ pathname: '/u/[handle]', params: { handle: post.author.handle } });
 
@@ -98,6 +108,13 @@ export function PostCard({ post, userId, nowMs, onDeleted }: { post: Post; userI
           <Text style={{ color: liked ? theme.danger : theme.muted, fontSize: 20 }}>{liked ? '♥' : '♡'}</Text>
           <Text style={{ color: theme.muted, fontWeight: '600' }}>{likes}</Text>
         </Pressable>
+        <Pressable accessibilityRole="button" onPress={() => setShowComments((v) => !v)} style={styles.like}>
+          <Text style={{ color: theme.muted, fontSize: 18 }}>💬</Text>
+          <Text style={{ color: theme.muted, fontWeight: '600' }}>{commentCount}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={() => void share()}>
+          <Text style={{ color: theme.muted, fontWeight: '600' }}>{t('feed.share')}</Text>
+        </Pressable>
         {mine ? (
           <Pressable
             accessibilityRole="button"
@@ -108,6 +125,8 @@ export function PostCard({ post, userId, nowMs, onDeleted }: { post: Post; userI
           </Pressable>
         ) : null}
       </View>
+      {shareNote ? <Body muted>{shareNote}</Body> : null}
+      {showComments ? <CommentsSection postId={post.id} userId={userId} postAuthorId={post.author_id} onChanged={setCommentCount} /> : null}
     </Card>
   );
 }

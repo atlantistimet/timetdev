@@ -9,13 +9,14 @@ import { useAuth } from '@/lib/auth';
 import { followInfo, loadPosts, setFollow, type Post } from '@/lib/feed';
 import { formatEuro, listSellerServices, type SlotService } from '@/lib/booking';
 import { finalPriceCents, listSellerOffers, validityText, type Offer } from '@/lib/offers';
+import { loadReviews, stars, type Review, type ReviewSummary } from '@/lib/reviews';
 import { initials, loadProfileByHandle, type PublicProfile } from '@/lib/public-profile';
 import { type MediaItem } from '@/lib/media';
 import { listCovers } from '@/lib/service-media';
 import { useTheme } from '@/theme';
 
 type Follow = { following: boolean; followers: number; followingCount: number };
-type Loaded = { profile: PublicProfile; services: SlotService[]; offers: Offer[]; covers: Record<string, MediaItem>; posts: Post[]; follow: Follow; nowMs: number } | 'missing';
+type Loaded = { profile: PublicProfile; services: SlotService[]; offers: Offer[]; covers: Record<string, MediaItem>; posts: Post[]; reviews: Review[]; summary: ReviewSummary; follow: Follow; nowMs: number } | 'missing';
 
 export default function PublicProfileScreen() {
   const { t, i18n } = useTranslation();
@@ -25,7 +26,7 @@ export default function PublicProfileScreen() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [following, setFollowing] = useState<boolean | null>(null);
-  const [tab, setTab] = useState<'services' | 'offers' | 'posts'>('services');
+  const [tab, setTab] = useState<'services' | 'offers' | 'posts' | 'reviews'>('services');
 
   useEffect(() => {
     let alive = true;
@@ -34,14 +35,15 @@ export default function PublicProfileScreen() {
       let result: Loaded = 'missing';
       if (profile) {
         const me = session?.user.id ?? '';
-        const [services, offers, postsResult, follow] = await Promise.all([
+        const [services, offers, postsResult, follow, rev] = await Promise.all([
           listSellerServices(profile.id),
           listSellerOffers(profile.id),
           loadPosts(me, { kind: 'author', authorId: profile.id }),
           followInfo(me, profile.id),
+          loadReviews(profile.id),
         ]);
         const covers = await listCovers(services.map((s) => s.id));
-        result = { profile, services, offers, covers, posts: postsResult.posts, follow, nowMs: Date.now() };
+        result = { profile, services, offers, covers, posts: postsResult.posts, reviews: rev.reviews, summary: rev.summary, follow, nowMs: Date.now() };
       }
       if (alive) setLoaded(result);
     })();
@@ -61,7 +63,7 @@ export default function PublicProfileScreen() {
     );
   }
 
-  const { profile, services, offers, covers, posts, follow, nowMs } = loaded;
+  const { profile, services, offers, covers, posts, reviews, summary, follow, nowMs } = loaded;
   const isFollowing = following ?? follow.following;
   const followerCount = follow.followers + (following === null ? 0 : (following ? 1 : 0) - (follow.following ? 1 : 0));
   const mine = session?.user.id === profile.id;
@@ -77,6 +79,7 @@ export default function PublicProfileScreen() {
         {profile.handle ? <Body muted>@{profile.handle}</Body> : null}
         {profile.role_title ? <Body>{profile.role_title}</Body> : null}
         {profile.city ? <Body muted>{profile.city}</Body> : null}
+        {summary.count > 0 ? <Body>{`${stars(summary.average)} ${summary.average.toFixed(1)} · ${t('reviews.count', { count: summary.count })}`}</Body> : null}
         {profile.bio ? <Body muted>{profile.bio}</Body> : null}
       </View>
       {where.length > 0 ? (
@@ -107,6 +110,7 @@ export default function PublicProfileScreen() {
         <Chip label={`${t('publicProfile.posts')} (${posts.length})`} selected={tab === 'posts'} onPress={() => setTab('posts')} />
         <Chip label={`${t('publicProfile.services')} (${services.length})`} selected={tab === 'services'} onPress={() => setTab('services')} />
         <Chip label={`${t('publicProfile.offers')} (${offers.length})`} selected={tab === 'offers'} onPress={() => setTab('offers')} />
+        <Chip label={`${t('reviews.title')} (${summary.count})`} selected={tab === 'reviews'} onPress={() => setTab('reviews')} />
       </ChipRow>
 
       {tab === 'posts' ? (
@@ -134,6 +138,17 @@ export default function PublicProfileScreen() {
                   <Button title={t('book.choose')} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })} />
                 </>
               ) : null}
+            </Card>
+          ))}
+        </>
+      ) : tab === 'reviews' ? (
+        <>
+          {reviews.length === 0 ? <Body muted>{t('reviews.none')}</Body> : null}
+          {reviews.map((r) => (
+            <Card key={r.id}>
+              <Body>{`${stars(r.rating)} · ${r.author_name}`}</Body>
+              {r.body ? <Body muted>{r.body}</Body> : null}
+              <Body muted>{new Date(r.created_at).toLocaleDateString(i18n.language)}</Body>
             </Card>
           ))}
         </>

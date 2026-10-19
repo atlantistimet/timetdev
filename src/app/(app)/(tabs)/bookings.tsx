@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { Body, Button, Card, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro, listMyBookings, markBookingOutcome, type MyBooking } from '@/lib/booking';
+import { ReviewForm } from '@/components/ReviewForm';
+import { reviewedBookingIds } from '@/lib/reviews';
 import { cancelBooking, previewCancel, type CancelPreview } from '@/lib/cancel-policy';
 
 export default function BookingsScreen() {
@@ -17,13 +19,15 @@ export default function BookingsScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [reloadKey, setReloadKey] = useState(0);
+  const [reviewed, setReviewed] = useState<Set<string>>(new Set());
   const [tab, setTab] = useState<'upcoming' | 'received' | 'past'>('upcoming');
 
   useEffect(() => {
     let active = true;
     (async () => {
-      const r = await listMyBookings();
+      const [r, done] = await Promise.all([listMyBookings(), userId ? reviewedBookingIds(userId) : Promise.resolve(new Set<string>())]);
       if (!active) return;
+      setReviewed(done);
       setBookings(r.bookings);
       setListError(r.errorKey);
       setNow(Date.now());
@@ -31,7 +35,7 @@ export default function BookingsScreen() {
     return () => {
       active = false;
     };
-  }, [reloadKey]);
+  }, [reloadKey, userId]);
 
   const shown = useMemo(() => {
     const list = bookings ?? [];
@@ -121,6 +125,16 @@ export default function BookingsScreen() {
                 : ''}
             </Body>
             {errors[booking.id] ? <ErrorText>{t(errors[booking.id])}</ErrorText> : null}
+            {booking.status === 'completed' && mine && userId ? (
+              reviewed.has(booking.id) ? (
+                <Body muted>{t('reviews.thanks')}</Body>
+              ) : (
+                <>
+                  <Spacer size={8} />
+                  <ReviewForm bookingId={booking.id} authorId={userId} sellerId={booking.seller_id} onDone={() => setReloadKey((k) => k + 1)} />
+                </>
+              )
+            ) : null}
             {booking.status === 'confirmed' && !mine && new Date(booking.ends_at).getTime() <= now ? (
               <>
                 <Spacer size={8} />

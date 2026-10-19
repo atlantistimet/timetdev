@@ -494,7 +494,11 @@
     "publish": "Pubblica",
     "errors": {
       "empty": "Scrivi qualcosa o aggiungi una foto o un video."
-    }
+    },
+    "share": "Condividi",
+    "linkCopied": "Link copiato negli appunti.",
+    "postNotFound": "Post non trovato",
+    "postNotFoundHint": "Potrebbe essere stato eliminato."
   },
   "explore": {
     "search": "Cerca servizi, offerte o persone",
@@ -512,5 +516,23 @@
     "activeUntil": "Disponibile fino alle {{time}}",
     "maxCategories": "Puoi sceglierne al massimo 3.",
     "viewProfile": "Vedi profilo"
+  },
+  "comments": {
+    "none": "Ancora nessun commento.",
+    "write": "Scrivi un commento",
+    "send": "Commenta",
+    "empty": "Scrivi qualcosa prima di inviare."
+  },
+  "reviews": {
+    "title": "Recensioni",
+    "none": "Ancora nessuna recensione. Si può recensire dopo una sessione conclusa.",
+    "count_one": "{{count}} recensione",
+    "count_other": "{{count}} recensioni",
+    "howWasIt": "Com'è andata? Lascia una recensione",
+    "comment": "Il tuo commento (facoltativo)",
+    "send": "Pubblica recensione",
+    "pickRating": "Scegli da 1 a 5 stelle.",
+    "already": "Hai già recensito questa prenotazione.",
+    "thanks": "Grazie, hai lasciato la tua recensione."
   }
 }

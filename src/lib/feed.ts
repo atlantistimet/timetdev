@@ -16,6 +16,7 @@ export type Post = {
   media: MediaItem[];
   likes: number;
   liked: boolean;
+  comments: number;
   offer: { price_cents: number; discount_pct: number; duration_min: number; service_id: string; service_title: string } | null;
   link: { code: string; price_cents: number; discount_pct: number; duration_min: number; days: string[]; expires_at: string | null; preview: MediaItem | null; service_title: string } | null;
 };
@@ -32,6 +33,7 @@ type Row = {
   profiles: Post['author'] | Post['author'][] | null;
   post_media: { path: string; type: 'image' | 'video'; position: number }[] | null;
   post_likes: { count: number }[] | null;
+  post_comments: { count: number }[] | null;
   offers: { price_cents: number; discount_pct: number; duration_min: number; service_id: string; services: { title: string } | { title: string }[] | null } | null;
   slot_links: {
     code: string; price_cents: number; discount_pct: number; duration_min: number; days: string[]; expires_at: string | null;
@@ -45,6 +47,7 @@ const SELECT = `id, author_id, kind, body, created_at, offer_id, service_id, slo
   profiles!posts_author_id_fkey(full_name, handle, role_title),
   post_media(path, type, position),
   post_likes(count),
+  post_comments(count),
   offers(price_cents, discount_pct, duration_min, service_id, services(title)),
   slot_links(code, price_cents, discount_pct, duration_min, days, expires_at, preview_path, preview_type, services(title))`;
 
@@ -68,6 +71,7 @@ async function hydrate(rows: Row[], userId: string): Promise<Post[]> {
     media: [...(r.post_media ?? [])].sort((a, b) => a.position - b.position).map((m) => ({ path: m.path, type: m.type })),
     likes: r.post_likes?.[0]?.count ?? 0,
     liked: likedSet.has(r.id),
+    comments: r.post_comments?.[0]?.count ?? 0,
     offer: r.offers ? { ...r.offers, service_title: first(r.offers.services)?.title ?? '' } : null,
     link: r.slot_links
       ? {
@@ -155,4 +159,10 @@ export async function setFollow(userId: string, profileId: string, follow: boole
     ? await supabase.from('follows').insert({ follower_id: userId, followee_id: profileId })
     : await supabase.from('follows').delete().eq('follower_id', userId).eq('followee_id', profileId);
   return error ? 'errors.generic' : null;
+}
+
+export async function loadPostById(id: string, userId: string): Promise<Post | null> {
+  const { data } = await supabase.from('posts').select(SELECT).eq('id', id).is('deleted_at', null).maybeSingle();
+  if (!data) return null;
+  return (await hydrate([data as unknown as Row], userId))[0] ?? null;
 }

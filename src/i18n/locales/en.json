@@ -494,7 +494,11 @@
     "publish": "Publish",
     "errors": {
       "empty": "Write something or add a photo or video."
-    }
+    },
+    "share": "Share",
+    "linkCopied": "Link copied to the clipboard.",
+    "postNotFound": "Post not found",
+    "postNotFoundHint": "It may have been deleted."
   },
   "explore": {
     "search": "Search services, offers or people",
@@ -512,5 +516,23 @@
     "activeUntil": "Available until {{time}}",
     "maxCategories": "You can pick up to 3.",
     "viewProfile": "View profile"
+  },
+  "comments": {
+    "none": "No comments yet.",
+    "write": "Write a comment",
+    "send": "Comment",
+    "empty": "Write something before sending."
+  },
+  "reviews": {
+    "title": "Reviews",
+    "none": "No reviews yet. You can review after a completed session.",
+    "count_one": "{{count}} review",
+    "count_other": "{{count}} reviews",
+    "howWasIt": "How was it? Leave a review",
+    "comment": "Your comment (optional)",
+    "send": "Post review",
+    "pickRating": "Pick 1 to 5 stars.",
+    "already": "You already reviewed this booking.",
+    "thanks": "Thanks, your review is in."
   }
 }
