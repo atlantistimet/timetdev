@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { Body, Button, Card, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro, listMyBookings, type MyBooking } from '@/lib/booking';
 import { cancelBooking, previewCancel, type CancelPreview } from '@/lib/cancel-policy';
@@ -17,6 +17,7 @@ export default function BookingsScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [reloadKey, setReloadKey] = useState(0);
+  const [tab, setTab] = useState<'upcoming' | 'received' | 'past'>('upcoming');
 
   useEffect(() => {
     let active = true;
@@ -31,6 +32,14 @@ export default function BookingsScreen() {
       active = false;
     };
   }, [reloadKey]);
+
+  const shown = useMemo(() => {
+    const list = bookings ?? [];
+    const upcoming = (b: MyBooking) => b.status === 'confirmed' && new Date(b.ends_at).getTime() > now;
+    if (tab === 'past') return list.filter((b) => !upcoming(b));
+    const open = list.filter(upcoming).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+    return tab === 'received' ? open.filter((b) => b.seller_id === userId) : open;
+  }, [bookings, tab, now, userId]);
 
   if (!bookings) return <LoadingView />;
 
@@ -73,8 +82,14 @@ export default function BookingsScreen() {
       <Title>{t('bookings.title')}</Title>
       <Spacer />
       {listError ? <ErrorText>{t(listError)}</ErrorText> : null}
-      {!listError && bookings.length === 0 ? <Body muted>{t('bookings.empty')}</Body> : null}
-      {bookings.map((booking) => {
+      <ChipRow>
+        <Chip label={t('bookings.tabUpcoming')} selected={tab === 'upcoming'} onPress={() => setTab('upcoming')} />
+        <Chip label={t('bookings.tabReceived')} selected={tab === 'received'} onPress={() => setTab('received')} />
+        <Chip label={t('bookings.tabPast')} selected={tab === 'past'} onPress={() => setTab('past')} />
+      </ChipRow>
+      <Spacer size={8} />
+      {!listError && shown.length === 0 ? <Body muted>{t('bookings.empty')}</Body> : null}
+      {shown.map((booking) => {
         const mine = booking.client_id === userId;
         const preview = previews[booking.id];
         const future = new Date(booking.starts_at).getTime() > now;
@@ -82,6 +97,15 @@ export default function BookingsScreen() {
           <Card key={booking.id}>
             <Body>{booking.service_title}</Body>
             <Body muted>{dateFormat.format(new Date(booking.starts_at))}</Body>
+            <Body muted>
+              {t(mine ? 'bookings.withSeller' : 'bookings.fromClient', { name: (mine ? booking.seller_name : booking.client_name) ?? '—' })}
+            </Body>
+            <Body muted>
+              {t(`bookings.place.${booking.place}`)}
+              {booking.place === 'domicilio' && booking.client_address ? ` · ${booking.client_address}` : ''}
+              {' · '}
+              {formatEuro(booking.price_cents + booking.extra_cents, i18n.language)}
+            </Body>
             <Body muted>
               {t(mine ? 'bookings.roleClient' : 'bookings.roleSeller')} · {t(`bookings.status.${booking.status}`)}
               {booking.status === 'cancelled' && booking.refund_cents > 0

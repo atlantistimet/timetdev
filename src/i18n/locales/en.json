@@ -234,6 +234,16 @@
       "already_started": "The session has already started.",
       "not_cancellable": "This booking can no longer be cancelled.",
       "payment_in_progress": "Payment is in progress: try again in a moment."
+    },
+    "tabUpcoming": "Upcoming",
+    "tabReceived": "Received",
+    "tabPast": "Past",
+    "withSeller": "with {{name}}",
+    "fromClient": "Client: {{name}}",
+    "place": {
+      "online": "online",
+      "sede": "at the seller's place",
+      "domicilio": "at the client's address"
     }
   },
   "tabs": {

@@ -234,6 +234,16 @@
       "already_started": "La sessione è già iniziata.",
       "not_cancellable": "Questa prenotazione non si può più annullare.",
       "payment_in_progress": "Il pagamento è in corso: riprova tra un momento."
+    },
+    "tabUpcoming": "In arrivo",
+    "tabReceived": "Ricevute",
+    "tabPast": "Passate",
+    "withSeller": "con {{name}}",
+    "fromClient": "Cliente: {{name}}",
+    "place": {
+      "online": "online",
+      "sede": "nella sede del venditore",
+      "domicilio": "a domicilio"
     }
   },
   "tabs": {

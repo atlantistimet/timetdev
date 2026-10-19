@@ -129,15 +129,27 @@ export type MyBooking = {
   status: 'confirmed' | 'completed' | 'cancelled' | 'no_show';
   price_cents: number;
   refund_cents: number;
+  ends_at: string;
+  place: 'online' | 'sede' | 'domicilio';
+  client_address: string | null;
+  extra_cents: number;
+  client_name: string | null;
+  seller_name: string | null;
 };
 
 /** Prenotazioni dell'utente, fatte o ricevute (la policy di lettura mostra solo quelle in cui è coinvolto). */
 export async function listMyBookings(): Promise<{ bookings: MyBooking[]; errorKey: string | null }> {
   const { data, error } = await supabase
     .from('bookings')
-    .select('id, client_id, seller_id, service_title, starts_at, status, price_cents, refund_cents')
+    .select(
+      'id, client_id, seller_id, service_title, starts_at, ends_at, status, price_cents, refund_cents, place, client_address, extra_cents, client:profiles!bookings_client_id_fkey(full_name), seller:profiles!bookings_seller_id_fkey(full_name)',
+    )
     .order('starts_at', { ascending: false })
-    .limit(50);
+    .limit(100);
   if (error) return { bookings: [], errorKey: 'errors.generic' };
-  return { bookings: (data ?? []) as MyBooking[], errorKey: null };
+  const rows = (data ?? []) as unknown as (Omit<MyBooking, 'client_name' | 'seller_name'> & { client: { full_name: string } | null; seller: { full_name: string } | null })[];
+  return {
+    bookings: rows.map(({ client, seller, ...b }) => ({ ...b, client_name: client?.full_name ?? null, seller_name: seller?.full_name ?? null })),
+    errorKey: null,
+  };
 }
