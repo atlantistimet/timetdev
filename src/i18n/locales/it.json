@@ -407,5 +407,15 @@
       "ranges": "Controlla le fasce orarie (formato 09:00, inizio prima della fine).",
       "extra": "Costo aggiuntivo non valido."
     }
+  },
+  "newService": {
+    "chip": "+ Nuovo servizio",
+    "note": "Nuovo servizio: verrà aggiunto ai tuoi servizi con il prezzo e la durata che indichi qui sotto. Potrai completarlo dopo (descrizione, cosa include, foto).",
+    "name": "Nome del servizio",
+    "namePlaceholder": "Es. Consulenza",
+    "where": "Dove lo offri",
+    "errors": {
+      "title": "Dai un nome al nuovo servizio."
+    }
   }
 }

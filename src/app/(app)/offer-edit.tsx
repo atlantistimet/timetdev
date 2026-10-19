@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { NewServiceFields } from '@/components/NewServiceFields';
 import { PolicySection } from '@/components/PolicySection';
 import { fromRows, rowsIncomplete, toRows, type TierRow } from '@/components/TierEditor';
 import { Body, Button, Checkbox, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro } from '@/lib/booking';
 import { listPolicies, STANDARD_TIERS, validateTiers, type CancelPolicy, type Tier } from '@/lib/cancel-policy';
-import { listMyServices, centsToEuroText, parseEuroToCents, MIN_PRICE_CENTS, type MyService } from '@/lib/my-services';
+import { createQuickService, listMyServices, centsToEuroText, parseEuroToCents, MIN_PRICE_CENTS, type MyService, type Place } from '@/lib/my-services';
 import { loadOffer, saveOffer, validityText } from '@/lib/offers';
 import { discountedCents, EMPTY_VALIDITY, validateValidity, type Range, type Validity } from '@/lib/validity';
 
@@ -26,6 +27,9 @@ export default function OfferEditScreen() {
   const [services, setServices] = useState<MyService[]>([]);
   const [policies, setPolicies] = useState<CancelPolicy[]>([]);
   const [serviceId, setServiceId] = useState<string | null>(presetServiceId ?? null);
+  const [creating, setCreating] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newPlaces, setNewPlaces] = useState<Place[]>(['online']);
   const [price, setPrice] = useState('');
   const [duration, setDuration] = useState('');
   const [discount, setDiscount] = useState(0);
@@ -46,6 +50,7 @@ export default function OfferEditScreen() {
       if (!alive) return;
       const slotServices = svc.services.filter((s) => s.active);
       setServices(slotServices);
+      if (slotServices.length === 0 && !offer) setCreating(true); // senza servizi si parte creandone uno
       setPolicies(pol.policies);
       const base = pol.policies.find((p) => p.is_default)?.tiers ?? STANDARD_TIERS;
       setRows(toRows(offer?.cancel_tiers ?? base));
@@ -75,19 +80,6 @@ export default function OfferEditScreen() {
 
   if (!ready) return <LoadingView />;
 
-  if (services.length === 0 && !id) {
-    return (
-      <Screen>
-        <Title>{t('offers.newTitle')}</Title>
-        <Body muted>{t('offers.needService')}</Body>
-        <Spacer />
-        <Button title={t('myServices.new')} onPress={() => router.replace('/service-edit')} />
-        <Spacer size={12} />
-        <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/my-offers')} />
-      </Screen>
-    );
-  }
-
   const defaultPolicy = policies.find((p) => p.is_default) ?? null;
   const service = services.find((s) => s.id === serviceId) ?? null;
   const serviceTiers: Tier[] | null = service?.cancel_tiers ?? null;
@@ -102,6 +94,7 @@ export default function OfferEditScreen() {
   const finalCents = priceCents === null ? null : discountedCents(priceCents, discount);
 
   const pickService = (s: MyService) => {
+    setCreating(false);
     setServiceId(s.id);
     setPrice(centsToEuroText(s.price_cents));
     setDuration(String(s.duration_min));
@@ -115,7 +108,9 @@ export default function OfferEditScreen() {
   const save = async () => {
     if (!userId) return;
     const durationMin = Number(duration);
-    if (!serviceId) return setErrorKey('offers.errors.service');
+    if (!serviceId && !creating) return setErrorKey('offers.errors.service');
+    if (creating && !newTitle.trim()) return setErrorKey('newService.errors.title');
+    if (creating && newPlaces.length === 0) return setErrorKey('myServices.errors.places');
     if (priceCents === null || priceCents < MIN_PRICE_CENTS) return setErrorKey('myServices.errors.price');
     if (!Number.isInteger(durationMin) || durationMin < 5 || durationMin > 480) return setErrorKey('myServices.errors.duration');
     const invalid = validateValidity(validity);
@@ -129,10 +124,23 @@ export default function OfferEditScreen() {
     }
     setSaving(true);
     setErrorKey(null);
+    let useServiceId = serviceId;
+    if (creating) {
+      // prima il servizio nuovo; se poi l'offerta non si salva, il servizio resta e non si duplica al secondo tentativo
+      const made = await createQuickService({ sellerId: userId, title: newTitle, priceCents, durationMin, places: newPlaces });
+      if (!made.service) {
+        setSaving(false);
+        return setErrorKey(made.errorKey);
+      }
+      useServiceId = made.service.id;
+      setServices((list) => [...list, made.service!]);
+      setServiceId(made.service.id);
+      setCreating(false);
+    }
     const failure = await saveOffer({
       id: id ?? null,
       sellerId: userId,
-      serviceId,
+      serviceId: useServiceId!,
       priceCents,
       durationMin,
       discountPct: discount,
@@ -155,9 +163,11 @@ export default function OfferEditScreen() {
       <Spacer size={8} />
       <ChipRow>
         {services.map((s) => (
-          <Chip key={s.id} label={s.title} selected={s.id === serviceId} onPress={() => pickService(s)} />
+          <Chip key={s.id} label={s.title} selected={!creating && s.id === serviceId} onPress={() => pickService(s)} />
         ))}
+        {!id ? <Chip label={t('newService.chip')} selected={creating} onPress={() => { setCreating(true); setServiceId(null); setPrice(''); setDuration(''); }} /> : null}
       </ChipRow>
+      {creating ? <NewServiceFields title={newTitle} onTitle={setNewTitle} places={newPlaces} onPlaces={setNewPlaces} /> : null}
 
       <TextField label={t('myServices.fieldPrice')} value={price} onChangeText={setPrice} keyboardType="decimal-pad" hint={t('offers.priceHint')} />
       <Body>{t('offers.duration')}</Body>

@@ -78,3 +78,28 @@ export async function saveService(input: {
     : await supabase.from('services').insert({ ...row, seller_id: input.sellerId, kind: 'slot' });
   return error ? 'errors.generic' : null;
 }
+
+/** Crea al volo un servizio a slot (da offerta o da link): solo titolo, prezzo, durata e luoghi; il resto si completa dopo da "I miei servizi". */
+export async function createQuickService(input: {
+  sellerId: string;
+  title: string;
+  priceCents: number;
+  durationMin: number;
+  places: Place[];
+}): Promise<{ service: MyService | null; errorKey: string | null }> {
+  const { data, error } = await supabase
+    .from('services')
+    .insert({
+      seller_id: input.sellerId,
+      kind: 'slot',
+      title: input.title.trim(),
+      price_cents: input.priceCents,
+      duration_min: input.durationMin,
+      places: input.places,
+      active: true,
+    })
+    .select(COLUMNS)
+    .single();
+  if (error || !data) return { service: null, errorKey: 'errors.generic' };
+  return { service: data as unknown as MyService, errorKey: null };
+}

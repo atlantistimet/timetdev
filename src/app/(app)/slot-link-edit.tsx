@@ -1,11 +1,12 @@
 import { Fragment, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { NewServiceFields } from '@/components/NewServiceFields';
 import { Body, Button, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro } from '@/lib/booking';
 import { HOURS, hourStart, isBusy, loadCalendar, type Calendar } from '@/lib/availability';
-import { centsToEuroText, listMyServices, MIN_PRICE_CENTS, parseEuroToCents, PLACES, type MyService, type Place } from '@/lib/my-services';
+import { centsToEuroText, createQuickService, listMyServices, MIN_PRICE_CENTS, parseEuroToCents, PLACES, type MyService, type Place } from '@/lib/my-services';
 import { loadMyProfile } from '@/lib/profile-edit';
 import { createLink, linkUrl, shareText, type SlotLink } from '@/lib/slot-links';
 import { dayLabel, nextDays } from '@/lib/time';
@@ -24,6 +25,9 @@ export default function SlotLinkEditScreen() {
   const [calendar, setCalendar] = useState<Calendar | null>(null);
   const [travelFee, setTravelFee] = useState(0);
   const [serviceId, setServiceId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newPlaces, setNewPlaces] = useState<Place[]>(['online']);
   const [price, setPrice] = useState('');
   const [duration, setDuration] = useState('');
   const [discount, setDiscount] = useState(0);
@@ -44,7 +48,12 @@ export default function SlotLinkEditScreen() {
     (async () => {
       const [svc, cal, profile] = await Promise.all([listMyServices(userId), loadCalendar(userId, days[0], days[days.length - 1]), loadMyProfile(userId)]);
       if (!alive) return;
-      setServices(svc.services.filter((s) => s.active));
+      const active = svc.services.filter((s) => s.active);
+      setServices(active);
+      if (active.length === 0) {
+        setCreating(true); // senza servizi si parte creandone uno
+        setPlaces(['online']);
+      }
       setCalendar(cal.calendar);
       setTravelFee(profile?.travel_fee_cents ?? 0);
       setReady(true);
@@ -61,6 +70,7 @@ export default function SlotLinkEditScreen() {
   const priceCents = parseEuroToCents(price);
 
   const pickService = (s: MyService) => {
+    setCreating(false);
     setServiceId(s.id);
     setPrice(centsToEuroText(s.price_cents));
     setDuration(String(s.duration_min));
@@ -72,7 +82,9 @@ export default function SlotLinkEditScreen() {
   const updateRange = (i: number, patch: Partial<Range>) => setRanges((rs) => rs.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
 
   const save = async () => {
-    if (!userId || !service) return setErrorKey('slotLinks.errors.service');
+    if (!userId || (!service && !creating)) return setErrorKey('slotLinks.errors.service');
+    if (creating && !newTitle.trim()) return setErrorKey('newService.errors.title');
+    if (creating && newPlaces.length === 0) return setErrorKey('myServices.errors.places');
     const durationMin = Number(duration);
     if (priceCents === null || priceCents < MIN_PRICE_CENTS) return setErrorKey('myServices.errors.price');
     if (!Number.isInteger(durationMin) || durationMin < 5 || durationMin > 480) return setErrorKey('myServices.errors.duration');
@@ -84,9 +96,21 @@ export default function SlotLinkEditScreen() {
     if (extraSpace === null || extraTravel === null) return setErrorKey('slotLinks.errors.extra');
     setSaving(true);
     setErrorKey(null);
+    let useServiceId = service?.id ?? null;
+    if (creating) {
+      const made = await createQuickService({ sellerId: userId, title: newTitle, priceCents, durationMin, places: newPlaces });
+      if (!made.service) {
+        setSaving(false);
+        return setErrorKey(made.errorKey);
+      }
+      useServiceId = made.service.id;
+      setServices((list) => [...list, made.service!]);
+      setServiceId(made.service.id);
+      setCreating(false);
+    }
     const result = await createLink({
       sellerId: userId,
-      serviceId: service.id,
+      serviceId: useServiceId!,
       priceCents,
       durationMin,
       discountPct: discount,
@@ -136,16 +160,17 @@ export default function SlotLinkEditScreen() {
 
       <Body>{t('offers.service')}</Body>
       <Spacer size={8} />
-      {services.length === 0 ? <Body muted>{t('slotLinks.needService')}</Body> : null}
-      <ChipRow>
+            <ChipRow>
         {services.map((s) => (
-          <Chip key={s.id} label={s.title} selected={s.id === serviceId} onPress={() => pickService(s)} />
+          <Chip key={s.id} label={s.title} selected={!creating && s.id === serviceId} onPress={() => pickService(s)} />
         ))}
+        <Chip label={t('newService.chip')} selected={creating} onPress={() => { setCreating(true); setServiceId(null); setPrice(''); setDuration(''); setPlaces(newPlaces); setSpaceFee(''); setTravel(travelFee ? centsToEuroText(travelFee) : ''); }} />
       </ChipRow>
+      {creating ? <NewServiceFields title={newTitle} onTitle={setNewTitle} places={newPlaces} onPlaces={(p) => { setNewPlaces(p); setPlaces(p); }} /> : null}
 
-      {service ? (
+      {service || creating ? (
         <>
-          <TextField label={t('slotLinks.price')} value={price} onChangeText={setPrice} keyboardType="decimal-pad" hint={t('slotLinks.priceHint', { amount: formatEuro(service.price_cents, i18n.language) })} />
+          <TextField label={t('slotLinks.price')} value={price} onChangeText={setPrice} keyboardType="decimal-pad" hint={service ? t('slotLinks.priceHint', { amount: formatEuro(service.price_cents, i18n.language) }) : undefined} />
           <Body>{t('offers.duration')}</Body>
           <Spacer size={8} />
           <ChipRow>
@@ -190,7 +215,7 @@ export default function SlotLinkEditScreen() {
           <Body>{t('myServices.where')}</Body>
           <Spacer size={8} />
           <ChipRow>
-            {PLACES.filter((p) => service.places.includes(p)).map((p) => (
+            {PLACES.filter((p) => (service ? service.places : newPlaces).includes(p)).map((p) => (
               <Chip key={p} label={t(`places.${p}`)} selected={places.includes(p)} onPress={() => setPlaces((l) => toggle(l, p))} />
             ))}
           </ChipRow>

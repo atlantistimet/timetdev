@@ -407,5 +407,15 @@
       "ranges": "Check the time ranges (format 09:00, start before end).",
       "extra": "Invalid extra cost."
     }
+  },
+  "newService": {
+    "chip": "+ New service",
+    "note": "New service: it will be added to your services with the price and duration you set below. You can complete it later (description, what's included, photos).",
+    "name": "Service name",
+    "namePlaceholder": "E.g. Consultation",
+    "where": "Where you offer it",
+    "errors": {
+      "title": "Give the new service a name."
+    }
   }
 }
