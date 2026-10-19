@@ -480,5 +480,22 @@
     "errors": {
       "empty": "Write something or add a photo or video."
     }
+  },
+  "explore": {
+    "search": "Search services, offers or people",
+    "allCategories": "All",
+    "availableNow": "Available now",
+    "noResults": "No results with these filters.",
+    "by": "by {{name}}",
+    "categories": "Categories (max 3)",
+    "availability": "Instant availability",
+    "availabilityHint": "You appear as “Available now” in Explore for the time you choose.",
+    "hours1": "1 hour",
+    "hours2": "2 hours",
+    "hours4": "4 hours",
+    "off": "Not available",
+    "activeUntil": "Available until {{time}}",
+    "maxCategories": "You can pick up to 3.",
+    "viewProfile": "View profile"
   }
 }

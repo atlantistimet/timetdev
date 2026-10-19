@@ -4,6 +4,7 @@ import { parseEuroToCents } from '@/lib/my-services';
 export type MyProfile = {
   handle: string | null;
   role_title: string | null;
+  available_until: string | null;
   city: string | null;
   bio: string | null;
   place_type: string | null;
@@ -12,7 +13,7 @@ export type MyProfile = {
   travel_fee_cents: number;
 };
 
-const COLUMNS = 'handle, role_title, city, bio, place_type, place_address, service_area, travel_fee_cents';
+const COLUMNS = 'handle, available_until, role_title, city, bio, place_type, place_address, service_area, travel_fee_cents';
 
 export const HANDLE_RE = /^[a-z0-9_.]{3,30}$/;
 

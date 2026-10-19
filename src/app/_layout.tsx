@@ -1,11 +1,12 @@
 import '@/i18n';
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, router, usePathname, type Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { takePendingPath } from '@/lib/pending-link';
 
 // Lo splash resta visibile finché non sappiamo se c'è una sessione: niente lampi di schermate sbagliate.
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -14,9 +15,19 @@ function RootNavigator() {
   const { t } = useTranslation();
   const { session, isLoading, profileError, isAdultConfirmed, recovering, reloadProfile, signOut } = useAuth();
 
+  const pathname = usePathname();
+  const ready = !!session && !recovering && isAdultConfirmed;
+
   useEffect(() => {
     if (!isLoading) SplashScreen.hideAsync().catch(() => {});
   }, [isLoading]);
+
+  // Dopo l'accesso, porta dove l'utente voleva andare (es. al link di Invia slot).
+  useEffect(() => {
+    if (!ready) return;
+    const target = takePendingPath();
+    if (target && target !== pathname) router.replace(target as Href);
+  }, [ready, pathname]);
 
   if (isLoading) return <LoadingView />;
 

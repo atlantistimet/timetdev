@@ -480,5 +480,22 @@
     "errors": {
       "empty": "Scrivi qualcosa o aggiungi una foto o un video."
     }
+  },
+  "explore": {
+    "search": "Cerca servizi, offerte o persone",
+    "allCategories": "Tutte",
+    "availableNow": "Disponibile ora",
+    "noResults": "Nessun risultato con questi filtri.",
+    "by": "di {{name}}",
+    "categories": "Categorie (max 3)",
+    "availability": "Disponibilità immediata",
+    "availabilityHint": "Appari come «Disponibile ora» in Esplora per il tempo scelto.",
+    "hours1": "1 ora",
+    "hours2": "2 ore",
+    "hours4": "4 ore",
+    "off": "Non disponibile",
+    "activeUntil": "Disponibile fino alle {{time}}",
+    "maxCategories": "Puoi sceglierne al massimo 3.",
+    "viewProfile": "Vedi profilo"
   }
 }
