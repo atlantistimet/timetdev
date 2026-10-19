@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { PhotoStrip } from '@/components/PhotosSection';
 import { PaymentForm } from '@/components/PaymentForm';
 import { TierLines } from '@/components/TierLines';
 import { Body, Button, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
@@ -18,9 +19,10 @@ import {
 import { offerApplies } from '@/lib/validity';
 import { finalPriceCents, loadOffer, type Offer } from '@/lib/offers';
 import { loadServiceTiers, type Tier } from '@/lib/cancel-policy';
+import { listPhotos } from '@/lib/service-media';
 import { type Place } from '@/lib/my-services';
 
-type Loaded = { service: SlotService; offer: Offer | null; slots: OpenSlot[]; tiers: Tier[]; sellerPlace: SellerPlace } | 'missing';
+type Loaded = { service: SlotService; offer: Offer | null; slots: OpenSlot[]; tiers: Tier[]; sellerPlace: SellerPlace; photos: string[] } | 'missing';
 
 export default function BookScreen() {
   const { t, i18n } = useTranslation();
@@ -48,11 +50,12 @@ export default function BookScreen() {
         const slots = offer
           ? open.filter((s) => offerApplies(offer.validity, new Date(s.starts_at), new Date(new Date(s.starts_at).getTime() + durationMin * 60_000)))
           : open;
-        const [tiers, sellerPlace] = await Promise.all([
+        const [tiers, sellerPlace, photos] = await Promise.all([
           offer?.cancel_tiers ? Promise.resolve(offer.cancel_tiers) : loadServiceTiers(service.seller_id, service.cancel_tiers),
           loadSellerPlace(service.seller_id),
+          listPhotos(service.id).then((list) => list.map((x) => x.path)),
         ]);
-        result = { service, offer, slots, tiers, sellerPlace };
+        result = { service, offer, slots, tiers, sellerPlace, photos };
       }
       if (active) setLoaded(result);
     })();
@@ -73,7 +76,7 @@ export default function BookScreen() {
     );
   }
 
-  const { service, offer, slots, tiers, sellerPlace } = loaded;
+  const { service, offer, slots, tiers, sellerPlace, photos } = loaded;
   // sede solo se il venditore ha indicato l'indirizzo (stessa regola del server)
   const places = service.places.filter((p) => p !== 'sede' || !!sellerPlace.place_address);
   const chosen: Place | null = place && places.includes(place) ? place : places.length === 1 ? places[0] : null;
@@ -119,6 +122,7 @@ export default function BookScreen() {
 
   return (
     <Screen>
+      <PhotoStrip paths={photos} />
       <Title>{service.title}</Title>
       <Body muted>
         {offer && offer.discount_pct ? `−${offer.discount_pct}% · ` : ''}

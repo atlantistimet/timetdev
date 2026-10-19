@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { PhotosSection } from '@/components/PhotosSection';
 import { PolicySection } from '@/components/PolicySection';
 import { fromRows, rowsIncomplete, toRows, type TierRow } from '@/components/TierEditor';
 import { Body, Button, Checkbox, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
@@ -96,6 +97,8 @@ export default function ServiceEditScreen() {
       <TextField label={t('myServices.fieldPrice')} value={price} onChangeText={setPrice} keyboardType="decimal-pad" hint={t('myServices.priceHint')} />
       <TextField label={t('myServices.fieldDuration')} value={duration} onChangeText={(v) => setDuration(v.replace(/\D/g, ''))} keyboardType="number-pad" />
       <TextField label={t('myServices.fieldIncludes')} value={includesText} onChangeText={setIncludesText} multiline hint={t('myServices.includesHint')} />
+      {userId ? <PhotosSection serviceId={id ?? null} userId={userId} /> : null}
+      <Spacer />
       <Body>{t('myServices.where')}</Body>
       <Spacer size={8} />
       <ChipRow>

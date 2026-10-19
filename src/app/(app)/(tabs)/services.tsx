@@ -2,22 +2,25 @@ import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { PhotoStrip } from '@/components/PhotosSection';
 import { useAuth } from '@/lib/auth';
 import { formatEuro, listSlotServices, type SlotService } from '@/lib/booking';
+import { listCovers } from '@/lib/service-media';
 import { finalPriceCents, listPublicOffers, validityText, type Offer } from '@/lib/offers';
 
 export default function ServicesScreen() {
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
-  const [result, setResult] = useState<{ services: SlotService[]; offers: Offer[]; errorKey: string | null } | null>(null);
+  const [result, setResult] = useState<{ services: SlotService[]; offers: Offer[]; covers: Record<string, string>; errorKey: string | null } | null>(null);
 
   useEffect(() => {
     if (!userId) return;
     let active = true;
     (async () => {
       const [r, o] = await Promise.all([listSlotServices(userId), listPublicOffers(userId)]);
-      if (active) setResult({ services: r.services, offers: o.offers, errorKey: r.errorKey ?? o.errorKey });
+      const covers = await listCovers(r.services.map((x) => x.id));
+      if (active) setResult({ services: r.services, offers: o.offers, covers, errorKey: r.errorKey ?? o.errorKey });
     })();
     return () => {
       active = false;
@@ -34,6 +37,7 @@ export default function ServicesScreen() {
       {result.offers.length > 0 ? <Body>{t('book.offersTitle')}</Body> : null}
       {result.offers.map((offer) => (
         <Card key={offer.id}>
+          <PhotoStrip paths={result.covers[offer.service_id] ? [result.covers[offer.service_id]] : []} />
           <Body>
             {offer.service_title}
             {offer.discount_pct ? ` · −${offer.discount_pct}%` : ''}
@@ -55,6 +59,7 @@ export default function ServicesScreen() {
       {!result.errorKey && result.services.length === 0 && result.offers.length === 0 ? <Body muted>{t('book.noServices')}</Body> : null}
       {result.services.map((service) => (
         <Card key={service.id}>
+          <PhotoStrip paths={result.covers[service.id] ? [result.covers[service.id]] : []} />
           <Body>{service.title}</Body>
           <Body muted>
             {formatEuro(service.price_cents, i18n.language)} · {service.duration_min} min

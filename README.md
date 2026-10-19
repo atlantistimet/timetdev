@@ -31,6 +31,7 @@ supabase/migrations/0006_service_cancel_tiers.sql fasce di rimborso proprie di o
 supabase/migrations/0007_offers.sql offerte con sconto, validità (giorni, periodo, giorni della settimana, fasce orarie), messaggio e fasce di rimborso proprie
 supabase/migrations/0008_seller_busy.sql orari occupati di un venditore (solo intervalli, per chi prenota)
 supabase/migrations/0009_service_places.sql luoghi dei servizi (online, nel luogo del venditore, a domicilio), costo spazio, vincoli
+supabase/migrations/0010_service_photos.sql foto dei servizi (bucket service-media, max 6)
 ```
 
 ## Avvio
@@ -41,7 +42,7 @@ cp .env.example .env     # inserisci URL e anon key del progetto Supabase
 npm run web              # oppure npm run ios / npm run android
 ```
 
-Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono applicate la 0001–0009.
+Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono applicate la 0001–0010.
 
 ## Login
 

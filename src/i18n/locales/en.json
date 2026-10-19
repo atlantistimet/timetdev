@@ -365,5 +365,15 @@
       "handleTaken": "Username already taken.",
       "travel": "Invalid travel fee."
     }
+  },
+  "photos": {
+    "title": "Photos",
+    "saveFirst": "Save the service to add photos.",
+    "add": "Add a photo",
+    "remove": "Remove photo",
+    "errors": {
+      "limit": "Up to 6 photos per service.",
+      "size": "The photo is too large (max 5 MB)."
+    }
   }
 }

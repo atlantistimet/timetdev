@@ -365,5 +365,15 @@
       "handleTaken": "Nome utente già in uso.",
       "travel": "Costo di trasferta non valido."
     }
+  },
+  "photos": {
+    "title": "Foto",
+    "saveFirst": "Salva il servizio per aggiungere le foto.",
+    "add": "Aggiungi una foto",
+    "remove": "Rimuovi la foto",
+    "errors": {
+      "limit": "Massimo 6 foto per servizio.",
+      "size": "La foto è troppo grande (massimo 5 MB)."
+    }
   }
 }
