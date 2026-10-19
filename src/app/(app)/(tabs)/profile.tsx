@@ -34,6 +34,7 @@ export default function ProfileScreen() {
         subtitle={handle ? `@${handle}` : t('publicProfile.needHandle')}
         onPress={() => (handle ? router.push({ pathname: '/u/[handle]', params: { handle } }) : router.push('/profile-edit'))}
       />
+      <CardButton title={t('chat.title')} subtitle={t('chat.hint')} onPress={() => router.push('/messages')} />
       <CardButton title={t('home.sellerArea')} subtitle={t('home.sellerHint')} onPress={() => router.push('/seller')} />
       <Card>
         <Body>{t('settings.language')}</Body>

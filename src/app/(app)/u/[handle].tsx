@@ -104,6 +104,12 @@ export default function PublicProfileScreen() {
           }}
         />
       ) : null}
+      {!mine ? (
+        <>
+          <Spacer size={8} />
+          <Button title={t('chat.write_to')} variant="ghost" onPress={() => router.push({ pathname: '/chat/[userId]', params: { userId: profile.id } })} />
+        </>
+      ) : null}
       {mine ? <Button title={t('publicProfile.editMine')} variant="ghost" onPress={() => router.push('/profile-edit')} /> : null}
       <Spacer size={8} />
       <ChipRow>

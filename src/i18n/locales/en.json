@@ -534,5 +534,15 @@
     "pickRating": "Pick 1 to 5 stars.",
     "already": "You already reviewed this booking.",
     "thanks": "Thanks, your review is in."
+  },
+  "chat": {
+    "title": "Messages",
+    "hint": "Your conversations",
+    "none": "No conversations yet. Message someone from their profile.",
+    "empty": "No messages yet. Say hello.",
+    "write": "Write a message",
+    "send": "Send",
+    "read": "read",
+    "write_to": "Send a message"
   }
 }

@@ -534,5 +534,15 @@
     "pickRating": "Scegli da 1 a 5 stelle.",
     "already": "Hai già recensito questa prenotazione.",
     "thanks": "Grazie, hai lasciato la tua recensione."
+  },
+  "chat": {
+    "title": "Messaggi",
+    "hint": "Le tue conversazioni",
+    "none": "Nessuna conversazione. Scrivi a qualcuno dal suo profilo.",
+    "empty": "Nessun messaggio. Scrivi tu per primo.",
+    "write": "Scrivi un messaggio",
+    "send": "Invia",
+    "read": "letto",
+    "write_to": "Scrivi un messaggio"
   }
 }
