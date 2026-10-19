@@ -65,11 +65,9 @@ export default function ServicesScreen() {
             {formatEuro(service.price_cents, i18n.language)} · {service.duration_min} min
           </Body>
           <Spacer size={8} />
-          <Button
-            title={t('book.choose')}
-            variant="ghost"
-            onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })}
-          />
+          <Button title={t('publicProfile.details')} variant="ghost" onPress={() => router.push({ pathname: '/service/[id]', params: { id: service.id } })} />
+          <Spacer size={8} />
+          <Button title={t('book.choose')} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })} />
         </Card>
       ))}
     </Screen>

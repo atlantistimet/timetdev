@@ -49,6 +49,12 @@ export async function listSlotServices(userId: string): Promise<{ services: Slot
   return { services: (data ?? []) as SlotService[], errorKey: null };
 }
 
+/** Servizi a slot attivi di un venditore, per il suo profilo pubblico. */
+export async function listSellerServices(sellerId: string): Promise<SlotService[]> {
+  const { data } = await supabase.from('services').select(SERVICE_COLUMNS).eq('seller_id', sellerId).eq('kind', 'slot').eq('active', true).order('position').order('created_at');
+  return (data ?? []) as SlotService[];
+}
+
 export async function loadSlotService(id: string): Promise<SlotService | null> {
   const { data } = await supabase.from('services').select(SERVICE_COLUMNS).eq('id', id).eq('kind', 'slot').maybeSingle();
   return (data as SlotService | null) ?? null;

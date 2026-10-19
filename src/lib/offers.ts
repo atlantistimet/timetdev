@@ -53,6 +53,18 @@ export async function listPublicOffers(userId: string): Promise<{ offers: Offer[
   return { offers: ((data ?? []) as unknown as Row[]).map(toOffer), errorKey: null };
 }
 
+/** Offerte attive di un venditore, per il suo profilo pubblico. */
+export async function listSellerOffers(sellerId: string): Promise<Offer[]> {
+  const { data } = await supabase
+    .from('offers')
+    .select(`${COLUMNS.replace('services(title)', 'services!inner(title, active)')}`)
+    .eq('seller_id', sellerId)
+    .eq('active', true)
+    .eq('services.active', true)
+    .order('created_at', { ascending: false });
+  return ((data ?? []) as unknown as Row[]).map(toOffer);
+}
+
 export async function saveOffer(input: {
   id: string | null;
   sellerId: string;

@@ -417,5 +417,19 @@
     "errors": {
       "title": "Dai un nome al nuovo servizio."
     }
+  },
+  "publicProfile": {
+    "notFound": "Profilo non trovato",
+    "services": "Servizi",
+    "offers": "Offerte",
+    "noServices": "Nessun servizio prenotabile.",
+    "noOffers": "Nessuna offerta attiva.",
+    "details": "Dettagli",
+    "editMine": "Modifica il profilo",
+    "mine": "Il mio profilo pubblico",
+    "needHandle": "Scegli prima il tuo nome utente"
+  },
+  "serviceDetail": {
+    "mine": "È un tuo servizio: lo vedono così i clienti."
   }
 }

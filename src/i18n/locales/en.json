@@ -417,5 +417,19 @@
     "errors": {
       "title": "Give the new service a name."
     }
+  },
+  "publicProfile": {
+    "notFound": "Profile not found",
+    "services": "Services",
+    "offers": "Offers",
+    "noServices": "No bookable services.",
+    "noOffers": "No active offers.",
+    "details": "Details",
+    "editMine": "Edit profile",
+    "mine": "My public profile",
+    "needHandle": "Choose your username first"
+  },
+  "serviceDetail": {
+    "mine": "This is your service: clients see it like this."
   }
 }
