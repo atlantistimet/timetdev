@@ -34,6 +34,7 @@ supabase/migrations/0009_service_places.sql luoghi dei servizi (online, nel luog
 supabase/migrations/0010_service_photos.sql foto dei servizi (bucket service-media, max 6)
 supabase/migrations/0011_slot_links.sql link "Invia slot": vincoli, controllo servizio, lettura per codice solo autenticati
 supabase/migrations/0012_media_feed.sql media (foto e video) e feed: bucket media, anteprima dei link, post con link, controlli
+supabase/migrations/0013_booking_outcome.sql esito della sessione (conclusa / assente) e chiusura automatica dopo 24 ore
 ```
 
 ## Avvio
@@ -44,7 +45,7 @@ cp .env.example .env     # inserisci URL e anon key del progetto Supabase
 npm run web              # oppure npm run ios / npm run android
 ```
 
-Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono applicate la 0001–0012.
+Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono applicate la 0001–0012 (la 0013, esito delle sessioni, è da applicare).
 
 ## Login
 

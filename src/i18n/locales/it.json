@@ -233,7 +233,8 @@
     "errors": {
       "already_started": "La sessione è già iniziata.",
       "not_cancellable": "Questa prenotazione non si può più annullare.",
-      "payment_in_progress": "Il pagamento è in corso: riprova tra un momento."
+      "payment_in_progress": "Il pagamento è in corso: riprova tra un momento.",
+      "not_finished": "La sessione non è ancora finita."
     },
     "tabUpcoming": "In arrivo",
     "tabReceived": "Ricevute",
@@ -244,7 +245,11 @@
       "online": "online",
       "sede": "nella sede del venditore",
       "domicilio": "a domicilio"
-    }
+    },
+    "outcomeQuestion": "Com'è andata la sessione?",
+    "markCompleted": "Conclusa",
+    "markNoShow": "Il cliente non si è presentato",
+    "noShowHint": "Se il cliente è assente non è previsto alcun rimborso. Senza una tua scelta, dopo 24 ore risulta conclusa."
   },
   "tabs": {
     "home": "Home",

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, Card, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { formatEuro, listMyBookings, type MyBooking } from '@/lib/booking';
+import { formatEuro, listMyBookings, markBookingOutcome, type MyBooking } from '@/lib/booking';
 import { cancelBooking, previewCancel, type CancelPreview } from '@/lib/cancel-policy';
 
 export default function BookingsScreen() {
@@ -38,7 +38,7 @@ export default function BookingsScreen() {
     const upcoming = (b: MyBooking) => b.status === 'confirmed' && new Date(b.ends_at).getTime() > now;
     if (tab === 'past') return list.filter((b) => !upcoming(b));
     const open = list.filter(upcoming).sort((a, b) => a.starts_at.localeCompare(b.starts_at));
-    return tab === 'received' ? open.filter((b) => b.seller_id === userId) : open;
+    return tab === 'received' ? list.filter((b) => b.seller_id === userId && b.status === 'confirmed').sort((a, b) => a.starts_at.localeCompare(b.starts_at)) : open;
   }, [bookings, tab, now, userId]);
 
   if (!bookings) return <LoadingView />;
@@ -59,6 +59,14 @@ export default function BookingsScreen() {
     setBusyId(null);
     if (data) setPreviews((current) => ({ ...current, [id]: data }));
     else setError(id, errorKey);
+  };
+
+  const outcome = async (id: string, value: 'completed' | 'no_show') => {
+    setBusyId(id);
+    const errorKey = await markBookingOutcome(id, value);
+    setBusyId(null);
+    if (errorKey) setError(id, errorKey);
+    else setReloadKey((key) => key + 1);
   };
 
   const confirmCancel = async (id: string) => {
@@ -113,6 +121,17 @@ export default function BookingsScreen() {
                 : ''}
             </Body>
             {errors[booking.id] ? <ErrorText>{t(errors[booking.id])}</ErrorText> : null}
+            {booking.status === 'confirmed' && !mine && new Date(booking.ends_at).getTime() <= now ? (
+              <>
+                <Spacer size={8} />
+                <Body>{t('bookings.outcomeQuestion')}</Body>
+                <Spacer size={8} />
+                <Button title={t('bookings.markCompleted')} onPress={() => void outcome(booking.id, 'completed')} loading={busyId === booking.id} />
+                <Spacer size={8} />
+                <Button title={t('bookings.markNoShow')} variant="ghost" onPress={() => void outcome(booking.id, 'no_show')} loading={busyId === booking.id} />
+                <Body muted>{t('bookings.noShowHint')}</Body>
+              </>
+            ) : null}
             {booking.status === 'confirmed' && future ? (
               preview ? (
                 <>

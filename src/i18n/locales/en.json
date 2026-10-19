@@ -233,7 +233,8 @@
     "errors": {
       "already_started": "The session has already started.",
       "not_cancellable": "This booking can no longer be cancelled.",
-      "payment_in_progress": "Payment is in progress: try again in a moment."
+      "payment_in_progress": "Payment is in progress: try again in a moment.",
+      "not_finished": "The session hasn't finished yet."
     },
     "tabUpcoming": "Upcoming",
     "tabReceived": "Received",
@@ -244,7 +245,11 @@
       "online": "online",
       "sede": "at the seller's place",
       "domicilio": "at the client's address"
-    }
+    },
+    "outcomeQuestion": "How did the session go?",
+    "markCompleted": "Completed",
+    "markNoShow": "The client didn't show up",
+    "noShowHint": "If the client is a no-show there is no refund. Without your choice it counts as completed after 24 hours."
   },
   "tabs": {
     "home": "Home",

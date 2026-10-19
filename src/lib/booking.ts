@@ -153,3 +153,10 @@ export async function listMyBookings(): Promise<{ bookings: MyBooking[]; errorKe
     errorKey: null,
   };
 }
+
+/** Il venditore segna una sessione finita come conclusa o come assente (nessun rimborso). */
+export async function markBookingOutcome(bookingId: string, outcome: 'completed' | 'no_show'): Promise<string | null> {
+  const { error } = await supabase.rpc('mark_booking_outcome', { p_booking: bookingId, p_outcome: outcome });
+  if (!error) return null;
+  return error.message.includes('not_finished') ? 'bookings.errors.not_finished' : 'errors.generic';
+}
