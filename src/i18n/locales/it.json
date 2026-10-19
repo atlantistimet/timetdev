@@ -240,7 +240,8 @@
     "home": "Home",
     "explore": "Esplora",
     "agenda": "Agenda",
-    "profile": "Profilo"
+    "profile": "Profilo",
+    "new": "Nuovo"
   },
   "myServices": {
     "title": "I miei servizi",
@@ -324,12 +325,15 @@
       "days": "Scegli almeno un giorno.",
       "period": "Controlla le date del periodo.",
       "weekdays": "Scegli almeno un giorno della settimana.",
-      "ranges": "Controlla le fasce orarie: da ora a ora, es. 09:00 – 13:00."
+      "ranges": "Controlla le fasce orarie: da ora a ora, es. 09:00 – 13:00.",
+      "postFailed": "L'offerta è salvata, ma non sono riuscito a pubblicarla nel feed. Riprova più tardi."
     },
     "onlyValid": "Offerta valida",
     "bookWithOffer": "Prenota questa offerta",
     "notValid": "Questo orario non rientra nella validità dell'offerta.",
-    "notFound": "Offerta non disponibile."
+    "notFound": "Offerta non disponibile.",
+    "publish": "Pubblica nel feed",
+    "publishHint": "Compare nel feed con il tuo messaggio e le foto o i video che aggiungi."
   },
   "availability": {
     "title": "Disponibilità",
@@ -405,8 +409,12 @@
       "service": "Scegli un servizio.",
       "days": "Scegli almeno un giorno.",
       "ranges": "Controlla le fasce orarie (formato 09:00, inizio prima della fine).",
-      "extra": "Costo aggiuntivo non valido."
-    }
+      "extra": "Costo aggiuntivo non valido.",
+      "postFailed": "Il link è pronto, ma non sono riuscito a pubblicarlo nel feed."
+    },
+    "preview": "Anteprima",
+    "previewHint": "Foto o video che accompagna il link e il post (facoltativo).",
+    "publish": "Pubblica anche nel feed"
   },
   "newService": {
     "chip": "+ Nuovo servizio",
@@ -427,9 +435,50 @@
     "details": "Dettagli",
     "editMine": "Modifica il profilo",
     "mine": "Il mio profilo pubblico",
-    "needHandle": "Scegli prima il tuo nome utente"
+    "needHandle": "Scegli prima il tuo nome utente",
+    "posts": "Post",
+    "noPosts": "Ancora nessun post.",
+    "follow": "Segui",
+    "unfollow": "Non seguire più",
+    "followers_one": "{{count}} follower",
+    "followers_other": "{{count}} follower",
+    "followingCount_one": "{{count}} seguito",
+    "followingCount_other": "{{count}} seguiti"
   },
   "serviceDetail": {
     "mine": "È un tuo servizio: lo vedono così i clienti."
+  },
+  "media": {
+    "add": "Aggiungi foto o video",
+    "addPhoto": "Aggiungi una foto",
+    "video": "video",
+    "remove": "Rimuovi",
+    "errors": {
+      "limit": "Massimo 6 tra foto e video.",
+      "imageSize": "La foto è troppo grande (massimo 5 MB).",
+      "videoSize": "Il video è troppo grande (massimo 50 MB)."
+    }
+  },
+  "feed": {
+    "title": "Home",
+    "all": "Tutti",
+    "following": "Seguiti",
+    "empty": "Ancora nessun post. Pubblica il primo con il pulsante “Nuovo”.",
+    "emptyFollowing": "Segui qualcuno per vedere qui i suoi post.",
+    "kind": {
+      "update": "Aggiornamento",
+      "offer": "Offerta",
+      "slots": "Invia slot"
+    },
+    "seeSlots": "Vedi gli orari",
+    "delete": "Elimina",
+    "newTitle": "Nuovo contenuto",
+    "newHint": "Un aggiornamento compare nel feed di chi ti segue. Offerta e Invia slot hanno la loro scheda, con la pubblicazione nel feed.",
+    "bodyLabel": "Testo",
+    "bodyPlaceholder": "Cosa vuoi condividere?",
+    "publish": "Pubblica",
+    "errors": {
+      "empty": "Scrivi qualcosa o aggiungi una foto o un video."
+    }
   }
 }

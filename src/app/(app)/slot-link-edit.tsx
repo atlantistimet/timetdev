@@ -1,9 +1,12 @@
 import { Fragment, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { MediaPicker } from '@/components/MediaView';
 import { NewServiceFields } from '@/components/NewServiceFields';
-import { Body, Button, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
+import { Body, Checkbox, Button, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { createPost } from '@/lib/feed';
+import { type MediaItem } from '@/lib/media';
 import { formatEuro } from '@/lib/booking';
 import { HOURS, hourStart, isBusy, loadCalendar, type Calendar } from '@/lib/availability';
 import { centsToEuroText, createQuickService, listMyServices, MIN_PRICE_CENTS, parseEuroToCents, PLACES, type MyService, type Place } from '@/lib/my-services';
@@ -25,6 +28,8 @@ export default function SlotLinkEditScreen() {
   const [calendar, setCalendar] = useState<Calendar | null>(null);
   const [travelFee, setTravelFee] = useState(0);
   const [serviceId, setServiceId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<MediaItem[]>([]);
+  const [publish, setPublish] = useState(false);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newPlaces, setNewPlaces] = useState<Place[]>(['online']);
@@ -120,7 +125,12 @@ export default function SlotLinkEditScreen() {
       extraSpaceCents: extraSpace,
       extraTravelCents: extraTravel,
       message,
+      preview: preview[0] ?? null,
     });
+    if (result.link && publish) {
+      const posted = await createPost({ authorId: userId, kind: 'slots', body: message, lang: i18n.language, media: [], slotLinkId: result.link.id, serviceId: useServiceId! });
+      if (posted.errorKey) setShareNote(t('slotLinks.errors.postFailed'));
+    }
     setSaving(false);
     if (result.link) setCreated(result.link);
     else setErrorKey(result.errorKey);
@@ -223,6 +233,11 @@ export default function SlotLinkEditScreen() {
           {places.includes('domicilio') ? <TextField label={t('profileEdit.travelFee')} value={travel} onChangeText={setTravel} keyboardType="decimal-pad" hint={t('slotLinks.extraHint')} /> : null}
 
           <TextField label={t('offers.message')} value={message} onChangeText={setMessage} multiline maxLength={280} placeholder={t('slotLinks.messagePlaceholder')} />
+          <Body>{t('slotLinks.preview')}</Body>
+          <Body muted>{t('slotLinks.previewHint')}</Body>
+          {userId ? <MediaPicker items={preview} onChange={setPreview} bucket="media" userId={userId} max={1} /> : null}
+          <Spacer size={8} />
+          <Checkbox label={t('slotLinks.publish')} checked={publish} onChange={setPublish} />
         </>
       ) : null}
 

@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { MediaPicker } from '@/components/MediaView';
 import { NewServiceFields } from '@/components/NewServiceFields';
 import { PolicySection } from '@/components/PolicySection';
 import { fromRows, rowsIncomplete, toRows, type TierRow } from '@/components/TierEditor';
 import { Body, Button, Checkbox, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { createPost } from '@/lib/feed';
+import { type MediaItem } from '@/lib/media';
 import { formatEuro } from '@/lib/booking';
 import { listPolicies, STANDARD_TIERS, validateTiers, type CancelPolicy, type Tier } from '@/lib/cancel-policy';
 import { createQuickService, listMyServices, centsToEuroText, parseEuroToCents, MIN_PRICE_CENTS, type MyService, type Place } from '@/lib/my-services';
@@ -27,6 +30,8 @@ export default function OfferEditScreen() {
   const [services, setServices] = useState<MyService[]>([]);
   const [policies, setPolicies] = useState<CancelPolicy[]>([]);
   const [serviceId, setServiceId] = useState<string | null>(presetServiceId ?? null);
+  const [publish, setPublish] = useState(!id);
+  const [media, setMedia] = useState<MediaItem[]>([]);
   const [creating, setCreating] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newPlaces, setNewPlaces] = useState<Place[]>(['online']);
@@ -137,7 +142,7 @@ export default function OfferEditScreen() {
       setServiceId(made.service.id);
       setCreating(false);
     }
-    const failure = await saveOffer({
+    const saved = await saveOffer({
       id: id ?? null,
       sellerId: userId,
       serviceId: useServiceId!,
@@ -149,9 +154,21 @@ export default function OfferEditScreen() {
       active,
       cancelTiers,
     });
+    if (!saved.id) {
+      setSaving(false);
+      return setErrorKey(saved.errorKey);
+    }
+    // l'offerta può uscire anche nel feed, con foto o video
+    if (publish && active) {
+      const posted = await createPost({ authorId: userId, kind: 'offer', body: message, lang: i18n.language, media, offerId: saved.id, serviceId: useServiceId! });
+      if (posted.errorKey) {
+        setSaving(false);
+        setPublish(false); // l'offerta è salvata: un secondo tentativo non deve duplicarla
+        return setErrorKey('offers.errors.postFailed');
+      }
+    }
     setSaving(false);
-    if (failure) setErrorKey(failure);
-    else router.replace('/my-offers');
+    router.replace('/my-offers');
   };
 
   return (
@@ -264,6 +281,14 @@ export default function OfferEditScreen() {
       <Spacer />
       <TextField label={t('offers.message')} value={message} onChangeText={setMessage} multiline maxLength={280} />
       <Checkbox label={t('myServices.activeLabel')} checked={active} onChange={setActive} />
+      <Spacer size={8} />
+      <Checkbox label={t('offers.publish')} checked={publish} onChange={setPublish} />
+      {publish && userId ? (
+        <>
+          <Body muted>{t('offers.publishHint')}</Body>
+          <MediaPicker items={media} onChange={setMedia} bucket="media" userId={userId} />
+        </>
+      ) : null}
 
       <Spacer />
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}

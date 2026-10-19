@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { PhotoStrip } from '@/components/PhotosSection';
+import { MediaGallery } from '@/components/MediaView';
 import { PaymentForm } from '@/components/PaymentForm';
 import { TierLines } from '@/components/TierLines';
 import { Body, Button, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
@@ -20,10 +20,11 @@ import { discountedCents, offerApplies, type Validity } from '@/lib/validity';
 import { loadLinkByCode, type SlotLink } from '@/lib/slot-links';
 import { finalPriceCents, loadOffer, type Offer } from '@/lib/offers';
 import { loadServiceTiers, type Tier } from '@/lib/cancel-policy';
+import { type MediaItem } from '@/lib/media';
 import { listPhotos } from '@/lib/service-media';
 import { type Place } from '@/lib/my-services';
 
-type Loaded = { service: SlotService; offer: Offer | null; link: SlotLink | null; slots: OpenSlot[]; tiers: Tier[]; sellerPlace: SellerPlace; photos: string[] } | 'missing';
+type Loaded = { service: SlotService; offer: Offer | null; link: SlotLink | null; slots: OpenSlot[]; tiers: Tier[]; sellerPlace: SellerPlace; photos: MediaItem[] } | 'missing';
 
 export default function BookScreen() {
   const { t, i18n } = useTranslation();
@@ -60,7 +61,7 @@ export default function BookScreen() {
         const [tiers, sellerPlace, photos] = await Promise.all([
           offer?.cancel_tiers ? Promise.resolve(offer.cancel_tiers) : loadServiceTiers(service.seller_id, service.cancel_tiers),
           loadSellerPlace(service.seller_id),
-          listPhotos(service.id).then((list) => list.map((x) => x.path)),
+          listPhotos(service.id).then((list) => list.map((x) => ({ path: x.path, type: x.type }))),
         ]);
         result = { service, offer, link, slots, tiers, sellerPlace, photos };
       }
@@ -131,7 +132,8 @@ export default function BookScreen() {
 
   return (
     <Screen>
-      <PhotoStrip paths={photos} />
+      {link?.preview_path && link.preview_type ? <MediaGallery items={[{ path: link.preview_path, type: link.preview_type }]} bucket="media" /> : null}
+      <MediaGallery items={photos} bucket="service-media" />
       <Title>{service.title}</Title>
       <Body muted>
         {(link ?? offer)?.discount_pct ? `−${(link ?? offer)?.discount_pct}% · ` : ''}

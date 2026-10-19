@@ -18,12 +18,14 @@ export type SlotLink = {
   extra_space_cents: number;
   extra_travel_cents: number;
   message: string | null;
+  preview_path: string | null;
+  preview_type: 'image' | 'video' | null;
   expires_at: string | null;
   created_at: string;
   service_title?: string;
 };
 
-const COLUMNS = 'id, code, seller_id, service_id, price_cents, duration_min, discount_pct, days, ranges, places, extra_space_cents, extra_travel_cents, message, expires_at, created_at';
+const COLUMNS = 'id, code, seller_id, service_id, price_cents, duration_min, discount_pct, days, ranges, places, extra_space_cents, extra_travel_cents, message, preview_path, preview_type, expires_at, created_at';
 
 /** Indirizzo da condividere: sul web quello del sito, in app quello pubblico. */
 export function linkUrl(code: string): string {
@@ -65,6 +67,7 @@ export async function createLink(input: {
   extraSpaceCents: number;
   extraTravelCents: number;
   message: string;
+  preview: { path: string; type: 'image' | 'video' } | null;
 }): Promise<{ link: SlotLink | null; errorKey: string | null }> {
   const days = [...input.days].sort();
   // il link scade a fine dell'ultimo giorno proposto
@@ -83,6 +86,8 @@ export async function createLink(input: {
       extra_space_cents: input.extraSpaceCents,
       extra_travel_cents: input.extraTravelCents,
       message: input.message.trim() || null,
+      preview_path: input.preview?.path ?? null,
+      preview_type: input.preview?.type ?? null,
       expires_at: expires.toISOString(),
     })
     .select(COLUMNS)

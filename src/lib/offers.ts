@@ -76,7 +76,7 @@ export async function saveOffer(input: {
   message: string;
   active: boolean;
   cancelTiers: Tier[] | null;
-}): Promise<string | null> {
+}): Promise<{ id: string | null; errorKey: string | null }> {
   const row = {
     service_id: input.serviceId,
     price_cents: input.priceCents,
@@ -87,10 +87,12 @@ export async function saveOffer(input: {
     active: input.active,
     cancel_tiers: input.cancelTiers,
   };
-  const { error } = input.id
-    ? await supabase.from('offers').update(row).eq('id', input.id)
-    : await supabase.from('offers').insert({ ...row, seller_id: input.sellerId });
-  return error ? 'errors.generic' : null;
+  if (input.id) {
+    const { error } = await supabase.from('offers').update(row).eq('id', input.id);
+    return error ? { id: null, errorKey: 'errors.generic' } : { id: input.id, errorKey: null };
+  }
+  const { data, error } = await supabase.from('offers').insert({ ...row, seller_id: input.sellerId }).select('id').single();
+  return error || !data ? { id: null, errorKey: 'errors.generic' } : { id: data.id as string, errorKey: null };
 }
 
 export async function deleteOffer(id: string): Promise<string | null> {

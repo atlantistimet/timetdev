@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
-import { PhotoStrip } from '@/components/PhotosSection';
+import { MediaGallery } from '@/components/MediaView';
 import { useAuth } from '@/lib/auth';
 import { formatEuro, listSlotServices, type SlotService } from '@/lib/booking';
+import { type MediaItem } from '@/lib/media';
 import { listCovers } from '@/lib/service-media';
 import { finalPriceCents, listPublicOffers, validityText, type Offer } from '@/lib/offers';
 
@@ -12,7 +13,7 @@ export default function ServicesScreen() {
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
-  const [result, setResult] = useState<{ services: SlotService[]; offers: Offer[]; covers: Record<string, string>; errorKey: string | null } | null>(null);
+  const [result, setResult] = useState<{ services: SlotService[]; offers: Offer[]; covers: Record<string, MediaItem>; errorKey: string | null } | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -37,7 +38,7 @@ export default function ServicesScreen() {
       {result.offers.length > 0 ? <Body>{t('book.offersTitle')}</Body> : null}
       {result.offers.map((offer) => (
         <Card key={offer.id}>
-          <PhotoStrip paths={result.covers[offer.service_id] ? [result.covers[offer.service_id]] : []} />
+          <MediaGallery items={result.covers[offer.service_id] ? [result.covers[offer.service_id]] : []} bucket="service-media" size="small" />
           <Body>
             {offer.service_title}
             {offer.discount_pct ? ` · −${offer.discount_pct}%` : ''}
@@ -59,7 +60,7 @@ export default function ServicesScreen() {
       {!result.errorKey && result.services.length === 0 && result.offers.length === 0 ? <Body muted>{t('book.noServices')}</Body> : null}
       {result.services.map((service) => (
         <Card key={service.id}>
-          <PhotoStrip paths={result.covers[service.id] ? [result.covers[service.id]] : []} />
+          <MediaGallery items={result.covers[service.id] ? [result.covers[service.id]] : []} bucket="service-media" size="small" />
           <Body>{service.title}</Body>
           <Body muted>
             {formatEuro(service.price_cents, i18n.language)} · {service.duration_min} min

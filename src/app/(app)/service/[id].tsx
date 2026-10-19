@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { PhotoStrip } from '@/components/PhotosSection';
+import { MediaGallery } from '@/components/MediaView';
 import { TierLines } from '@/components/TierLines';
 import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro, loadSellerPlace, loadSlotService, type SellerPlace, type SlotService } from '@/lib/booking';
 import { loadServiceTiers, type Tier } from '@/lib/cancel-policy';
 import { loadProfileById, type PublicProfile } from '@/lib/public-profile';
+import { type MediaItem } from '@/lib/media';
 import { listPhotos } from '@/lib/service-media';
 
-type Loaded = { service: SlotService; seller: PublicProfile | null; place: SellerPlace; photos: string[]; tiers: Tier[] } | 'missing';
+type Loaded = { service: SlotService; seller: PublicProfile | null; place: SellerPlace; photos: MediaItem[]; tiers: Tier[] } | 'missing';
 
 export default function ServiceDetailScreen() {
   const { t, i18n } = useTranslation();
@@ -27,7 +28,7 @@ export default function ServiceDetailScreen() {
         const [seller, place, photos, tiers] = await Promise.all([
           loadProfileById(service.seller_id),
           loadSellerPlace(service.seller_id),
-          listPhotos(service.id).then((l) => l.map((x) => x.path)),
+          listPhotos(service.id).then((l) => l.map((x) => ({ path: x.path, type: x.type }))),
           loadServiceTiers(service.seller_id, service.cancel_tiers),
         ]);
         result = { service, seller, place, photos, tiers };
@@ -56,7 +57,7 @@ export default function ServiceDetailScreen() {
 
   return (
     <Screen>
-      <PhotoStrip paths={photos} />
+      <MediaGallery items={photos} bucket="service-media" />
       <Title>{service.title}</Title>
       <Body muted>
         {fmt(service.price_cents)} · {service.duration_min} min

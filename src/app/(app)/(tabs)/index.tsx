@@ -1,20 +1,51 @@
-import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Body, CardButton, Screen, Spacer, Title } from '@/components/ui';
+import { PostCard } from '@/components/PostCard';
+import { Body, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { loadPosts, type Post } from '@/lib/feed';
 
 export default function Home() {
   const { t } = useTranslation();
-  const { profile, session } = useAuth();
+  const { session } = useAuth();
+  const userId = session?.user.id ?? null;
+  const [scope, setScope] = useState<'all' | 'following'>('all');
+  const [loaded, setLoaded] = useState<{ posts: Post[]; errorKey: string | null; nowMs: number; scope: string } | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    if (!userId) return;
+    let alive = true;
+    (async () => {
+      const r = await loadPosts(userId, { kind: scope });
+      if (alive) setLoaded({ ...r, nowMs: Date.now(), scope });
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [userId, scope, reloadKey]);
+
+  if (!userId) return <LoadingView />;
 
   return (
     <Screen tabs>
-      <Title>{t('home.greeting', { name: profile?.full_name || session?.user.email })}</Title>
-      <Body muted>{t('home.subtitle')}</Body>
-      <Spacer size={20} />
-      <CardButton title={t('home.servicesLink')} subtitle={t('home.servicesHint')} onPress={() => router.push('/services')} />
-      <CardButton title={t('home.bookingsLink')} subtitle={t('home.bookingsHint')} onPress={() => router.push('/bookings')} />
-      <CardButton title={t('home.sellerArea')} subtitle={t('home.sellerHint')} onPress={() => router.push('/seller')} />
+      <Title>{t('feed.title')}</Title>
+      <ChipRow>
+        <Chip label={t('feed.all')} selected={scope === 'all'} onPress={() => setScope('all')} />
+        <Chip label={t('feed.following')} selected={scope === 'following'} onPress={() => setScope('following')} />
+      </ChipRow>
+      {!loaded || loaded.scope !== scope ? (
+        <Body muted>{t('common.loading')}</Body>
+      ) : (
+        <>
+          {loaded.errorKey ? <ErrorText>{t(loaded.errorKey)}</ErrorText> : null}
+          {!loaded.errorKey && loaded.posts.length === 0 ? <Body muted>{t(scope === 'following' ? 'feed.emptyFollowing' : 'feed.empty')}</Body> : null}
+          {loaded.posts.map((post) => (
+            <PostCard key={post.id} post={post} userId={userId} nowMs={loaded.nowMs} onDeleted={() => setReloadKey((k) => k + 1)} />
+          ))}
+        </>
+      )}
+      <Spacer size={8} />
     </Screen>
   );
 }

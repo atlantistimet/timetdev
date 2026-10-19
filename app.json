@@ -26,7 +26,12 @@
       "expo-localization",
       "expo-router",
       "expo-status-bar",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-video",
+      [
+        "expo-image-picker",
+        { "photosPermission": "Timeet usa le tue foto e i tuoi video per servizi, post e anteprime." }
+      ]
     ],
     "scheme": "timeet",
     "experiments": {

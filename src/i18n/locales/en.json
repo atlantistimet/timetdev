@@ -240,7 +240,8 @@
     "home": "Home",
     "explore": "Explore",
     "agenda": "Agenda",
-    "profile": "Profile"
+    "profile": "Profile",
+    "new": "New"
   },
   "myServices": {
     "title": "My services",
@@ -324,12 +325,15 @@
       "days": "Choose at least one day.",
       "period": "Check the period dates.",
       "weekdays": "Choose at least one weekday.",
-      "ranges": "Check the time ranges: from time to time, e.g. 09:00 – 13:00."
+      "ranges": "Check the time ranges: from time to time, e.g. 09:00 – 13:00.",
+      "postFailed": "The offer is saved, but I couldn't publish it to the feed. Try again later."
     },
     "onlyValid": "Valid offer",
     "bookWithOffer": "Book this offer",
     "notValid": "This time is outside the offer's validity.",
-    "notFound": "Offer not available."
+    "notFound": "Offer not available.",
+    "publish": "Publish to the feed",
+    "publishHint": "Shows in the feed with your message and any photos or videos you add."
   },
   "availability": {
     "title": "Availability",
@@ -405,8 +409,12 @@
       "service": "Choose a service.",
       "days": "Choose at least one day.",
       "ranges": "Check the time ranges (format 09:00, start before end).",
-      "extra": "Invalid extra cost."
-    }
+      "extra": "Invalid extra cost.",
+      "postFailed": "The link is ready, but I couldn't publish it to the feed."
+    },
+    "preview": "Preview",
+    "previewHint": "Photo or video that goes with the link and the post (optional).",
+    "publish": "Also publish to the feed"
   },
   "newService": {
     "chip": "+ New service",
@@ -427,9 +435,50 @@
     "details": "Details",
     "editMine": "Edit profile",
     "mine": "My public profile",
-    "needHandle": "Choose your username first"
+    "needHandle": "Choose your username first",
+    "posts": "Posts",
+    "noPosts": "No posts yet.",
+    "follow": "Follow",
+    "unfollow": "Unfollow",
+    "followers_one": "{{count}} follower",
+    "followers_other": "{{count}} followers",
+    "followingCount_one": "{{count}} following",
+    "followingCount_other": "{{count}} following"
   },
   "serviceDetail": {
     "mine": "This is your service: clients see it like this."
+  },
+  "media": {
+    "add": "Add photo or video",
+    "addPhoto": "Add a photo",
+    "video": "video",
+    "remove": "Remove",
+    "errors": {
+      "limit": "Up to 6 photos and videos.",
+      "imageSize": "The photo is too large (max 5 MB).",
+      "videoSize": "The video is too large (max 50 MB)."
+    }
+  },
+  "feed": {
+    "title": "Home",
+    "all": "Everyone",
+    "following": "Following",
+    "empty": "No posts yet. Publish the first with the “New” button.",
+    "emptyFollowing": "Follow someone to see their posts here.",
+    "kind": {
+      "update": "Update",
+      "offer": "Offer",
+      "slots": "Send slots"
+    },
+    "seeSlots": "See times",
+    "delete": "Delete",
+    "newTitle": "New content",
+    "newHint": "An update shows in your followers' feed. Offer and Send slots have their own form, with publishing to the feed.",
+    "bodyLabel": "Text",
+    "bodyPlaceholder": "What would you like to share?",
+    "publish": "Publish",
+    "errors": {
+      "empty": "Write something or add a photo or video."
+    }
   }
 }
