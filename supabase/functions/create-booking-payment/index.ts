@@ -1,5 +1,6 @@
 // Prenota uno slot e prepara il pagamento (addebito diretto sull'account Stripe del venditore).
 // Corpo: { service_id, starts_at (ISO), place: 'online'|'sede'|'domicilio', client_address?, offer_id? }
+// In alternativa a service_id: { code, ... } per prenotare da un link "Invia slot" (prezzo, durata, luoghi, giorni e fasce del link).
 // Con offer_id vale il prezzo scontato e la durata dell'offerta, se lo slot rientra nella sua validità.
 // Risposta: { booking_id, client_secret, stripe_account, amount_cents }
 // Il prezzo, le commissioni e l'orario si leggono dal database: dal client si fidano solo gli identificativi.
@@ -27,9 +28,9 @@ Deno.serve(async (req) => {
   if (userError || !userData.user) return json({ error: 'unauthorized' }, 401);
   const user = userData.user;
 
-  const body = (await req.json().catch(() => ({}))) as { service_id?: string; starts_at?: string; place?: string; client_address?: string; offer_id?: string };
+  const body = (await req.json().catch(() => ({}))) as { service_id?: string; starts_at?: string; place?: string; client_address?: string; offer_id?: string; code?: string };
   const startsAt = body.starts_at ? new Date(body.starts_at) : null;
-  if (!body.service_id || !startsAt || Number.isNaN(startsAt.getTime()) || !['online', 'sede', 'domicilio'].includes(body.place ?? '')) {
+  if ((!body.service_id && !body.code) || !startsAt || Number.isNaN(startsAt.getTime()) || !['online', 'sede', 'domicilio'].includes(body.place ?? '')) {
     return json({ error: 'bad_request' }, 400);
   }
   const place = body.place as 'online' | 'sede' | 'domicilio';
@@ -41,15 +42,33 @@ Deno.serve(async (req) => {
   const { data: me } = await admin.from('profiles').select('adult_confirmed_at').eq('id', user.id).maybeSingle();
   if (!me?.adult_confirmed_at) return json({ error: 'adult_required' }, 403);
 
+  type Link = {
+    id: string; service_id: string | null; price_cents: number; duration_min: number; discount_pct: number;
+    days: string[]; ranges: { from: string; to: string }[]; places: string[]; extra_space_cents: number; extra_travel_cents: number; seller_id: string;
+  };
+  let link: Link | null = null;
+  if (body.code) {
+    if (body.offer_id) return json({ error: 'bad_request' }, 400);
+    const { data } = await admin
+      .from('slot_links')
+      .select('id, seller_id, service_id, price_cents, duration_min, discount_pct, days, ranges, places, extra_space_cents, extra_travel_cents, expires_at')
+      .eq('code', body.code)
+      .maybeSingle();
+    if (!data || !data.service_id || (data.expires_at && new Date(data.expires_at).getTime() < Date.now())) return json({ error: 'link_not_found' }, 404);
+    link = data as Link;
+  }
+
   const { data: service } = await admin
     .from('services')
     .select('id, seller_id, kind, title, price_cents, duration_min, places, active, cancel_tiers, space_fee_cents')
-    .eq('id', body.service_id)
+    .eq('id', link ? link.service_id! : body.service_id!)
     .maybeSingle();
   if (!service || !service.active) return json({ error: 'service_not_found' }, 404);
   if (service.kind !== 'slot') return json({ error: 'unsupported_service_kind' }, 400); // pacchetti e chiamate: funzioni a parte
   if (service.seller_id === user.id) return json({ error: 'own_service' }, 400);
+  if (link && link.seller_id !== service.seller_id) return json({ error: 'link_not_found' }, 404);
   if (!(service.places as string[]).includes(place)) return json({ error: 'place_not_offered' }, 400);
+  if (link && !link.places.includes(place)) return json({ error: 'place_not_offered' }, 400);
 
   let priceCents = service.price_cents!;
   let durationMin = service.duration_min!;
@@ -70,6 +89,14 @@ Deno.serve(async (req) => {
     offerTiers = offer.cancel_tiers;
   }
 
+  if (link) {
+    priceCents = discountedCents(link.price_cents, link.discount_pct);
+    durationMin = link.duration_min;
+    const linkEnd = new Date(startsAt.getTime() + durationMin * 60_000);
+    const linkValidity: Validity = { modes: ['giorni', 'orari'], days: link.days, from: '', to: '', wdays: [], ranges: link.ranges };
+    if (!offerApplies(linkValidity, startsAt, linkEnd)) return json({ error: 'slot_unavailable' }, 409);
+  }
+
   const endsAt = new Date(startsAt.getTime() + durationMin * 60_000);
 
   const [{ data: seller }, { data: account }, { data: window }, { data: policy }] = await Promise.all([
@@ -87,7 +114,9 @@ Deno.serve(async (req) => {
 
   if (place === 'sede' && !seller!.place_address) return json({ error: 'place_not_offered' }, 400);
   // costi aggiuntivi: trasferta (profilo) a domicilio, spazio (servizio) nel luogo del venditore
-  const extraCents = place === 'domicilio' ? seller!.travel_fee_cents : place === 'sede' ? service.space_fee_cents : 0;
+  const extraCents = link
+    ? place === 'domicilio' ? link.extra_travel_cents : place === 'sede' ? link.extra_space_cents : 0
+    : place === 'domicilio' ? seller!.travel_fee_cents : place === 'sede' ? service.space_fee_cents : 0;
   const fees = bookingFees(priceCents + extraCents, seller!.is_pro);
 
   const { data: booking, error: bookingError } = await admin
@@ -98,7 +127,7 @@ Deno.serve(async (req) => {
       client_address: place === 'domicilio' ? body.client_address!.trim() : null,
       price_cents: priceCents, extra_cents: extraCents,
       client_fee_cents: fees.clientFeeCents, seller_fee_cents: fees.sellerFeeCents,
-      cancel_tiers: offerTiers ?? service.cancel_tiers ?? policy?.tiers ?? STANDARD_TIERS, source: 'app',
+      cancel_tiers: offerTiers ?? service.cancel_tiers ?? policy?.tiers ?? STANDARD_TIERS, source: link ? 'link' : 'app', slot_link_id: link?.id ?? null,
     })
     .select('id')
     .single();

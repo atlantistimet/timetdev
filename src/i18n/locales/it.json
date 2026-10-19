@@ -161,7 +161,8 @@
       "address_required": "Serve l'indirizzo.",
       "unsupported_service_kind": "Questo tipo di servizio non è ancora prenotabile.",
       "offer_not_valid": "Questo orario non rientra nella validità dell'offerta.",
-      "offer_not_found": "Offerta non disponibile."
+      "offer_not_found": "Offerta non disponibile.",
+      "link_not_found": "Questo link non è più valido."
     },
     "offersTitle": "Offerte",
     "servicesSection": "Servizi",
@@ -374,6 +375,37 @@
     "errors": {
       "limit": "Massimo 6 foto per servizio.",
       "size": "La foto è troppo grande (massimo 5 MB)."
+    }
+  },
+  "slotLinks": {
+    "title": "Invia slot",
+    "link": "Invia slot",
+    "intro": "Per chi ti ha contattato fuori dall'app: crei un link con i tuoi orari liberi e lo condividi. Chi lo riceve sceglie l'orario e paga.",
+    "empty": "Non hai ancora link.",
+    "expired": "scaduto",
+    "share": "Condividi il link",
+    "copied": "Link copiato negli appunti.",
+    "delete": "Elimina",
+    "new": "Nuovo link",
+    "newTitle": "Nuovo link con orari",
+    "needService": "Per creare un link serve prima un servizio.",
+    "price": "Prezzo dello slot in euro",
+    "priceHint": "Prezzo pieno del servizio: {{amount}}. Puoi cambiarlo solo per questo link.",
+    "days": "Giorni",
+    "daysHint": "Si possono scegliere solo i giorni in cui hai orari aperti.",
+    "free": "{{count}} lib.",
+    "closed": "chiuso",
+    "ranges": "Fasce orarie",
+    "extraHint": "Si somma al prezzo solo se il cliente sceglie questo luogo.",
+    "messagePlaceholder": "Ciao! Ecco i miei orari liberi per la prossima settimana",
+    "create": "Crea il link",
+    "createdTitle": "Link pronto",
+    "createdBody": "Condividilo come vuoi (messaggio, email, social). Scade dopo l'ultimo giorno proposto.",
+    "errors": {
+      "service": "Scegli un servizio.",
+      "days": "Scegli almeno un giorno.",
+      "ranges": "Controlla le fasce orarie (formato 09:00, inizio prima della fine).",
+      "extra": "Costo aggiuntivo non valido."
     }
   }
 }

@@ -161,7 +161,8 @@
       "address_required": "An address is required.",
       "unsupported_service_kind": "This kind of service can't be booked yet.",
       "offer_not_valid": "This time is outside the offer's validity.",
-      "offer_not_found": "Offer not available."
+      "offer_not_found": "Offer not available.",
+      "link_not_found": "This link is no longer valid."
     },
     "offersTitle": "Offers",
     "servicesSection": "Services",
@@ -374,6 +375,37 @@
     "errors": {
       "limit": "Up to 6 photos per service.",
       "size": "The photo is too large (max 5 MB)."
+    }
+  },
+  "slotLinks": {
+    "title": "Send slots",
+    "link": "Send slots",
+    "intro": "For people who contacted you outside the app: create a link with your free times and share it. Whoever receives it picks a time and pays.",
+    "empty": "You have no links yet.",
+    "expired": "expired",
+    "share": "Share the link",
+    "copied": "Link copied to the clipboard.",
+    "delete": "Delete",
+    "new": "New link",
+    "newTitle": "New link with times",
+    "needService": "You need a service before creating a link.",
+    "price": "Slot price in euros",
+    "priceHint": "Full service price: {{amount}}. You can change it for this link only.",
+    "days": "Days",
+    "daysHint": "You can only pick days when you have open hours.",
+    "free": "{{count}} free",
+    "closed": "closed",
+    "ranges": "Time ranges",
+    "extraHint": "Added to the price only if the client chooses this place.",
+    "messagePlaceholder": "Hi! Here are my free times for next week",
+    "create": "Create link",
+    "createdTitle": "Link ready",
+    "createdBody": "Share it however you like (message, email, social). It expires after the last day offered.",
+    "errors": {
+      "service": "Choose a service.",
+      "days": "Choose at least one day.",
+      "ranges": "Check the time ranges (format 09:00, start before end).",
+      "extra": "Invalid extra cost."
     }
   }
 }

@@ -87,18 +87,20 @@ const KNOWN_ERRORS = [
   'unsupported_service_kind',
   'offer_not_valid',
   'offer_not_found',
+  'link_not_found',
 ];
 
 /** Prenota lo slot e prepara il pagamento sull'account del venditore. */
 export async function createBookingPayment(input: {
-  serviceId: string;
+  serviceId?: string;
+  code?: string;
   startsAt: string;
   place: 'online' | 'sede' | 'domicilio';
   clientAddress?: string;
   offerId?: string;
 }): Promise<{ payment: PaymentIntentInfo | null; errorKey: string | null }> {
   const { data, error } = await supabase.functions.invoke<PaymentIntentInfo>('create-booking-payment', {
-    body: { service_id: input.serviceId, starts_at: input.startsAt, place: input.place, client_address: input.clientAddress, offer_id: input.offerId },
+    body: { service_id: input.serviceId, code: input.code, starts_at: input.startsAt, place: input.place, client_address: input.clientAddress, offer_id: input.offerId },
   });
   if (!error && data) return { payment: data, errorKey: null };
   if (error instanceof FunctionsHttpError) {

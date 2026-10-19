@@ -16,17 +16,18 @@ import {
   type SellerPlace,
   type SlotService,
 } from '@/lib/booking';
-import { offerApplies } from '@/lib/validity';
+import { discountedCents, offerApplies, type Validity } from '@/lib/validity';
+import { loadLinkByCode, type SlotLink } from '@/lib/slot-links';
 import { finalPriceCents, loadOffer, type Offer } from '@/lib/offers';
 import { loadServiceTiers, type Tier } from '@/lib/cancel-policy';
 import { listPhotos } from '@/lib/service-media';
 import { type Place } from '@/lib/my-services';
 
-type Loaded = { service: SlotService; offer: Offer | null; slots: OpenSlot[]; tiers: Tier[]; sellerPlace: SellerPlace; photos: string[] } | 'missing';
+type Loaded = { service: SlotService; offer: Offer | null; link: SlotLink | null; slots: OpenSlot[]; tiers: Tier[]; sellerPlace: SellerPlace; photos: string[] } | 'missing';
 
 export default function BookScreen() {
   const { t, i18n } = useTranslation();
-  const { serviceId, offerId } = useLocalSearchParams<{ serviceId: string; offerId?: string }>();
+  const { serviceId, offerId, code } = useLocalSearchParams<{ serviceId?: string; offerId?: string; code?: string }>();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [slotId, setSlotId] = useState<string | null>(null);
   const [place, setPlace] = useState<Place | null>(null);
@@ -39,50 +40,58 @@ export default function BookScreen() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const service = serviceId ? await loadSlotService(serviceId) : null;
-      const found = offerId ? await loadOffer(offerId) : null;
+      // da link "Invia slot" (codice) oppure da servizio/offerta
+      const link = code ? await loadLinkByCode(code) : null;
+      const linkServiceId = link?.service_id ?? null;
+      const service = code ? (linkServiceId ? await loadSlotService(linkServiceId) : null) : serviceId ? await loadSlotService(serviceId) : null;
+      const found = offerId && !code ? await loadOffer(offerId) : null;
       const offer = found && found.active && found.service_id === service?.id ? found : null;
       let result: Loaded = 'missing';
-      if (service && !(offerId && !offer)) {
-        const durationMin = offer?.duration_min ?? service.duration_min;
+      if (service && !(offerId && !code && !offer) && !(code && !link)) {
+        const durationMin = link?.duration_min ?? offer?.duration_min ?? service.duration_min;
         const open = await loadOpenSlots(service.seller_id, durationMin);
-        // con un'offerta si mostrano solo gli orari che rientrano nella sua validità
-        const slots = offer
-          ? open.filter((s) => offerApplies(offer.validity, new Date(s.starts_at), new Date(new Date(s.starts_at).getTime() + durationMin * 60_000)))
+        // con un'offerta o un link si mostrano solo gli orari che rientrano nella loro validità
+        const validity: Validity | null = link
+          ? { modes: ['giorni', 'orari'], days: link.days, from: '', to: '', wdays: [], ranges: link.ranges }
+          : offer?.validity ?? null;
+        const slots = validity
+          ? open.filter((s) => offerApplies(validity, new Date(s.starts_at), new Date(new Date(s.starts_at).getTime() + durationMin * 60_000)))
           : open;
         const [tiers, sellerPlace, photos] = await Promise.all([
           offer?.cancel_tiers ? Promise.resolve(offer.cancel_tiers) : loadServiceTiers(service.seller_id, service.cancel_tiers),
           loadSellerPlace(service.seller_id),
           listPhotos(service.id).then((list) => list.map((x) => x.path)),
         ]);
-        result = { service, offer, slots, tiers, sellerPlace, photos };
+        result = { service, offer, link, slots, tiers, sellerPlace, photos };
       }
       if (active) setLoaded(result);
     })();
     return () => {
       active = false;
     };
-  }, [serviceId, offerId]);
+  }, [serviceId, offerId, code]);
 
   if (!loaded) return <LoadingView />;
   if (loaded === 'missing') {
     return (
       <Screen>
         <Title>{t('book.title')}</Title>
-        <ErrorText>{t('book.errors.service_not_found')}</ErrorText>
+        <ErrorText>{t(code ? 'book.errors.link_not_found' : 'book.errors.service_not_found')}</ErrorText>
         <Spacer />
         <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/services')} />
       </Screen>
     );
   }
 
-  const { service, offer, slots, tiers, sellerPlace, photos } = loaded;
+  const { service, offer, link, slots, tiers, sellerPlace, photos } = loaded;
   // sede solo se il venditore ha indicato l'indirizzo (stessa regola del server)
-  const places = service.places.filter((p) => p !== 'sede' || !!sellerPlace.place_address);
+  const places = service.places.filter((p) => (!link || link.places.includes(p)) && (p !== 'sede' || !!sellerPlace.place_address));
   const chosen: Place | null = place && places.includes(place) ? place : places.length === 1 ? places[0] : null;
-  const extraCents = chosen === 'domicilio' ? sellerPlace.travel_fee_cents : chosen === 'sede' ? service.space_fee_cents : 0;
-  const priceCents = offer ? finalPriceCents(offer) : service.price_cents;
-  const durationMin = offer?.duration_min ?? service.duration_min;
+  const extraCents = link
+    ? chosen === 'domicilio' ? link.extra_travel_cents : chosen === 'sede' ? link.extra_space_cents : 0
+    : chosen === 'domicilio' ? sellerPlace.travel_fee_cents : chosen === 'sede' ? service.space_fee_cents : 0;
+  const priceCents = link ? discountedCents(link.price_cents, link.discount_pct) : offer ? finalPriceCents(offer) : service.price_cents;
+  const durationMin = link?.duration_min ?? offer?.duration_min ?? service.duration_min;
   const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'full', timeStyle: 'short' });
 
   const start = async () => {
@@ -91,7 +100,7 @@ export default function BookScreen() {
     if (chosen === 'domicilio' && !address.trim()) return setErrorKey('book.errors.address_required');
     setStarting(true);
     setErrorKey(null);
-    const result = await createBookingPayment({ serviceId: service.id, startsAt: slot.starts_at, place: chosen, clientAddress: chosen === 'domicilio' ? address.trim() : undefined, offerId: offer?.id });
+    const result = await createBookingPayment({ serviceId: link ? undefined : service.id, code: link?.code, startsAt: slot.starts_at, place: chosen, clientAddress: chosen === 'domicilio' ? address.trim() : undefined, offerId: offer?.id });
     setStarting(false);
     if (result.payment) setPayment(result.payment);
     else setErrorKey(result.errorKey);
@@ -125,10 +134,10 @@ export default function BookScreen() {
       <PhotoStrip paths={photos} />
       <Title>{service.title}</Title>
       <Body muted>
-        {offer && offer.discount_pct ? `−${offer.discount_pct}% · ` : ''}
+        {(link ?? offer)?.discount_pct ? `−${(link ?? offer)?.discount_pct}% · ` : ''}
         {formatEuro(priceCents, i18n.language)} · {durationMin} min
       </Body>
-      {offer?.message ? <Body muted>{offer.message}</Body> : null}
+      {(link ?? offer)?.message ? <Body muted>{(link ?? offer)?.message}</Body> : null}
       {service.includes.length > 0 ? (
         <>
           <Spacer size={8} />
