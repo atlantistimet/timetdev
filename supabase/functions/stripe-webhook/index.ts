@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     const update = admin.from('payments')
       .update({ status, ...(status === 'captured' ? { captured_cents: intent.amount_received ?? 0 } : {}) })
       .eq('stripe_payment_intent_id', intent.id);
-    const { data: payment, error } = await (status === 'captured' ? update : update.neq('status', 'captured')).select('booking_id').maybeSingle();
+    const { data: payment, error } = await (status === 'captured' ? update : update.neq('status', 'captured')).select('booking_id, package_id').maybeSingle();
     if (error) {
       console.error('Aggiornamento pagamento fallito', intent.id, error);
       return new Response('db error', { status: 500 });
@@ -67,6 +67,11 @@ Deno.serve(async (req) => {
       await admin.from('bookings')
         .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
         .eq('id', payment.booking_id).eq('status', 'confirmed');
+    }
+    if (payment?.package_id && status === 'canceled') { // pacchetto: si liberano tutte le sessioni
+      await admin.from('bookings')
+        .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
+        .eq('package_id', payment.package_id).eq('status', 'confirmed');
     }
   }
 

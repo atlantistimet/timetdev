@@ -7,6 +7,7 @@ import { TierLines } from '@/components/TierLines';
 import { Body, Button, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import {
   createBookingPayment,
+  createPackagePayment,
   formatEuro,
   loadOpenSlots,
   loadSellerPlace,
@@ -31,6 +32,7 @@ export default function BookScreen() {
   const { serviceId, offerId, code } = useLocalSearchParams<{ serviceId?: string; offerId?: string; code?: string }>();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [slotId, setSlotId] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string[]>([]); // pacchetto: inizi (ISO) delle sessioni scelte
   const [place, setPlace] = useState<Place | null>(null);
   const [address, setAddress] = useState('');
   const [starting, setStarting] = useState(false);
@@ -93,7 +95,27 @@ export default function BookScreen() {
     : chosen === 'domicilio' ? sellerPlace.travel_fee_cents : chosen === 'sede' ? service.space_fee_cents : 0;
   const priceCents = link ? discountedCents(link.price_cents, link.discount_pct) : offer ? finalPriceCents(offer) : service.price_cents;
   const durationMin = link?.duration_min ?? offer?.duration_min ?? service.duration_min;
+  const isPackage = service.kind === 'package';
+  const sessions = service.sessions ?? 1;
+  const pickedMs = picked.map((iso) => new Date(iso).getTime()).sort((a, b) => a - b);
+  const clashes = (iso: string) => {
+    const ms = new Date(iso).getTime();
+    return pickedMs.some((p) => ms < p + durationMin * 60_000 && p < ms + durationMin * 60_000);
+  };
+  const togglePicked = (iso: string) =>
+    setPicked((cur) => (cur.includes(iso) ? cur.filter((x) => x !== iso) : cur.length >= sessions || clashes(iso) ? cur : [...cur, iso]));
   const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'full', timeStyle: 'short' });
+
+  const startPackage = async () => {
+    if (!chosen || picked.length !== sessions) return;
+    if (chosen === 'domicilio' && !address.trim()) return setErrorKey('book.errors.address_required');
+    setStarting(true);
+    setErrorKey(null);
+    const result = await createPackagePayment({ serviceId: service.id, startsAt: picked, place: chosen, clientAddress: chosen === 'domicilio' ? address.trim() : undefined });
+    setStarting(false);
+    if (result.payment) setPayment({ booking_id: '', ...result.payment });
+    else setErrorKey(result.errorKey);
+  };
 
   const start = async () => {
     const slot = slots.find((s) => s.id === slotId);
@@ -136,8 +158,9 @@ export default function BookScreen() {
       <MediaGallery items={photos} bucket="service-media" />
       <Title>{service.title}</Title>
       <Body muted>
-        {(link ?? offer)?.discount_pct ? `−${(link ?? offer)?.discount_pct}% · ` : ''}
-        {formatEuro(priceCents, i18n.language)} · {durationMin} min
+        {isPackage
+          ? t('book.packageLine', { count: sessions, minutes: durationMin, price: formatEuro(priceCents, i18n.language) })
+          : `${(link ?? offer)?.discount_pct ? `−${(link ?? offer)?.discount_pct}% · ` : ''}${formatEuro(priceCents, i18n.language)} · ${durationMin} min`}
       </Body>
       {(link ?? offer)?.message ? <Body muted>{(link ?? offer)?.message}</Body> : null}
       {service.includes.length > 0 ? (
@@ -170,20 +193,21 @@ export default function BookScreen() {
       {extraCents > 0 ? (
         <Body muted>
           {t(chosen === 'domicilio' ? 'book.extraTravel' : 'book.extraSpace', { amount: formatEuro(extraCents, i18n.language) })}
+          {isPackage ? ` ${t('book.perSession')}` : ''}
           {' · '}
-          {t('book.summaryTotal', { amount: formatEuro(priceCents + extraCents, i18n.language) })}
+          {t('book.summaryTotal', { amount: formatEuro(priceCents + extraCents * (isPackage ? sessions : 1), i18n.language) })}
         </Body>
       ) : null}
       <Spacer />
-      <Body>{t('book.pickSlot')}</Body>
+      <Body>{isPackage ? t('book.pickSlots', { picked: picked.length, count: sessions }) : t('book.pickSlot')}</Body>
       <Spacer size={8} />
       {slots.length === 0 ? <Body muted>{t('book.noSlots')}</Body> : null}
       {slots.map((slot) => (
         <Button
           key={slot.id}
           title={dateFormat.format(new Date(slot.starts_at))}
-          variant={slot.id === slotId ? 'primary' : 'ghost'}
-          onPress={() => setSlotId(slot.id)}
+          variant={(isPackage ? picked.includes(slot.starts_at) : slot.id === slotId) ? 'primary' : 'ghost'}
+          onPress={() => (isPackage ? togglePicked(slot.starts_at) : setSlotId(slot.id))}
         />
       ))}
       <Spacer />
@@ -191,7 +215,8 @@ export default function BookScreen() {
       <TierLines tiers={tiers} />
       <Spacer />
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
-      {slotId && chosen ? <Button title={t('book.continue')} onPress={() => void start()} loading={starting} /> : null}
+      {isPackage && chosen && picked.length === sessions ? <Button title={t('book.continue')} onPress={() => void startPackage()} loading={starting} /> : null}
+      {!isPackage && slotId && chosen ? <Button title={t('book.continue')} onPress={() => void start()} loading={starting} /> : null}
       <Spacer size={12} />
       <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/services')} />
     </Screen>

@@ -20,6 +20,8 @@ export default function ServiceEditScreen() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [duration, setDuration] = useState('');
+  const [isPackage, setIsPackage] = useState(false);
+  const [sessionsText, setSessionsText] = useState('');
   const [active, setActive] = useState(true);
   const [places, setPlaces] = useState<Place[]>(['online']);
   const [spaceFee, setSpaceFee] = useState('');
@@ -43,6 +45,8 @@ export default function ServiceEditScreen() {
         setDescription(service.description ?? '');
         setPrice(centsToEuroText(service.price_cents));
         setDuration(String(service.duration_min));
+        setIsPackage(service.kind === 'package');
+        setSessionsText(service.sessions ? String(service.sessions) : '');
         setActive(service.active);
         setPlaces(service.places);
         setSpaceFee(service.space_fee_cents ? centsToEuroText(service.space_fee_cents) : '');
@@ -68,6 +72,8 @@ export default function ServiceEditScreen() {
     if (!title.trim()) return setErrorKey('myServices.errors.title');
     if (priceCents === null || priceCents < MIN_PRICE_CENTS) return setErrorKey('myServices.errors.price');
     if (!Number.isInteger(durationMin) || durationMin < 5 || durationMin > 480) return setErrorKey('myServices.errors.duration');
+    const sessions = Number(sessionsText);
+    if (isPackage && (!Number.isInteger(sessions) || sessions < 2 || sessions > 50)) return setErrorKey('myServices.errors.sessions');
     if (places.length === 0) return setErrorKey('myServices.errors.places');
     const spaceFeeCents = places.includes('sede') && spaceFee.trim() ? parseEuroToCents(spaceFee) : 0;
     if (spaceFeeCents === null) return setErrorKey('myServices.errors.spaceFee');
@@ -82,7 +88,7 @@ export default function ServiceEditScreen() {
     }
     setSaving(true);
     setErrorKey(null);
-    const failure = await saveService({ id: id ?? null, sellerId: userId, title, description, priceCents, durationMin, active, cancelTiers, places, includes, spaceFeeCents });
+    const failure = await saveService({ id: id ?? null, sellerId: userId, title, description, priceCents, durationMin, active, cancelTiers, places, includes, spaceFeeCents, kind: isPackage ? 'package' : 'slot', sessions: isPackage ? sessions : null });
     setSaving(false);
     if (failure) setErrorKey(failure);
     else router.replace('/my-services');
@@ -92,10 +98,17 @@ export default function ServiceEditScreen() {
     <Screen>
       <Title>{t(id ? 'myServices.editTitle' : 'myServices.newTitle')}</Title>
       <Spacer />
+      {!id ? (
+        <ChipRow>
+          <Chip label={t('myServices.kindSingle')} selected={!isPackage} onPress={() => setIsPackage(false)} />
+          <Chip label={t('myServices.kindPackage')} selected={isPackage} onPress={() => setIsPackage(true)} />
+        </ChipRow>
+      ) : null}
       <TextField label={t('myServices.fieldTitle')} value={title} onChangeText={setTitle} maxLength={80} />
       <TextField label={t('myServices.fieldDescription')} value={description} onChangeText={setDescription} multiline maxLength={500} />
-      <TextField label={t('myServices.fieldPrice')} value={price} onChangeText={setPrice} keyboardType="decimal-pad" hint={t('myServices.priceHint')} />
-      <TextField label={t('myServices.fieldDuration')} value={duration} onChangeText={(v) => setDuration(v.replace(/\D/g, ''))} keyboardType="number-pad" />
+      {isPackage ? <TextField label={t('myServices.fieldSessions')} value={sessionsText} onChangeText={(v) => setSessionsText(v.replace(/\D/g, ''))} keyboardType="number-pad" hint={t('myServices.sessionsHint')} /> : null}
+      <TextField label={t(isPackage ? 'myServices.fieldPackagePrice' : 'myServices.fieldPrice')} value={price} onChangeText={setPrice} keyboardType="decimal-pad" hint={t(isPackage ? 'myServices.packagePriceHint' : 'myServices.priceHint')} />
+      <TextField label={t(isPackage ? 'myServices.fieldDurationEach' : 'myServices.fieldDuration')} value={duration} onChangeText={(v) => setDuration(v.replace(/\D/g, ''))} keyboardType="number-pad" />
       <TextField label={t('myServices.fieldIncludes')} value={includesText} onChangeText={setIncludesText} multiline hint={t('myServices.includesHint')} />
       {userId ? <PhotosSection serviceId={id ?? null} userId={userId} /> : null}
       <Spacer />

@@ -12,27 +12,29 @@ export type MyService = {
   places: Place[];
   includes: string[];
   space_fee_cents: number;
+  kind: 'slot' | 'package';
+  sessions: number | null;
 };
 
 export type Place = 'online' | 'sede' | 'domicilio';
 export const PLACES: Place[] = ['online', 'sede', 'domicilio'];
 
-const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers, places, includes, space_fee_cents';
+const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers, places, includes, space_fee_cents, kind, sessions';
 
-/** Servizi a slot del venditore (anche quelli in pausa). */
-export async function listMyServices(sellerId: string): Promise<{ services: MyService[]; errorKey: string | null }> {
+/** Servizi del venditore (anche quelli in pausa). Di norma solo a slot: offerte e link non valgono per i pacchetti. */
+export async function listMyServices(sellerId: string, kinds: ('slot' | 'package')[] = ['slot']): Promise<{ services: MyService[]; errorKey: string | null }> {
   const { data, error } = await supabase
     .from('services')
     .select(COLUMNS)
     .eq('seller_id', sellerId)
-    .eq('kind', 'slot')
+    .in('kind', kinds)
     .order('created_at', { ascending: false });
   if (error) return { services: [], errorKey: 'errors.generic' };
   return { services: (data ?? []) as MyService[], errorKey: null };
 }
 
 export async function loadMyService(id: string): Promise<MyService | null> {
-  const { data } = await supabase.from('services').select(COLUMNS).eq('id', id).eq('kind', 'slot').maybeSingle();
+  const { data } = await supabase.from('services').select(COLUMNS).eq('id', id).maybeSingle();
   return (data as MyService | null) ?? null;
 }
 
@@ -61,6 +63,8 @@ export async function saveService(input: {
   places: Place[];
   includes: string[];
   spaceFeeCents: number;
+  kind?: 'slot' | 'package';
+  sessions?: number | null;
 }): Promise<string | null> {
   const row = {
     title: input.title.trim(),
@@ -72,10 +76,11 @@ export async function saveService(input: {
     places: input.places,
     includes: input.includes,
     space_fee_cents: input.places.includes('sede') ? input.spaceFeeCents : 0,
+    sessions: input.kind === 'package' ? input.sessions ?? null : null,
   };
   const { error } = input.id
     ? await supabase.from('services').update(row).eq('id', input.id)
-    : await supabase.from('services').insert({ ...row, seller_id: input.sellerId, kind: 'slot' });
+    : await supabase.from('services').insert({ ...row, seller_id: input.sellerId, kind: input.kind ?? 'slot' });
   return error ? 'errors.generic' : null;
 }
 

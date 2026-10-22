@@ -134,7 +134,11 @@ export default function PublicProfileScreen() {
               <MediaGallery items={covers[service.id] ? [covers[service.id]] : []} bucket="service-media" size="small" />
               <Body>{service.title}</Body>
               <Body muted>
-                {formatEuro(service.price_cents, i18n.language)} · {service.duration_min} min · {service.places.map((p) => t(`places.${p}`)).join(', ')}
+                {service.kind === 'package'
+                  ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: formatEuro(service.price_cents, i18n.language) })
+                  : `${formatEuro(service.price_cents, i18n.language)} · ${service.duration_min} min`}
+                {' · '}
+                {service.places.map((p) => t(`places.${p}`)).join(', ')}
               </Body>
               <Spacer size={8} />
               <Button title={t('publicProfile.details')} variant="ghost" onPress={() => router.push({ pathname: '/service/[id]', params: { id: service.id } })} />

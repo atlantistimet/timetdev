@@ -111,7 +111,9 @@ export default function ServicesScreen() {
           <Body>{service.title}</Body>
           {byline(service.seller_id) ? <Body muted>{byline(service.seller_id)}</Body> : null}
           <Body muted>
-            {formatEuro(service.price_cents, i18n.language)} · {service.duration_min} min
+            {service.kind === 'package'
+              ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: formatEuro(service.price_cents, i18n.language) })
+              : `${formatEuro(service.price_cents, i18n.language)} · ${service.duration_min} min`}
           </Body>
           <Spacer size={8} />
           <Button title={t('publicProfile.details')} variant="ghost" onPress={() => router.push({ pathname: '/service/[id]', params: { id: service.id } })} />

@@ -162,7 +162,8 @@
       "unsupported_service_kind": "Questo tipo di servizio non è ancora prenotabile.",
       "offer_not_valid": "Questo orario non rientra nella validità dell'offerta.",
       "offer_not_found": "Offerta non disponibile.",
-      "link_not_found": "Questo link non è più valido."
+      "link_not_found": "Questo link non è più valido.",
+      "wrong_session_count": "Scegli esattamente tutte le sessioni del pacchetto."
     },
     "offersTitle": "Offerte",
     "servicesSection": "Servizi",
@@ -175,7 +176,10 @@
     "area": "Zona coperta: {{area}}",
     "extraSpace": "Costo dello spazio: {{amount}}",
     "extraTravel": "Trasferta: {{amount}}",
-    "summaryTotal": "Servizio + extra: {{amount}}"
+    "summaryTotal": "Servizio + extra: {{amount}}",
+    "packageLine": "Pacchetto da {{count}} sessioni da {{minutes}} min · {{price}} in tutto",
+    "perSession": "a sessione",
+    "pickSlots": "Scegli le date delle sessioni ({{picked}} di {{count}})"
   },
   "policy": {
     "title": "Policy di cancellazione",
@@ -285,7 +289,8 @@
       "duration": "La durata deve essere tra 5 e 480 minuti.",
       "places": "Scegli almeno un luogo.",
       "spaceFee": "Costo dello spazio non valido.",
-      "includes": "Massimo 8 voci, ognuna fino a 80 caratteri."
+      "includes": "Massimo 8 voci, ognuna fino a 80 caratteri.",
+      "sessions": "Le sessioni devono essere da 2 a 50."
     },
     "policyCustom": "policy propria",
     "policyCustomLabel": "Personalizza per questa offerta",
@@ -296,7 +301,14 @@
     "includesHint": "Es. “Materiali inclusi”, “Report finale”.",
     "spaceFee": "Costo dello spazio in euro (facoltativo)",
     "spaceFeeHint": "Si aggiunge al prezzo quando il cliente viene da te.",
-    "travelNote": "Il costo di trasferta si imposta nel profilo venditore."
+    "travelNote": "Il costo di trasferta si imposta nel profilo venditore.",
+    "kindSingle": "Sessione singola",
+    "kindPackage": "Pacchetto",
+    "fieldSessions": "Numero di sessioni",
+    "sessionsHint": "Da 2 a 50.",
+    "fieldPackagePrice": "Prezzo del pacchetto (totale, in euro)",
+    "packagePriceHint": "Il cliente paga una volta sola per tutte le sessioni.",
+    "fieldDurationEach": "Durata di ogni sessione (minuti)"
   },
   "offers": {
     "title": "Le mie offerte",

@@ -18,7 +18,7 @@ export default function MyServicesScreen() {
     if (!userId) return;
     let active = true;
     (async () => {
-      const s = await listMyServices(userId);
+      const s = await listMyServices(userId, ['slot', 'package']);
       if (active) setLoaded(s);
     })();
     return () => {
@@ -44,13 +44,15 @@ export default function MyServicesScreen() {
             {service.active ? '' : ` · ${t('myServices.paused')}`}
           </Body>
           <Body muted>
-            {formatEuro(service.price_cents, i18n.language)} · {service.duration_min} min
+            {service.kind === 'package'
+              ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: formatEuro(service.price_cents, i18n.language) })
+              : `${formatEuro(service.price_cents, i18n.language)} · ${service.duration_min} min`}
           </Body>
           <Body muted>{t('myServices.policyLine', { name: policyLabel(service) })}</Body>
           <Spacer size={8} />
           <Button title={t('myServices.edit')} variant="ghost" onPress={() => router.push({ pathname: '/service-edit', params: { id: service.id } })} />
           <Spacer size={8} />
-          <Button title={t('myServices.createOffer')} variant="ghost" onPress={() => router.push({ pathname: '/offer-edit', params: { serviceId: service.id } })} />
+          {service.kind === 'slot' ? <Button title={t('myServices.createOffer')} variant="ghost" onPress={() => router.push({ pathname: '/offer-edit', params: { serviceId: service.id } })} /> : null}
         </Card>
       ))}
       <Spacer size={24} />

@@ -60,7 +60,9 @@ export default function ServiceDetailScreen() {
       <MediaGallery items={photos} bucket="service-media" />
       <Title>{service.title}</Title>
       <Body muted>
-        {fmt(service.price_cents)} · {service.duration_min} min
+        {service.kind === 'package'
+          ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: fmt(service.price_cents) })
+          : `${fmt(service.price_cents)} · ${service.duration_min} min`}
       </Body>
       {seller ? (
         <>

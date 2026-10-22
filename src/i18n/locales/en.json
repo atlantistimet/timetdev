@@ -162,7 +162,8 @@
       "unsupported_service_kind": "This kind of service can't be booked yet.",
       "offer_not_valid": "This time is outside the offer's validity.",
       "offer_not_found": "Offer not available.",
-      "link_not_found": "This link is no longer valid."
+      "link_not_found": "This link is no longer valid.",
+      "wrong_session_count": "Pick exactly all the sessions of the package."
     },
     "offersTitle": "Offers",
     "servicesSection": "Services",
@@ -175,7 +176,10 @@
     "area": "Area covered: {{area}}",
     "extraSpace": "Space cost: {{amount}}",
     "extraTravel": "Travel: {{amount}}",
-    "summaryTotal": "Service + extras: {{amount}}"
+    "summaryTotal": "Service + extras: {{amount}}",
+    "packageLine": "Package of {{count}} sessions of {{minutes}} min · {{price}} in total",
+    "perSession": "per session",
+    "pickSlots": "Pick the dates for the sessions ({{picked}} of {{count}})"
   },
   "policy": {
     "title": "Cancellation policy",
@@ -285,7 +289,8 @@
       "duration": "Duration must be between 5 and 480 minutes.",
       "places": "Choose at least one place.",
       "spaceFee": "Invalid space cost.",
-      "includes": "Max 8 items, each up to 80 characters."
+      "includes": "Max 8 items, each up to 80 characters.",
+      "sessions": "Sessions must be between 2 and 50."
     },
     "policyCustom": "own policy",
     "policyCustomLabel": "Customize for this offer",
@@ -296,7 +301,14 @@
     "includesHint": "E.g. “Materials included”, “Final report”.",
     "spaceFee": "Space cost in euros (optional)",
     "spaceFeeHint": "Added to the price when the client comes to you.",
-    "travelNote": "The travel fee is set in your seller profile."
+    "travelNote": "The travel fee is set in your seller profile.",
+    "kindSingle": "Single session",
+    "kindPackage": "Package",
+    "fieldSessions": "Number of sessions",
+    "sessionsHint": "From 2 to 50.",
+    "fieldPackagePrice": "Package price (total, in euros)",
+    "packagePriceHint": "The client pays once for all the sessions.",
+    "fieldDurationEach": "Length of each session (minutes)"
   },
   "offers": {
     "title": "My offers",

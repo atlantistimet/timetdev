@@ -15,6 +15,8 @@ export type SlotService = {
   includes: string[];
   space_fee_cents: number;
   cancel_tiers: Tier[] | null;
+  kind: 'slot' | 'package';
+  sessions: number | null;
 };
 
 export type SellerPlace = { place_type: string | null; place_address: string | null; service_area: string | null; travel_fee_cents: number };
@@ -28,7 +30,7 @@ export type PaymentIntentInfo = {
   amount_cents: number;
 };
 
-const SERVICE_COLUMNS = 'id, seller_id, title, description, price_cents, duration_min, places, includes, space_fee_cents, cancel_tiers';
+const SERVICE_COLUMNS = 'id, seller_id, title, description, price_cents, duration_min, places, includes, space_fee_cents, cancel_tiers, kind, sessions';
 
 export async function loadSellerPlace(sellerId: string): Promise<SellerPlace> {
   const { data } = await supabase.from('profiles').select('place_type, place_address, service_area, travel_fee_cents').eq('id', sellerId).maybeSingle();
@@ -40,7 +42,7 @@ export async function listSlotServices(userId: string): Promise<{ services: Slot
   const { data, error } = await supabase
     .from('services')
     .select(SERVICE_COLUMNS)
-    .eq('kind', 'slot')
+    .in('kind', ['slot', 'package'])
     .eq('active', true)
     .neq('seller_id', userId)
     .order('created_at', { ascending: false })
@@ -51,12 +53,12 @@ export async function listSlotServices(userId: string): Promise<{ services: Slot
 
 /** Servizi a slot attivi di un venditore, per il suo profilo pubblico. */
 export async function listSellerServices(sellerId: string): Promise<SlotService[]> {
-  const { data } = await supabase.from('services').select(SERVICE_COLUMNS).eq('seller_id', sellerId).eq('kind', 'slot').eq('active', true).order('position').order('created_at');
+  const { data } = await supabase.from('services').select(SERVICE_COLUMNS).eq('seller_id', sellerId).in('kind', ['slot', 'package']).eq('active', true).order('position').order('created_at');
   return (data ?? []) as SlotService[];
 }
 
 export async function loadSlotService(id: string): Promise<SlotService | null> {
-  const { data } = await supabase.from('services').select(SERVICE_COLUMNS).eq('id', id).eq('kind', 'slot').maybeSingle();
+  const { data } = await supabase.from('services').select(SERVICE_COLUMNS).eq('id', id).in('kind', ['slot', 'package']).maybeSingle();
   return (data as SlotService | null) ?? null;
 }
 
@@ -94,6 +96,7 @@ const KNOWN_ERRORS = [
   'offer_not_valid',
   'offer_not_found',
   'link_not_found',
+  'wrong_session_count',
 ];
 
 /** Prenota lo slot e prepara il pagamento sull'account del venditore. */
@@ -107,6 +110,24 @@ export async function createBookingPayment(input: {
 }): Promise<{ payment: PaymentIntentInfo | null; errorKey: string | null }> {
   const { data, error } = await supabase.functions.invoke<PaymentIntentInfo>('create-booking-payment', {
     body: { service_id: input.serviceId, code: input.code, starts_at: input.startsAt, place: input.place, client_address: input.clientAddress, offer_id: input.offerId },
+  });
+  if (!error && data) return { payment: data, errorKey: null };
+  if (error instanceof FunctionsHttpError) {
+    const body = (await error.context.json().catch(() => null)) as { error?: string } | null;
+    if (body?.error && KNOWN_ERRORS.includes(body.error)) return { payment: null, errorKey: `book.errors.${body.error}` };
+  }
+  return { payment: null, errorKey: 'errors.generic' };
+}
+
+/** Compra un pacchetto: tutte le sessioni scelte, un solo pagamento. */
+export async function createPackagePayment(input: {
+  serviceId: string;
+  startsAt: string[];
+  place: 'online' | 'sede' | 'domicilio';
+  clientAddress?: string;
+}): Promise<{ payment: { client_secret: string; stripe_account: string; amount_cents: number } | null; errorKey: string | null }> {
+  const { data, error } = await supabase.functions.invoke<{ client_secret: string; stripe_account: string; amount_cents: number }>('create-package-payment', {
+    body: { service_id: input.serviceId, starts_at: input.startsAt, place: input.place, client_address: input.clientAddress },
   });
   if (!error && data) return { payment: data, errorKey: null };
   if (error instanceof FunctionsHttpError) {

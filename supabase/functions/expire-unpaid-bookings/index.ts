@@ -20,9 +20,9 @@ Deno.serve(async (req) => {
 
   const { data: stale, error } = await admin
     .from('payments')
-    .select('id, booking_id, stripe_payment_intent_id, stripe_account_id')
+    .select('id, booking_id, package_id, stripe_payment_intent_id, stripe_account_id')
     .eq('status', 'pending')
-    .not('booking_id', 'is', null)
+    .or('booking_id.not.is.null,package_id.not.is.null')
     .lt('created_at', cutoff)
     .limit(50);
   if (error) return json({ error: 'server_error' }, 500);
@@ -48,9 +48,9 @@ Deno.serve(async (req) => {
     // Le condizioni sullo stato evitano di sovrascrivere un pagamento arrivato nel frattempo.
     const { data: updated } = await admin.from('payments').update({ status: 'canceled' }).eq('id', payment.id).eq('status', 'pending').select('id');
     if (updated?.length) {
-      await admin.from('bookings')
-        .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
-        .eq('id', payment.booking_id).eq('status', 'confirmed');
+      const cancelled = { status: 'cancelled', cancelled_at: new Date().toISOString() };
+      if (payment.package_id) await admin.from('bookings').update(cancelled).eq('package_id', payment.package_id).eq('status', 'confirmed');
+      else await admin.from('bookings').update(cancelled).eq('id', payment.booking_id).eq('status', 'confirmed');
       expired++;
     }
   }

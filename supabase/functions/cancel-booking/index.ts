@@ -5,6 +5,8 @@
 //  - Prenotazione non ancora pagata: si annulla il pagamento, nessun rimborso.
 // Il rimborso è sull'account del venditore (addebito diretto) e include la quota proporzionale della commissione Timeet
 // (refund_application_fee). Non si annulla una sessione già iniziata.
+// Pacchetti: un solo pagamento per tutte le sessioni. Ogni sessione ha la sua quota (prezzo + extra + quota di commissione cliente);
+// si rimborsa solo la quota della sessione annullata. Se il pacchetto non è ancora pagato, si annulla per intero.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/http.ts';
 import { refundAmount, refundPercent, type Tier } from '../_shared/cancel.ts';
@@ -28,7 +30,7 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const { data: booking } = await admin
     .from('bookings')
-    .select('id, client_id, seller_id, starts_at, status, cancel_tiers')
+    .select('id, client_id, seller_id, starts_at, status, cancel_tiers, package_id, price_cents, extra_cents, client_fee_cents')
     .eq('id', body.booking_id)
     .maybeSingle();
   // Non si rivela se la prenotazione esiste a chi non ne fa parte.
@@ -39,26 +41,31 @@ Deno.serve(async (req) => {
 
   const { data: payment } = await admin
     .from('payments')
-    .select('id, status, amount_cents, application_fee_cents, stripe_payment_intent_id, stripe_account_id')
-    .eq('booking_id', booking.id)
+    .select('id, status, amount_cents, application_fee_cents, refunded_cents, application_fee_refunded_cents, stripe_payment_intent_id, stripe_account_id')
+    .eq(booking.package_id ? 'package_id' : 'booking_id', booking.package_id ?? booking.id)
     .maybeSingle();
 
   const byClient = booking.client_id === user.id;
   const pct = byClient ? refundPercent(booking.cancel_tiers as Tier[], startsAt) : 100;
   const paid = payment?.status === 'captured';
-  const refundCents = paid ? refundAmount(payment!.amount_cents, pct) : 0;
+  // importo pagato per QUESTA sessione: per i pacchetti la sua quota del pagamento unico
+  const shareCents = booking.package_id ? booking.price_cents + booking.extra_cents + booking.client_fee_cents : (payment?.amount_cents ?? 0);
+  const remaining = paid ? payment!.amount_cents - payment!.refunded_cents : 0;
+  const refundCents = paid ? Math.min(refundAmount(shareCents, pct), remaining) : 0;
 
   if (body.preview) return json({ refund_pct: paid ? pct : 0, refund_cents: refundCents, paid });
 
   // Si "prende" la prenotazione per prima: due richieste insieme non rimborsano due volte.
-  const { data: claimed } = await admin
+  const wholePackage = !!booking.package_id && !paid; // pacchetto non pagato: si annullano tutte le sessioni
+  const claimQuery = admin
     .from('bookings')
     .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), cancelled_by: user.id, refund_cents: refundCents })
-    .eq('id', booking.id).eq('status', 'confirmed')
-    .select('id');
+    .eq('status', 'confirmed');
+  const { data: claimed } = await (wholePackage ? claimQuery.eq('package_id', booking.package_id!) : claimQuery.eq('id', booking.id)).select('id');
   if (!claimed?.length) return json({ error: 'not_cancellable' }, 409);
 
-  const revert = () => admin.from('bookings').update({ status: 'confirmed', cancelled_at: null, cancelled_by: null, refund_cents: 0 }).eq('id', booking.id);
+  const claimedIds = claimed.map((c) => c.id as string);
+  const revert = () => admin.from('bookings').update({ status: 'confirmed', cancelled_at: null, cancelled_by: null, refund_cents: 0 }).in('id', claimedIds);
 
   try {
     if (payment && !paid && payment.status === 'pending') {
@@ -85,10 +92,11 @@ Deno.serve(async (req) => {
         metadata: { booking_id: booking.id, cancelled_by: user.id },
       }, { stripeAccount: payment!.stripe_account_id, idempotencyKey: `timeet-cancel-${booking.id}` });
       const feeRefunded = Math.round((payment!.application_fee_cents * refundCents) / payment!.amount_cents);
+      const totalRefunded = payment!.refunded_cents + refundCents;
       await admin.from('payments').update({
-        refunded_cents: refundCents,
-        application_fee_refunded_cents: feeRefunded,
-        status: refundCents === payment!.amount_cents ? 'refunded' : 'captured',
+        refunded_cents: totalRefunded,
+        application_fee_refunded_cents: payment!.application_fee_refunded_cents + feeRefunded,
+        status: totalRefunded >= payment!.amount_cents ? 'refunded' : 'captured',
       }).eq('id', payment!.id);
     }
   } catch (e) {
