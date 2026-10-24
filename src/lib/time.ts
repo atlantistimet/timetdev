@@ -15,10 +15,11 @@ export function romeToDate(date: string, hhmm: string): Date {
   return new Date(t);
 }
 
-/** I prossimi `count` giorni a partire da domani, come stringhe AAAA-MM-GG dell'ora di Roma. */
-export function nextDays(count: number, now: number): string[] {
+/** I prossimi `count` giorni (da domani, o da oggi con `includeToday`), come stringhe AAAA-MM-GG dell'ora di Roma. */
+export function nextDays(count: number, now: number, includeToday = false): string[] {
   const [y, m, d] = localParts(new Date(now)).date.split('-').map(Number);
-  return [...Array(count)].map((_, i) => new Date(Date.UTC(y, m - 1, d + i + 1)).toISOString().slice(0, 10));
+  const shift = includeToday ? 0 : 1;
+  return [...Array(count)].map((_, i) => new Date(Date.UTC(y, m - 1, d + i + shift)).toISOString().slice(0, 10));
 }
 
 /** Etichetta breve di un giorno AAAA-MM-GG nella lingua indicata. */

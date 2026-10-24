@@ -1,7 +1,13 @@
 import { romeToDate } from '@/lib/time';
 import { supabase } from '@/lib/supabase';
 
-export const HOURS = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00'];
+export const HOURS = ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
+/** Fasce della giornata per aprire o chiudere più ore insieme. */
+export const DAY_PARTS: { key: 'morning' | 'afternoon' | 'evening'; hours: string[] }[] = [
+  { key: 'morning', hours: ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00'] },
+  { key: 'afternoon', hours: ['13:00', '14:00', '15:00', '16:00', '17:00', '18:00'] },
+  { key: 'evening', hours: ['19:00', '20:00', '21:00', '22:00'] },
+];
 const HOUR_MS = 3_600_000;
 
 export type Calendar = { open: Set<number>; busy: { from: number; to: number }[] };

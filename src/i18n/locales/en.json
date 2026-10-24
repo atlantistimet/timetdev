@@ -365,13 +365,20 @@
   },
   "availability": {
     "title": "Availability",
-    "intro": "Open the hours when you can take bookings, over the next 14 days. Times are Rome time.",
+    "intro": "Choose when you can be booked. “Available now” makes you callable right away for a few hours; the hours below open for the next 14 days, starting today. Times are Rome time.",
     "booked": "booked",
-    "legend": "Dark hour = open or already booked. Tap to open or close.",
+    "legend": "Dark hour = open or already booked. Tap to open or close; past hours can't be opened.",
     "openAll": "Open the whole day",
     "closeAll": "Close the whole day",
-    "copyWeek": "Copy to the same weekday next week",
-    "link": "Availability"
+    "link": "Availability",
+    "today": "Today",
+    "scheduled": "Bookable hours",
+    "morning": "Morning",
+    "afternoon": "Afternoon",
+    "evening": "Evening",
+    "openPart": "Open this part",
+    "closePart": "Close this part",
+    "repeat": "Repeat on the same weekdays ({{count}} days)"
   },
   "places": {
     "online": "Online",
