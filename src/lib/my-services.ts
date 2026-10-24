@@ -71,7 +71,7 @@ export async function saveService(input: {
   if (input.kind === 'per_minute') {
     const perMinute = {
       title: input.title.trim(), description: input.description.trim() || null, includes: input.includes, active: input.active,
-      rate_cents_per_min: input.rateCents ?? null, places: ['online'] as Place[], price_cents: null, duration_min: null, sessions: null, cancel_tiers: null, space_fee_cents: 0,
+      rate_cents_per_min: input.rateCents ?? null, min_minutes: 5, max_minutes: 60, places: ['online'] as Place[], price_cents: null, duration_min: null, sessions: null, cancel_tiers: null, space_fee_cents: 0,
     };
     const { error } = input.id
       ? await supabase.from('services').update(perMinute).eq('id', input.id)

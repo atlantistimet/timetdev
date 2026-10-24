@@ -132,7 +132,7 @@ async function extendCall(admin: Admin, call: CallRow): Promise<void> {
       payer_id: call.client_id, seller_id: call.seller_id, stripe_account_id: first.stripe_account_id, stripe_payment_intent_id: pi.id,
       status: 'authorized', amount_cents: fees.totalChargeCents, application_fee_cents: fees.applicationFeeCents, call_id: call.id, call_block: block,
     });
-    await admin.from('calls').update({ blocks_held: call.blocks_held + 1, extending_since: null }).eq('id', call.id);
+    await admin.from('calls').update({ blocks_held: call.blocks_held + 1, authorized_minutes: (call.blocks_held + 1) * CALL_BLOCK_MIN, extending_since: null }).eq('id', call.id);
   } catch (error) {
     console.error('Prolungamento chiamata fallito', call.id, error instanceof StripeError ? JSON.stringify(error.body) : error);
     await fail();

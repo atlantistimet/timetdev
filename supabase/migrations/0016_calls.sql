@@ -30,7 +30,7 @@ alter table calls
   add column options          jsonb not null default '{}';   -- es. {"recording":true,"transcript":true} quando esisteranno
 
 comment on column calls.options is 'Servizi aggiuntivi richiesti per questa chiamata (registrazione, trascrizione AI): oggi sempre vuoto.';
-comment on column calls.reserve_cents is 'Importo del primo blocco bloccato sulla carta (commissione cliente inclusa).';
+comment on column calls.authorized_cents is 'Importo del primo blocco bloccato sulla carta (commissione cliente inclusa).';
 comment on column calls.amount_cents is 'Importo incassato sui minuti effettivi, senza commissioni.';
 
 alter table payments add column call_block integer check (call_block between 0 and 3);

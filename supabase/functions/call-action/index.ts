@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
         if (pi.status !== 'requires_capture') return json({ error: 'not_authorized' }, 409);
         await admin.from('payments').update({ status: 'authorized' }).eq('id', pay.id);
         const { data: up, error } = await admin.from('calls').update({
-          status: 'ringing', blocks_held: 1, ring_expires_at: new Date(Date.now() + CALL_RING_SECONDS * 1000).toISOString(), last_seen_client: now,
+          status: 'ringing', blocks_held: 1, authorized_minutes: CALL_BLOCK_MIN, ring_expires_at: new Date(Date.now() + CALL_RING_SECONDS * 1000).toISOString(), last_seen_client: now,
         }).eq('id', call.id).eq('status', 'awaiting_payment').select(CALL_COLUMNS).maybeSingle();
         if (error) { // indice unico: il venditore ha già una chiamata in corso
           await closeWithoutCharge(admin, call, 'cancelled');
@@ -152,7 +152,7 @@ async function start(admin: ReturnType<typeof createClient>, userId: string, ema
 
   const { data: call, error: callError } = await admin.from('calls').insert({
     client_id: userId, seller_id: service.seller_id, service_id: service.id, service_title: service.title,
-    rate_cents_per_min: service.rate_cents_per_min, reserve_cents: fees.totalChargeCents, status: 'awaiting_payment',
+    rate_cents_per_min: service.rate_cents_per_min, authorized_cents: fees.totalChargeCents, status: 'awaiting_payment',
   }).select('id').single();
   if (callError) return json({ error: callError.code === '23505' ? 'call_in_progress' : 'server_error' }, callError.code === '23505' ? 409 : 500);
 
