@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
   const user = userData.user;
 
   const body = (await req.json().catch(() => ({}))) as { service_id?: string; starts_at?: string; place?: string; client_address?: string; offer_id?: string; code?: string };
-  const startsAt = body.starts_at ? new Date(body.starts_at) : null;
+  let startsAt = body.starts_at ? new Date(body.starts_at) : null;
   if ((!body.service_id && !body.code) || !startsAt || Number.isNaN(startsAt.getTime()) || !['online', 'sede', 'domicilio'].includes(body.place ?? '')) {
     return json({ error: 'bad_request' }, 400);
   }
@@ -44,14 +44,14 @@ Deno.serve(async (req) => {
 
   type Link = {
     id: string; service_id: string | null; price_cents: number; duration_min: number; discount_pct: number;
-    days: string[]; ranges: { from: string; to: string }[]; places: string[]; extra_space_cents: number; extra_travel_cents: number; seller_id: string;
+    days: string[]; ranges: { from: string; to: string }[]; places: string[]; extra_space_cents: number; extra_travel_cents: number; seller_id: string; starts_at: string | null;
   };
   let link: Link | null = null;
   if (body.code) {
     if (body.offer_id) return json({ error: 'bad_request' }, 400);
     const { data } = await admin
       .from('slot_links')
-      .select('id, seller_id, service_id, price_cents, duration_min, discount_pct, days, ranges, places, extra_space_cents, extra_travel_cents, expires_at')
+      .select('id, seller_id, service_id, price_cents, duration_min, discount_pct, days, ranges, places, extra_space_cents, extra_travel_cents, starts_at, expires_at')
       .eq('code', body.code)
       .maybeSingle();
     if (!data || !data.service_id || (data.expires_at && new Date(data.expires_at).getTime() < Date.now())) return json({ error: 'link_not_found' }, 404);
@@ -92,9 +92,15 @@ Deno.serve(async (req) => {
   if (link) {
     priceCents = discountedCents(link.price_cents, link.discount_pct);
     durationMin = link.duration_min;
-    const linkEnd = new Date(startsAt.getTime() + durationMin * 60_000);
-    const linkValidity: Validity = { modes: ['giorni', 'orari'], days: link.days, from: '', to: '', wdays: [], ranges: link.ranges };
-    if (!offerApplies(linkValidity, startsAt, linkEnd)) return json({ error: 'slot_unavailable' }, 409);
+    if (link.starts_at) {
+      // link con un solo orario preciso (anche immediato): si prenota solo quell'istante
+      if (Math.abs(new Date(link.starts_at).getTime() - startsAt.getTime()) > 60_000) return json({ error: 'slot_unavailable' }, 409);
+      startsAt = new Date(link.starts_at);
+    } else {
+      const linkEnd = new Date(startsAt.getTime() + durationMin * 60_000);
+      const linkValidity: Validity = { modes: ['giorni', 'orari'], days: link.days, from: '', to: '', wdays: [], ranges: link.ranges };
+      if (!offerApplies(linkValidity, startsAt, linkEnd)) return json({ error: 'slot_unavailable' }, 409);
+    }
   }
 
   const endsAt = new Date(startsAt.getTime() + durationMin * 60_000);
@@ -110,7 +116,8 @@ Deno.serve(async (req) => {
   ]);
   if (!account?.charges_enabled) return json({ error: 'seller_not_ready' }, 409);
   const openRanges = (window ?? []).map((r) => ({ from: new Date(r.starts_at).getTime(), to: new Date(r.ends_at).getTime() }));
-  if (!isCovered(openRanges, startsAt.getTime(), endsAt.getTime())) return json({ error: 'slot_unavailable' }, 409);
+  // con un link a orario preciso lo propone il venditore: non serve che l'ora sia aperta nel calendario
+  if (!link?.starts_at && !isCovered(openRanges, startsAt.getTime(), endsAt.getTime())) return json({ error: 'slot_unavailable' }, 409);
 
   if (place === 'sede' && !seller!.place_address) return json({ error: 'place_not_offered' }, 400);
   // costi aggiuntivi: trasferta (profilo) a domicilio, spazio (servizio) nel luogo del venditore

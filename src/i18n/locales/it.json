@@ -437,11 +437,23 @@
       "days": "Scegli almeno un giorno.",
       "ranges": "Controlla le fasce orarie (formato 09:00, inizio prima della fine).",
       "extra": "Costo aggiuntivo non valido.",
-      "postFailed": "Il link è pronto, ma non sono riuscito a pubblicarlo nel feed."
+      "postFailed": "Il link è pronto, ma non sono riuscito a pubblicarlo nel feed.",
+      "exact": "Scegli il giorno e scrivi l'ora nel formato HH:MM.",
+      "exactPast": "L'orario deve essere nel futuro."
     },
     "preview": "Anteprima",
     "previewHint": "Foto o video che accompagna il link e il post (facoltativo).",
-    "publish": "Pubblica anche nel feed"
+    "publish": "Pubblica anche nel feed",
+    "modeTitle": "Quando",
+    "modeDays": "Più giorni e fasce",
+    "modeExact": "Giorno e ora precisi",
+    "modeNow": "Subito",
+    "exactDay": "Giorno",
+    "exactTime": "Ora di inizio (HH:MM)",
+    "exactHint": "Per esempio 15:30. Ora italiana.",
+    "nowStart": "Inizia",
+    "nowIn": "tra {{minutes}} min",
+    "nowHint": "Il cliente prenota e paga subito; il link scade all'orario di inizio. Vale anche se non hai aperto quell'ora nel calendario."
   },
   "newService": {
     "chip": "+ Nuovo servizio",
@@ -556,5 +568,68 @@
     "send": "Invia",
     "read": "letto",
     "write_to": "Scrivi un messaggio"
+  },
+  "sessions": {
+    "title": "Le mie sessioni",
+    "hint": "Tutte le sessioni: passate, future e slot inviati",
+    "booked": "Prenotate",
+    "received": "Ricevute",
+    "links": "Slot inviati",
+    "open": "Dettagli sessione"
+  },
+  "session": {
+    "notFound": "Sessione non trovata",
+    "packageOf": "Sessione {{index}} di {{total}} del pacchetto",
+    "service": "Servizio",
+    "description": "Descrizione",
+    "when": "Quando",
+    "duration": "Durata",
+    "where": "Dove",
+    "seller": "Venditore",
+    "client": "Utente",
+    "status": "Stato",
+    "amountPaid": "Importo pagato",
+    "notPaid": "Non ancora pagato",
+    "breakdown": "Servizio {{price}} · extra {{extra}} · commissione Timeet {{fee}}",
+    "sellerNet": "Il tuo incasso netto",
+    "sellerBreakdown": "Servizio ed extra {{price}} − commissione {{fee}} (il cliente ha pagato {{paid}})",
+    "refunded": "Rimborsato",
+    "tipSent": "Mancia lasciata: {{amount}}",
+    "tipReceived": "Mancia ricevuta: {{amount}}",
+    "rating": "Valutazione",
+    "print": "Stampa riepilogo",
+    "summaryTitle": "Riepilogo sessione Timeet",
+    "requestInvoice": "Richiedi fattura o ricevuta",
+    "requestDetails": "Dati per il documento",
+    "requestHint": "Intestazione, partita IVA o codice fiscale, indirizzo.",
+    "sendRequest": "Invia richiesta",
+    "requestSent": "Richiesta registrata. Il documento arriverà dal venditore o da Timeet.",
+    "requestExists": "Hai già inviato questa richiesta.",
+    "kind": {
+      "receipt": "Ricevuta",
+      "invoice": "Fattura"
+    },
+    "requestStatus": {
+      "open": "richiesta inviata",
+      "done": "emessa"
+    },
+    "addTip": "Aggiungi mancia",
+    "tipChoose": "Quanto vuoi lasciare?",
+    "tipOther": "Altro",
+    "tipCustom": "Importo in euro",
+    "tipRange": "Da 1 a 200 euro.",
+    "tipNoFee": "La mancia va tutta al venditore: Timeet non trattiene nulla.",
+    "tipContinue": "Vai al pagamento",
+    "tipPay": "Mancia di {{amount}}",
+    "tipThanks": "Grazie! La mancia è stata inviata.",
+    "tipErrors": {
+      "bad_amount": "Scegli un importo da 1 a 200 euro.",
+      "not_completed": "Puoi lasciare la mancia solo a sessione conclusa.",
+      "seller_not_ready": "Il venditore non può ancora ricevere pagamenti."
+    },
+    "report": "Segnala un problema",
+    "support": "Assistenza",
+    "soon": "in arrivo",
+    "soonNote": "Questa funzione arriverà presto."
   }
 }

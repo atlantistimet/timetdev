@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { AvailableNowCard } from '@/components/AvailableNowCard';
 import { Body, Button, Card, CardButton, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { loadMyProfile } from '@/lib/profile-edit';
@@ -34,6 +35,8 @@ export default function ProfileScreen() {
         subtitle={handle ? `@${handle}` : t('publicProfile.needHandle')}
         onPress={() => (handle ? router.push({ pathname: '/u/[handle]', params: { handle } }) : router.push('/profile-edit'))}
       />
+      {session?.user.id ? <AvailableNowCard userId={session.user.id} /> : null}
+      <CardButton title={t('sessions.title')} subtitle={t('sessions.hint')} onPress={() => router.push('/sessions')} />
       <CardButton title={t('chat.title')} subtitle={t('chat.hint')} onPress={() => router.push('/messages')} />
       <CardButton title={t('home.sellerArea')} subtitle={t('home.sellerHint')} onPress={() => router.push('/seller')} />
       <Card>

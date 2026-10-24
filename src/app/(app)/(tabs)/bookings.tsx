@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, Card, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -108,6 +109,7 @@ export default function BookingsScreen() {
         return (
           <Card key={booking.id}>
             <Body>{booking.service_title}</Body>
+            <Button title={t('sessions.open')} variant="ghost" onPress={() => router.push({ pathname: '/session/[id]', params: { id: booking.id } })} />
             <Body muted>{dateFormat.format(new Date(booking.starts_at))}</Body>
             <Body muted>
               {t(mine ? 'bookings.withSeller' : 'bookings.fromClient', { name: (mine ? booking.seller_name : booking.client_name) ?? '—' })}

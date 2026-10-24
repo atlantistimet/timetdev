@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { AvailableNowCard } from '@/components/AvailableNowCard';
 import { Body, Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import {
@@ -61,6 +62,7 @@ export default function SellerScreen() {
           loading={starting}
         />
       ) : null}
+      {userId ? <AvailableNowCard userId={userId} /> : null}
       <Spacer size={12} />
       <Button title={t('profileEdit.link')} variant="ghost" onPress={() => router.push('/profile-edit')} />
       <Spacer size={12} />

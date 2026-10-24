@@ -12,11 +12,14 @@ import { HOURS, hourStart, isBusy, loadCalendar, type Calendar } from '@/lib/ava
 import { centsToEuroText, createQuickService, listMyServices, MIN_PRICE_CENTS, parseEuroToCents, PLACES, type MyService, type Place } from '@/lib/my-services';
 import { loadMyProfile } from '@/lib/profile-edit';
 import { createLink, linkUrl, shareText, type SlotLink } from '@/lib/slot-links';
-import { dayLabel, nextDays } from '@/lib/time';
-import { discountedCents, validateValidity, type Range } from '@/lib/validity';
+import { dayLabel, nextDays, romeToDate } from '@/lib/time';
+import { discountedCents, localParts, validateValidity, type Range } from '@/lib/validity';
 
 const DISCOUNTS = [0, 10, 20, 30];
 const DURATIONS = [15, 30, 45, 60, 90, 120];
+const IMMEDIATE_OFFSETS = [15, 30, 60]; // minuti da adesso
+type Mode = 'days' | 'exact' | 'now';
+const nowMs = () => Date.now();
 
 export default function SlotLinkEditScreen() {
   const { t, i18n } = useTranslation();
@@ -37,6 +40,11 @@ export default function SlotLinkEditScreen() {
   const [duration, setDuration] = useState('');
   const [discount, setDiscount] = useState(0);
   const [picked, setPicked] = useState<string[]>([]);
+  const [mode, setMode] = useState<Mode>('days');
+  const [exactDay, setExactDay] = useState<string | null>(null);
+  const [exactTime, setExactTime] = useState('');
+  const [offset, setOffset] = useState(30);
+  const [today] = useState(() => localParts(new Date()).date);
   const [ranges, setRanges] = useState<Range[]>([{ from: '09:00', to: '13:00' }]);
   const [places, setPlaces] = useState<Place[]>([]);
   const [spaceFee, setSpaceFee] = useState('');
@@ -93,8 +101,19 @@ export default function SlotLinkEditScreen() {
     const durationMin = Number(duration);
     if (priceCents === null || priceCents < MIN_PRICE_CENTS) return setErrorKey('myServices.errors.price');
     if (!Number.isInteger(durationMin) || durationMin < 5 || durationMin > 480) return setErrorKey('myServices.errors.duration');
-    if (picked.length === 0) return setErrorKey('slotLinks.errors.days');
-    if (validateValidity({ modes: ['orari'], days: [], from: '', to: '', wdays: [], ranges })) return setErrorKey('slotLinks.errors.ranges');
+    let startsAt: Date | null = null;
+    if (mode === 'days') {
+      if (picked.length === 0) return setErrorKey('slotLinks.errors.days');
+      if (validateValidity({ modes: ['orari'], days: [], from: '', to: '', wdays: [], ranges })) return setErrorKey('slotLinks.errors.ranges');
+    } else if (mode === 'exact') {
+      if (!exactDay || !/^([01]\d|2[0-3]):[0-5]\d$/.test(exactTime.trim())) return setErrorKey('slotLinks.errors.exact');
+      startsAt = romeToDate(exactDay, exactTime.trim());
+      if (startsAt.getTime() < nowMs() + 60_000) return setErrorKey('slotLinks.errors.exactPast');
+    } else {
+      // subito: tra `offset` minuti, arrotondato ai 5 minuti successivi
+      const ms = Math.ceil((nowMs() + offset * 60_000) / 300_000) * 300_000;
+      startsAt = new Date(ms);
+    }
     if (places.length === 0) return setErrorKey('myServices.errors.places');
     const extraSpace = places.includes('sede') && spaceFee.trim() ? parseEuroToCents(spaceFee) : 0;
     const extraTravel = places.includes('domicilio') && travel.trim() ? parseEuroToCents(travel) : 0;
@@ -121,6 +140,7 @@ export default function SlotLinkEditScreen() {
       discountPct: discount,
       days: picked,
       ranges,
+      startsAt,
       places,
       extraSpaceCents: extraSpace,
       extraTravelCents: extraTravel,
@@ -198,6 +218,42 @@ export default function SlotLinkEditScreen() {
           {finalCents !== null ? <Body muted>{t('offers.finalPrice', { amount: formatEuro(finalCents, i18n.language) })}</Body> : null}
 
           <Spacer />
+          <Body>{t('slotLinks.modeTitle')}</Body>
+          <Spacer size={8} />
+          <ChipRow>
+            <Chip label={t('slotLinks.modeDays')} selected={mode === 'days'} onPress={() => setMode('days')} />
+            <Chip label={t('slotLinks.modeExact')} selected={mode === 'exact'} onPress={() => setMode('exact')} />
+            <Chip label={t('slotLinks.modeNow')} selected={mode === 'now'} onPress={() => setMode('now')} />
+          </ChipRow>
+          {mode === 'exact' ? (
+            <>
+              <Spacer size={8} />
+              <Body>{t('slotLinks.exactDay')}</Body>
+              <Spacer size={8} />
+              <ChipRow>
+                {[today, ...days.slice(0, 13)].map((day) => (
+                  <Chip key={day} label={dayLabel(day, i18n.language, { weekday: 'short', day: 'numeric', month: 'short' })} selected={exactDay === day} onPress={() => setExactDay(day)} />
+                ))}
+              </ChipRow>
+              <TextField label={t('slotLinks.exactTime')} value={exactTime} onChangeText={(v) => setExactTime(v.trim())} placeholder="15:30" autoCapitalize="none" hint={t('slotLinks.exactHint')} />
+            </>
+          ) : null}
+          {mode === 'now' ? (
+            <>
+              <Spacer size={8} />
+              <Body>{t('slotLinks.nowStart')}</Body>
+              <Spacer size={8} />
+              <ChipRow>
+                {IMMEDIATE_OFFSETS.map((m) => (
+                  <Chip key={m} label={t('slotLinks.nowIn', { minutes: m })} selected={offset === m} onPress={() => setOffset(m)} />
+                ))}
+              </ChipRow>
+              <Body muted>{t('slotLinks.nowHint')}</Body>
+            </>
+          ) : null}
+          {mode === 'days' ? (
+            <>
+          <Spacer size={8} />
           <Body>{t('slotLinks.days')}</Body>
           <Spacer size={8} />
           <ChipRow>
@@ -220,6 +276,8 @@ export default function SlotLinkEditScreen() {
             </Fragment>
           ))}
           <Button title={t('offers.addRange')} variant="ghost" onPress={() => setRanges((rs) => [...rs, { from: '', to: '' }])} />
+            </>
+          ) : null}
 
           <Spacer />
           <Body>{t('myServices.where')}</Body>

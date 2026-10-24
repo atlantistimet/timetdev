@@ -83,6 +83,16 @@ export async function loadOpenSlots(sellerId: string, durationMin: number): Prom
     .map((ms) => ({ id: String(ms), starts_at: new Date(ms).toISOString(), ends_at: new Date(ms + durationMin * 60_000).toISOString() }));
 }
 
+/** Link a orario preciso: l'unico slot, se è nel futuro e il venditore non è già occupato. */
+export async function loadExactSlot(sellerId: string, startsAt: string, durationMin: number): Promise<OpenSlot[]> {
+  const start = new Date(startsAt).getTime();
+  const end = start + durationMin * 60_000;
+  if (start <= Date.now()) return [];
+  const { data } = await supabase.rpc('seller_busy', { p_seller: sellerId, p_from: new Date(start).toISOString(), p_to: new Date(end).toISOString() });
+  if (((data ?? []) as unknown[]).length > 0) return [];
+  return [{ id: String(start), starts_at: new Date(start).toISOString(), ends_at: new Date(end).toISOString() }];
+}
+
 const KNOWN_ERRORS = [
   'adult_required',
   'slot_unavailable',
@@ -156,6 +166,7 @@ export type MyBooking = {
   extra_cents: number;
   client_name: string | null;
   seller_name: string | null;
+  package_id: string | null;
 };
 
 /** Prenotazioni dell'utente, fatte o ricevute (la policy di lettura mostra solo quelle in cui è coinvolto). */
@@ -163,7 +174,7 @@ export async function listMyBookings(): Promise<{ bookings: MyBooking[]; errorKe
   const { data, error } = await supabase
     .from('bookings')
     .select(
-      'id, client_id, seller_id, service_title, starts_at, ends_at, status, price_cents, refund_cents, place, client_address, extra_cents, client:profiles!bookings_client_id_fkey(full_name), seller:profiles!bookings_seller_id_fkey(full_name)',
+      'id, client_id, seller_id, service_title, starts_at, ends_at, status, price_cents, refund_cents, place, client_address, extra_cents, package_id, client:profiles!bookings_client_id_fkey(full_name), seller:profiles!bookings_seller_id_fkey(full_name)',
     )
     .order('starts_at', { ascending: false })
     .limit(100);

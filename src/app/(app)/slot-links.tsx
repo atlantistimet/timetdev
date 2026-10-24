@@ -64,8 +64,14 @@ export default function SlotLinksScreen() {
             <Body muted>
               {formatEuro(discountedCents(link.price_cents, link.discount_pct), i18n.language)} · {link.duration_min} min
             </Body>
-            <Body muted>{link.days.map((d) => dayLabel(d, i18n.language, { weekday: 'short', day: 'numeric', month: 'short' })).join(', ')}</Body>
-            <Body muted>{link.ranges.map((r) => `${r.from}–${r.to}`).join(', ')}</Body>
+            {link.starts_at ? (
+              <Body muted>{new Intl.DateTimeFormat(i18n.language, { dateStyle: 'full', timeStyle: 'short' }).format(new Date(link.starts_at))}</Body>
+            ) : (
+              <>
+                <Body muted>{link.days.map((d) => dayLabel(d, i18n.language, { weekday: 'short', day: 'numeric', month: 'short' })).join(', ')}</Body>
+                <Body muted>{link.ranges.map((r) => `${r.from}–${r.to}`).join(', ')}</Body>
+              </>
+            )}
             <Spacer size={8} />
             {!expired ? <Button title={t('slotLinks.share')} variant="ghost" onPress={() => void share(link)} /> : null}
             <Spacer size={8} />

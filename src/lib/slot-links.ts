@@ -1,6 +1,7 @@
 import { Platform, Share } from 'react-native';
 import { type Place } from '@/lib/my-services';
 import { romeToDate } from '@/lib/time';
+import { localParts } from '@/lib/validity';
 import { supabase } from '@/lib/supabase';
 import { type Range } from '@/lib/validity';
 
@@ -20,12 +21,13 @@ export type SlotLink = {
   message: string | null;
   preview_path: string | null;
   preview_type: 'image' | 'video' | null;
+  starts_at: string | null;
   expires_at: string | null;
   created_at: string;
   service_title?: string;
 };
 
-const COLUMNS = 'id, code, seller_id, service_id, price_cents, duration_min, discount_pct, days, ranges, places, extra_space_cents, extra_travel_cents, message, preview_path, preview_type, expires_at, created_at';
+const COLUMNS = 'id, code, seller_id, service_id, price_cents, duration_min, discount_pct, days, ranges, places, extra_space_cents, extra_travel_cents, message, preview_path, preview_type, starts_at, expires_at, created_at';
 
 /** Indirizzo da condividere: sul web quello del sito, in app quello pubblico. */
 export function linkUrl(code: string): string {
@@ -68,10 +70,22 @@ export async function createLink(input: {
   extraTravelCents: number;
   message: string;
   preview: { path: string; type: 'image' | 'video' } | null;
+  startsAt?: Date | null; // un solo orario preciso (anche subito)
 }): Promise<{ link: SlotLink | null; errorKey: string | null }> {
-  const days = [...input.days].sort();
-  // il link scade a fine dell'ultimo giorno proposto
-  const expires = romeToDate(days[days.length - 1], '23:59');
+  let days = [...input.days].sort();
+  let ranges = input.ranges;
+  let expires: Date;
+  if (input.startsAt) {
+    // orario preciso: un solo giorno, una sola fascia (inizio–fine), il link scade all'inizio della sessione
+    const p = localParts(input.startsAt);
+    const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+    days = [p.date];
+    ranges = [{ from: hhmm(p.minutes), to: hhmm(Math.min(p.minutes + input.durationMin, 23 * 60 + 59)) }];
+    expires = input.startsAt;
+  } else {
+    // il link scade a fine dell'ultimo giorno proposto
+    expires = romeToDate(days[days.length - 1], '23:59');
+  }
   const { data, error } = await supabase
     .from('slot_links')
     .insert({
@@ -81,7 +95,8 @@ export async function createLink(input: {
       duration_min: input.durationMin,
       discount_pct: input.discountPct,
       days,
-      ranges: input.ranges,
+      ranges,
+      starts_at: input.startsAt ? input.startsAt.toISOString() : null,
       places: input.places,
       extra_space_cents: input.extraSpaceCents,
       extra_travel_cents: input.extraTravelCents,

@@ -437,11 +437,23 @@
       "days": "Choose at least one day.",
       "ranges": "Check the time ranges (format 09:00, start before end).",
       "extra": "Invalid extra cost.",
-      "postFailed": "The link is ready, but I couldn't publish it to the feed."
+      "postFailed": "The link is ready, but I couldn't publish it to the feed.",
+      "exact": "Pick the day and enter the time as HH:MM.",
+      "exactPast": "The time must be in the future."
     },
     "preview": "Preview",
     "previewHint": "Photo or video that goes with the link and the post (optional).",
-    "publish": "Also publish to the feed"
+    "publish": "Also publish to the feed",
+    "modeTitle": "When",
+    "modeDays": "Several days and time ranges",
+    "modeExact": "Exact day and time",
+    "modeNow": "Right now",
+    "exactDay": "Day",
+    "exactTime": "Start time (HH:MM)",
+    "exactHint": "For example 15:30. Italian time.",
+    "nowStart": "Starts",
+    "nowIn": "in {{minutes}} min",
+    "nowHint": "The client books and pays right away; the link expires at the start time. It works even if you haven't opened that hour in your calendar."
   },
   "newService": {
     "chip": "+ New service",
@@ -556,5 +568,68 @@
     "send": "Send",
     "read": "read",
     "write_to": "Send a message"
+  },
+  "sessions": {
+    "title": "My sessions",
+    "hint": "All sessions: past, upcoming and slots sent",
+    "booked": "Booked",
+    "received": "Received",
+    "links": "Slots sent",
+    "open": "Session details"
+  },
+  "session": {
+    "notFound": "Session not found",
+    "packageOf": "Session {{index}} of {{total}} in the package",
+    "service": "Service",
+    "description": "Description",
+    "when": "When",
+    "duration": "Duration",
+    "where": "Where",
+    "seller": "Seller",
+    "client": "User",
+    "status": "Status",
+    "amountPaid": "Amount paid",
+    "notPaid": "Not paid yet",
+    "breakdown": "Service {{price}} · extras {{extra}} · Timeet fee {{fee}}",
+    "sellerNet": "Your net earnings",
+    "sellerBreakdown": "Service and extras {{price}} − fee {{fee}} (the client paid {{paid}})",
+    "refunded": "Refunded",
+    "tipSent": "Tip left: {{amount}}",
+    "tipReceived": "Tip received: {{amount}}",
+    "rating": "Rating",
+    "print": "Print summary",
+    "summaryTitle": "Timeet session summary",
+    "requestInvoice": "Request an invoice or receipt",
+    "requestDetails": "Details for the document",
+    "requestHint": "Name or company, VAT or tax code, address.",
+    "sendRequest": "Send request",
+    "requestSent": "Request recorded. The document will come from the seller or Timeet.",
+    "requestExists": "You already sent this request.",
+    "kind": {
+      "receipt": "Receipt",
+      "invoice": "Invoice"
+    },
+    "requestStatus": {
+      "open": "request sent",
+      "done": "issued"
+    },
+    "addTip": "Add a tip",
+    "tipChoose": "How much would you like to leave?",
+    "tipOther": "Other",
+    "tipCustom": "Amount in euros",
+    "tipRange": "From 1 to 200 euros.",
+    "tipNoFee": "The whole tip goes to the seller: Timeet keeps nothing.",
+    "tipContinue": "Go to payment",
+    "tipPay": "Tip of {{amount}}",
+    "tipThanks": "Thank you! Your tip was sent.",
+    "tipErrors": {
+      "bad_amount": "Pick an amount from 1 to 200 euros.",
+      "not_completed": "You can tip only once the session is completed.",
+      "seller_not_ready": "The seller can't receive payments yet."
+    },
+    "report": "Report a problem",
+    "support": "Support",
+    "soon": "coming soon",
+    "soonNote": "This feature is coming soon."
   }
 }

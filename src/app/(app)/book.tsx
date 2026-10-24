@@ -9,6 +9,7 @@ import {
   createBookingPayment,
   createPackagePayment,
   formatEuro,
+  loadExactSlot,
   loadOpenSlots,
   loadSellerPlace,
   loadSlotService,
@@ -52,12 +53,13 @@ export default function BookScreen() {
       let result: Loaded = 'missing';
       if (service && !(offerId && !code && !offer) && !(code && !link)) {
         const durationMin = link?.duration_min ?? offer?.duration_min ?? service.duration_min;
-        const open = await loadOpenSlots(service.seller_id, durationMin);
+        const exact = link?.starts_at ?? null;
+        const open = exact ? await loadExactSlot(service.seller_id, exact, durationMin) : await loadOpenSlots(service.seller_id, durationMin);
         // con un'offerta o un link si mostrano solo gli orari che rientrano nella loro validità
         const validity: Validity | null = link
           ? { modes: ['giorni', 'orari'], days: link.days, from: '', to: '', wdays: [], ranges: link.ranges }
           : offer?.validity ?? null;
-        const slots = validity
+        const slots = validity && !exact
           ? open.filter((s) => offerApplies(validity, new Date(s.starts_at), new Date(new Date(s.starts_at).getTime() + durationMin * 60_000)))
           : open;
         const [tiers, sellerPlace, photos] = await Promise.all([
