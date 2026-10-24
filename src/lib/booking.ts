@@ -15,8 +15,9 @@ export type SlotService = {
   includes: string[];
   space_fee_cents: number;
   cancel_tiers: Tier[] | null;
-  kind: 'slot' | 'package';
+  kind: 'slot' | 'package' | 'per_minute';
   sessions: number | null;
+  rate_cents_per_min: number | null;
 };
 
 export type SellerPlace = { place_type: string | null; place_address: string | null; service_area: string | null; travel_fee_cents: number };
@@ -30,7 +31,7 @@ export type PaymentIntentInfo = {
   amount_cents: number;
 };
 
-const SERVICE_COLUMNS = 'id, seller_id, title, description, price_cents, duration_min, places, includes, space_fee_cents, cancel_tiers, kind, sessions';
+const SERVICE_COLUMNS = 'id, seller_id, title, description, price_cents, duration_min, places, includes, space_fee_cents, cancel_tiers, kind, sessions, rate_cents_per_min';
 
 export async function loadSellerPlace(sellerId: string): Promise<SellerPlace> {
   const { data } = await supabase.from('profiles').select('place_type, place_address, service_area, travel_fee_cents').eq('id', sellerId).maybeSingle();
@@ -53,12 +54,12 @@ export async function listSlotServices(userId: string): Promise<{ services: Slot
 
 /** Servizi a slot attivi di un venditore, per il suo profilo pubblico. */
 export async function listSellerServices(sellerId: string): Promise<SlotService[]> {
-  const { data } = await supabase.from('services').select(SERVICE_COLUMNS).eq('seller_id', sellerId).in('kind', ['slot', 'package']).eq('active', true).order('position').order('created_at');
+  const { data } = await supabase.from('services').select(SERVICE_COLUMNS).eq('seller_id', sellerId).in('kind', ['slot', 'package', 'per_minute']).eq('active', true).order('position').order('created_at');
   return (data ?? []) as SlotService[];
 }
 
 export async function loadSlotService(id: string): Promise<SlotService | null> {
-  const { data } = await supabase.from('services').select(SERVICE_COLUMNS).eq('id', id).in('kind', ['slot', 'package']).maybeSingle();
+  const { data } = await supabase.from('services').select(SERVICE_COLUMNS).eq('id', id).in('kind', ['slot', 'package', 'per_minute']).maybeSingle();
   return (data as SlotService | null) ?? null;
 }
 

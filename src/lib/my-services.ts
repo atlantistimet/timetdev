@@ -12,17 +12,18 @@ export type MyService = {
   places: Place[];
   includes: string[];
   space_fee_cents: number;
-  kind: 'slot' | 'package';
+  kind: 'slot' | 'package' | 'per_minute';
   sessions: number | null;
+  rate_cents_per_min: number | null;
 };
 
 export type Place = 'online' | 'sede' | 'domicilio';
 export const PLACES: Place[] = ['online', 'sede', 'domicilio'];
 
-const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers, places, includes, space_fee_cents, kind, sessions';
+const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers, places, includes, space_fee_cents, kind, sessions, rate_cents_per_min';
 
 /** Servizi del venditore (anche quelli in pausa). Di norma solo a slot: offerte e link non valgono per i pacchetti. */
-export async function listMyServices(sellerId: string, kinds: ('slot' | 'package')[] = ['slot']): Promise<{ services: MyService[]; errorKey: string | null }> {
+export async function listMyServices(sellerId: string, kinds: ('slot' | 'package' | 'per_minute')[] = ['slot']): Promise<{ services: MyService[]; errorKey: string | null }> {
   const { data, error } = await supabase
     .from('services')
     .select(COLUMNS)
@@ -63,9 +64,20 @@ export async function saveService(input: {
   places: Place[];
   includes: string[];
   spaceFeeCents: number;
-  kind?: 'slot' | 'package';
+  kind?: 'slot' | 'package' | 'per_minute';
   sessions?: number | null;
+  rateCents?: number;
 }): Promise<string | null> {
+  if (input.kind === 'per_minute') {
+    const perMinute = {
+      title: input.title.trim(), description: input.description.trim() || null, includes: input.includes, active: input.active,
+      rate_cents_per_min: input.rateCents ?? null, places: ['online'] as Place[], price_cents: null, duration_min: null, sessions: null, cancel_tiers: null, space_fee_cents: 0,
+    };
+    const { error } = input.id
+      ? await supabase.from('services').update(perMinute).eq('id', input.id)
+      : await supabase.from('services').insert({ ...perMinute, seller_id: input.sellerId, kind: 'per_minute' });
+    return error ? 'errors.generic' : null;
+  }
   const row = {
     title: input.title.trim(),
     description: input.description.trim() || null,

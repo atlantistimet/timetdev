@@ -1,5 +1,12 @@
 import { Stack } from 'expo-router';
+import { View } from 'react-native';
+import { IncomingCallBanner } from '@/components/IncomingCallBanner';
 
 export default function AppLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <View style={{ flex: 1 }}>
+      <Stack screenOptions={{ headerShown: false }} />
+      <IncomingCallBanner />
+    </View>
+  );
 }

@@ -5,6 +5,8 @@
   "dependencies": {
     "@expo/metro-runtime": "~57.0.16",
     "@expo/vector-icons": "^15.0.2",
+    "@livekit/components-react": "^2.9.24",
+    "@livekit/components-styles": "^1.2.0",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@stripe/react-stripe-js": "^7.0.0",
     "@stripe/stripe-js": "^10.0.0",
@@ -19,6 +21,7 @@
     "expo-status-bar": "~57.0.1",
     "expo-video": "~57.0.5",
     "i18next": "^26.4.3",
+    "livekit-client": "^2.23.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-i18next": "^17.0.16",

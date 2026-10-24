@@ -21,3 +21,25 @@ export function bookingFees(baseCents: number, isPro: boolean): Fees {
     totalChargeCents: baseCents + clientFeeCents,
   };
 }
+
+// ---------- Chiamate al minuto ----------
+// Cliente: 5% + 0,50 € sul totale dei minuti; venditore: 5% + 0,50 € (Pro: solo 5%).
+// Con più blocchi da 15 minuti la quota fissa si applica una volta sola, sul primo blocco.
+export const CALL_FIXED_FEE_CENTS = 50;
+export const CALL_BLOCK_MIN = 15;
+export const CALL_MIN_BILLED_MIN = 5;
+export const CALL_MAX_MIN = 60;
+export const CALL_RING_SECONDS = 60;
+/** I battiti arrivano ogni 10 s: oltre questa soglia senza battiti la persona è considerata caduta. */
+export const CALL_STALE_SECONDS = 75;
+
+export function callBlockFees(baseCents: number, isFirstBlock: boolean, isPro: boolean) {
+  const percent = Math.round(baseCents * PERCENT_FEE);
+  const fixed = isFirstBlock ? CALL_FIXED_FEE_CENTS : 0;
+  const clientFeeCents = percent + fixed;
+  const sellerFeeCents = percent + (isPro ? 0 : fixed);
+  return { clientFeeCents, sellerFeeCents, applicationFeeCents: clientFeeCents + sellerFeeCents, totalChargeCents: baseCents + clientFeeCents };
+}
+/** Tariffa minima al minuto: sotto, la commissione (con la quota fissa) supererebbe l'incasso dei 5 minuti minimi. */
+export const CALL_MIN_RATE_CENTS = 50;
+export const CALL_AWAITING_PAYMENT_MINUTES = 15;

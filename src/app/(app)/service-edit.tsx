@@ -7,6 +7,7 @@ import { fromRows, rowsIncomplete, toRows, type TierRow } from '@/components/Tie
 import { Body, Button, Checkbox, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { listPolicies, STANDARD_TIERS, validateTiers, type CancelPolicy, type Tier } from '@/lib/cancel-policy';
+import { CALL_MIN_RATE_CENTS } from '@/lib/calls';
 import { PLACES, type Place, centsToEuroText, loadMyService, MIN_PRICE_CENTS, parseEuroToCents, saveService } from '@/lib/my-services';
 
 export default function ServiceEditScreen() {
@@ -21,6 +22,8 @@ export default function ServiceEditScreen() {
   const [price, setPrice] = useState('');
   const [duration, setDuration] = useState('');
   const [isPackage, setIsPackage] = useState(false);
+  const [isPerMinute, setIsPerMinute] = useState(false);
+  const [rate, setRate] = useState('');
   const [sessionsText, setSessionsText] = useState('');
   const [active, setActive] = useState(true);
   const [places, setPlaces] = useState<Place[]>(['online']);
@@ -43,8 +46,10 @@ export default function ServiceEditScreen() {
       if (service) {
         setTitle(service.title);
         setDescription(service.description ?? '');
-        setPrice(centsToEuroText(service.price_cents));
-        setDuration(String(service.duration_min));
+        setPrice(centsToEuroText(service.price_cents ?? 0));
+        setDuration(String(service.duration_min ?? ''));
+        setIsPerMinute(service.kind === 'per_minute');
+        setRate(service.rate_cents_per_min ? centsToEuroText(service.rate_cents_per_min) : '');
         setIsPackage(service.kind === 'package');
         setSessionsText(service.sessions ? String(service.sessions) : '');
         setActive(service.active);
@@ -67,6 +72,20 @@ export default function ServiceEditScreen() {
 
   const save = async () => {
     if (!userId) return;
+    if (isPerMinute) {
+      const rateCents = parseEuroToCents(rate);
+      if (!title.trim()) return setErrorKey('myServices.errors.title');
+      if (rateCents === null || rateCents < CALL_MIN_RATE_CENTS) return setErrorKey('calls.errors.rate');
+      const lines = includesText.split('\n').map((x) => x.trim()).filter(Boolean);
+      if (lines.length > 8 || lines.some((x) => x.length > 80)) return setErrorKey('myServices.errors.includes');
+      setSaving(true);
+      setErrorKey(null);
+      const fail = await saveService({ id: id ?? null, sellerId: userId, title, description, priceCents: 0, durationMin: 0, active, cancelTiers: null, places: ['online'], includes: lines, spaceFeeCents: 0, kind: 'per_minute', rateCents });
+      setSaving(false);
+      if (fail) setErrorKey(fail);
+      else router.replace('/my-services');
+      return;
+    }
     const priceCents = parseEuroToCents(price);
     const durationMin = Number(duration);
     if (!title.trim()) return setErrorKey('myServices.errors.title');
@@ -100,12 +119,27 @@ export default function ServiceEditScreen() {
       <Spacer />
       {!id ? (
         <ChipRow>
-          <Chip label={t('myServices.kindSingle')} selected={!isPackage} onPress={() => setIsPackage(false)} />
-          <Chip label={t('myServices.kindPackage')} selected={isPackage} onPress={() => setIsPackage(true)} />
+          <Chip label={t('myServices.kindSingle')} selected={!isPackage && !isPerMinute} onPress={() => { setIsPackage(false); setIsPerMinute(false); }} />
+          <Chip label={t('myServices.kindPackage')} selected={isPackage} onPress={() => { setIsPackage(true); setIsPerMinute(false); }} />
+          <Chip label={t('myServices.kindPerMinute')} selected={isPerMinute} onPress={() => { setIsPerMinute(true); setIsPackage(false); }} />
         </ChipRow>
       ) : null}
       <TextField label={t('myServices.fieldTitle')} value={title} onChangeText={setTitle} maxLength={80} />
       <TextField label={t('myServices.fieldDescription')} value={description} onChangeText={setDescription} multiline maxLength={500} />
+      {isPerMinute ? (
+        <>
+          <TextField label={t('calls.fieldRate')} value={rate} onChangeText={setRate} keyboardType="decimal-pad" hint={t('calls.rateHint')} />
+          <TextField label={t('myServices.fieldIncludes')} value={includesText} onChangeText={setIncludesText} multiline hint={t('myServices.includesHint')} />
+          {userId ? <PhotosSection serviceId={id ?? null} userId={userId} /> : null}
+          <Checkbox label={t('myServices.activeLabel')} checked={active} onChange={setActive} />
+          <Spacer />
+          {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
+          <Button title={t('policy.save')} onPress={() => void save()} loading={saving} />
+          <Spacer size={12} />
+          <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/my-services')} />
+        </>
+      ) : (
+        <>
       {isPackage ? <TextField label={t('myServices.fieldSessions')} value={sessionsText} onChangeText={(v) => setSessionsText(v.replace(/\D/g, ''))} keyboardType="number-pad" hint={t('myServices.sessionsHint')} /> : null}
       <TextField label={t(isPackage ? 'myServices.fieldPackagePrice' : 'myServices.fieldPrice')} value={price} onChangeText={setPrice} keyboardType="decimal-pad" hint={t(isPackage ? 'myServices.packagePriceHint' : 'myServices.priceHint')} />
       <TextField label={t(isPackage ? 'myServices.fieldDurationEach' : 'myServices.fieldDuration')} value={duration} onChangeText={(v) => setDuration(v.replace(/\D/g, ''))} keyboardType="number-pad" />
@@ -150,6 +184,8 @@ export default function ServiceEditScreen() {
       <Button title={t('policy.save')} onPress={() => void save()} loading={saving} />
       <Spacer size={12} />
       <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/my-services')} />
+        </>
+      )}
     </Screen>
   );
 }

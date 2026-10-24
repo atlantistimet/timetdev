@@ -8,3 +8,6 @@ verify_jwt = false
 # Chiamata da pg_cron con il segreto condiviso CRON_SECRET (nessun utente Supabase).
 [functions.expire-unpaid-bookings]
 verify_jwt = false
+
+[functions.sweep-calls]
+verify_jwt = false

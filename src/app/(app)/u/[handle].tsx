@@ -68,6 +68,7 @@ export default function PublicProfileScreen() {
   const followerCount = follow.followers + (following === null ? 0 : (following ? 1 : 0) - (follow.following ? 1 : 0));
   const mine = session?.user.id === profile.id;
   const where = [...new Set(services.flatMap((s) => s.places))];
+  const callableNow = !!profile.available_until && new Date(profile.available_until).getTime() > nowMs;
 
   return (
     <Screen>
@@ -134,9 +135,11 @@ export default function PublicProfileScreen() {
               <MediaGallery items={covers[service.id] ? [covers[service.id]] : []} bucket="service-media" size="small" />
               <Body>{service.title}</Body>
               <Body muted>
-                {service.kind === 'package'
-                  ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: formatEuro(service.price_cents, i18n.language) })
-                  : `${formatEuro(service.price_cents, i18n.language)} · ${service.duration_min} min`}
+                {service.kind === 'per_minute'
+                  ? t('calls.rateLine', { price: formatEuro(service.rate_cents_per_min ?? 0, i18n.language) })
+                  : service.kind === 'package'
+                    ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: formatEuro(service.price_cents, i18n.language) })
+                    : `${formatEuro(service.price_cents, i18n.language)} · ${service.duration_min} min`}
                 {' · '}
                 {service.places.map((p) => t(`places.${p}`)).join(', ')}
               </Body>
@@ -145,7 +148,14 @@ export default function PublicProfileScreen() {
               {!mine ? (
                 <>
                   <Spacer size={8} />
-                  <Button title={t('book.choose')} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })} />
+                  {service.kind === 'per_minute' ? (
+                    <Button
+                      title={t(callableNow ? 'calls.callNow' : 'calls.notAvailable')}
+                      onPress={() => (callableNow ? router.push({ pathname: '/call-start', params: { serviceId: service.id } }) : undefined)}
+                    />
+                  ) : (
+                    <Button title={t('book.choose')} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })} />
+                  )}
                 </>
               ) : null}
             </Card>

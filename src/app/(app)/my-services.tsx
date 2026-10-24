@@ -18,7 +18,7 @@ export default function MyServicesScreen() {
     if (!userId) return;
     let active = true;
     (async () => {
-      const s = await listMyServices(userId, ['slot', 'package']);
+      const s = await listMyServices(userId, ['slot', 'package', 'per_minute']);
       if (active) setLoaded(s);
     })();
     return () => {
@@ -44,11 +44,13 @@ export default function MyServicesScreen() {
             {service.active ? '' : ` · ${t('myServices.paused')}`}
           </Body>
           <Body muted>
-            {service.kind === 'package'
-              ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: formatEuro(service.price_cents, i18n.language) })
-              : `${formatEuro(service.price_cents, i18n.language)} · ${service.duration_min} min`}
+            {service.kind === 'per_minute'
+              ? t('calls.rateLine', { price: formatEuro(service.rate_cents_per_min ?? 0, i18n.language) })
+              : service.kind === 'package'
+                ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: formatEuro(service.price_cents, i18n.language) })
+                : `${formatEuro(service.price_cents, i18n.language)} · ${service.duration_min} min`}
           </Body>
-          <Body muted>{t('myServices.policyLine', { name: policyLabel(service) })}</Body>
+          {service.kind === 'per_minute' ? null : <Body muted>{t('myServices.policyLine', { name: policyLabel(service) })}</Body>}
           <Spacer size={8} />
           <Button title={t('myServices.edit')} variant="ghost" onPress={() => router.push({ pathname: '/service-edit', params: { id: service.id } })} />
           <Spacer size={8} />

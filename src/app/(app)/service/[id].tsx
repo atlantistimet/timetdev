@@ -18,6 +18,7 @@ export default function ServiceDetailScreen() {
   const { session } = useAuth();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [nowMs, setNowMs] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -33,7 +34,10 @@ export default function ServiceDetailScreen() {
         ]);
         result = { service, seller, place, photos, tiers };
       }
-      if (alive) setLoaded(result);
+      if (alive) {
+        setNowMs(Date.now());
+        setLoaded(result);
+      }
     })();
     return () => {
       alive = false;
@@ -53,6 +57,7 @@ export default function ServiceDetailScreen() {
 
   const { service, seller, place, photos, tiers } = loaded;
   const mine = session?.user.id === service.seller_id;
+  const callableNow = !!seller?.available_until && new Date(seller.available_until).getTime() > nowMs;
   const fmt = (cents: number) => formatEuro(cents, i18n.language);
 
   return (
@@ -60,9 +65,11 @@ export default function ServiceDetailScreen() {
       <MediaGallery items={photos} bucket="service-media" />
       <Title>{service.title}</Title>
       <Body muted>
-        {service.kind === 'package'
-          ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: fmt(service.price_cents) })
-          : `${fmt(service.price_cents)} · ${service.duration_min} min`}
+        {service.kind === 'per_minute'
+          ? t('calls.rateLine', { price: fmt(service.rate_cents_per_min ?? 0) })
+          : service.kind === 'package'
+            ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: fmt(service.price_cents) })
+            : `${fmt(service.price_cents)} · ${service.duration_min} min`}
       </Body>
       {seller ? (
         <>
@@ -90,6 +97,13 @@ export default function ServiceDetailScreen() {
           ))}
         </Card>
       ) : null}
+      {service.kind === 'per_minute' ? (
+        <Card>
+          <Body>{t('calls.howItWorksTitle')}</Body>
+          <Body muted>{t('calls.howItWorks')}</Body>
+        </Card>
+      ) : (
+        <>
       <Card>
         <Body>{t('book.where')}</Body>
         {service.places.map((p) => (
@@ -106,8 +120,19 @@ export default function ServiceDetailScreen() {
         <Body>{t('policy.cancelRules')}</Body>
         <TierLines tiers={tiers} />
       </Card>
+        </>
+      )}
       <Spacer size={8} />
-      {mine ? <ErrorText>{t('serviceDetail.mine')}</ErrorText> : <Button title={`${t('book.choose')} · ${fmt(service.price_cents)}`} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })} />}
+      {mine ? (
+        <ErrorText>{t('serviceDetail.mine')}</ErrorText>
+      ) : service.kind === 'per_minute' ? (
+        <Button
+          title={t(callableNow ? 'calls.callNow' : 'calls.notAvailable')}
+          onPress={() => (callableNow ? router.push({ pathname: '/call-start', params: { serviceId: service.id } }) : undefined)}
+        />
+      ) : (
+        <Button title={`${t('book.choose')} · ${fmt(service.price_cents)}`} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })} />
+      )}
       <Spacer size={12} />
       <Button title={t('common.back')} variant="ghost" onPress={() => (router.canGoBack() ? router.back() : router.replace('/services'))} />
     </Screen>
