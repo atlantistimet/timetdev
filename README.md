@@ -38,6 +38,7 @@ supabase/migrations/0013_booking_outcome.sql esito della sessione (conclusa / as
 supabase/migrations/0014_comments.sql commenti ai post
 supabase/migrations/0015_exact_slots_session_page.sql slot a orario preciso o immediato, richieste di fattura/ricevuta, mance
 supabase/migrations/0016_calls.sql chiamate al minuto: stato, scadenze, blocchi da 15 minuti, job `sweep-calls` ogni minuto
+supabase/migrations/0017_weekly_availability.sql disponibilità settimanale a periodo (generale, per servizio, per offerta), giorni chiusi, `available_windows` / `schedule_covers`
 ```
 
 ## Avvio
@@ -48,7 +49,7 @@ cp .env.example .env     # inserisci URL e anon key del progetto Supabase
 npm run web              # oppure npm run ios / npm run android
 ```
 
-Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono applicate la 0001–0016. Funzioni `call-action` e `sweep-calls`: segreti `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` (e `CRON_SECRET` per il job).
+Le migrazioni in `supabase/migrations` si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Sul progetto attuale sono applicate la 0001–0016 (la 0017, disponibilità settimanale, è da applicare). Funzioni `call-action` e `sweep-calls`: segreti `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` (e `CRON_SECRET` per il job).
 
 ## Login
 

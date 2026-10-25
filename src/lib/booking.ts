@@ -1,7 +1,9 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
 import { type Tier } from '@/lib/cancel-policy';
 import { type Place } from '@/lib/my-services';
-import { bookableStarts } from '@/lib/slots';
+import { loadWindows } from '@/lib/availability';
+import { startsInWindows } from '@/lib/slots';
+import { romeToDate } from '@/lib/time';
 import { supabase } from '@/lib/supabase';
 
 export type SlotService = {
@@ -63,26 +65,28 @@ export async function loadSlotService(id: string): Promise<SlotService | null> {
   return (data as SlotService | null) ?? null;
 }
 
-/** Orari prenotabili del venditore nei prossimi 30 giorni: coperti da ore aperte per tutta la durata e non già occupati. */
-export async function loadOpenSlots(sellerId: string, durationMin: number): Promise<OpenSlot[]> {
+/** Orari prenotabili nei prossimi 30 giorni: la disponibilità risolta (offerta → servizio → generale) è calcolata dal database. */
+export async function loadOpenSlots(sellerId: string, serviceId: string, offerId: string | null, durationMin: number): Promise<OpenSlot[]> {
   const now = Date.now();
-  const to = new Date(now + 30 * 86_400_000).toISOString();
-  const [slots, busy] = await Promise.all([
-    supabase
-      .from('availability_slots')
-      .select('starts_at, ends_at')
-      .eq('seller_id', sellerId)
-      .eq('status', 'open')
-      .gt('ends_at', new Date(now).toISOString())
-      .lt('starts_at', to),
-    supabase.rpc('seller_busy', { p_seller: sellerId, p_from: new Date(now).toISOString(), p_to: to }),
-  ]);
-  const open = ((slots.data ?? []) as { starts_at: string; ends_at: string }[]).map((r) => ({ from: new Date(r.starts_at).getTime(), to: new Date(r.ends_at).getTime() }));
-  const busyList = ((busy.data ?? []) as { starts_at: string; ends_at: string }[]).map((r) => ({ from: new Date(r.starts_at).getTime(), to: new Date(r.ends_at).getTime() }));
-  return bookableStarts(open, busyList, durationMin, now)
-    .slice(0, 60)
-    .map((ms) => ({ id: String(ms), starts_at: new Date(ms).toISOString(), ends_at: new Date(ms + durationMin * 60_000).toISOString() }));
+  const windows = await loadWindows(sellerId, serviceId, offerId, now, now + 30 * 86_400_000);
+  return toSlots(startsInWindows(windows, durationMin, now), durationMin);
 }
+
+/** Link "Invia slot" con giorni e fasce propri: non usa la disponibilità, ma toglie gli orari già occupati. */
+export async function loadLinkSlots(sellerId: string, days: string[], ranges: { from: string; to: string }[], durationMin: number): Promise<OpenSlot[]> {
+  const now = Date.now();
+  const mine = days.flatMap((day) => ranges.map((r) => ({ from: romeToDate(day, r.from).getTime(), to: romeToDate(day, r.to).getTime() }))).filter((w) => w.to > now && w.to > w.from);
+  if (mine.length === 0) return [];
+  const from = Math.min(...mine.map((w) => w.from));
+  const to = Math.max(...mine.map((w) => w.to));
+  const { data } = await supabase.rpc('seller_busy', { p_seller: sellerId, p_from: new Date(from).toISOString(), p_to: new Date(to).toISOString() });
+  const busy = ((data ?? []) as { starts_at: string; ends_at: string }[]).map((r) => ({ from: Date.parse(r.starts_at), to: Date.parse(r.ends_at) }));
+  const free = mine.flatMap((w) => busy.reduce<{ from: number; to: number }[]>((parts, b) => parts.flatMap((p) => (b.to <= p.from || b.from >= p.to ? [p] : [{ from: p.from, to: Math.max(p.from, b.from) }, { from: Math.min(p.to, b.to), to: p.to }].filter((x) => x.to > x.from))), [w]));
+  return toSlots(startsInWindows(free, durationMin, now), durationMin);
+}
+
+const toSlots = (starts: number[], durationMin: number): OpenSlot[] =>
+  starts.slice(0, 60).map((ms) => ({ id: String(ms), starts_at: new Date(ms).toISOString(), ends_at: new Date(ms + durationMin * 60_000).toISOString() }));
 
 /** Link a orario preciso: l'unico slot, se è nel futuro e il venditore non è già occupato. */
 export async function loadExactSlot(sellerId: string, startsAt: string, durationMin: number): Promise<OpenSlot[]> {

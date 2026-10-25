@@ -1,74 +1,111 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { AvailabilityPanel } from '@/components/AvailabilityPanel';
 import { AvailableNowCard } from '@/components/AvailableNowCard';
-import { Body, Button, Card, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { DateField } from '@/components/DateField';
+import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { DAY_PARTS, HOURS, hourStart, isBusy, loadCalendar, setHours, type Calendar } from '@/lib/availability';
-import { dayLabel, nextDays } from '@/lib/time';
+import {
+  addClosedDay, bookingsOutsideSchedule, cloneDraft, emptyDraft, listClosedDays, loadSchedule, loadWindows, removeClosedDay,
+  saveSchedule, todayRome, validateDraft, type ClosedDay, type ScheduleDraft, type Window,
+} from '@/lib/availability';
+import { localParts } from '@/lib/validity';
 
-const DAYS = 14;
-const HOUR_MS = 3_600_000;
+const nowMs = () => Date.now();
 
+/** Disponibilità generale: orario settimanale in un periodo, giorni chiusi e anteprima delle prossime due settimane. */
 export default function AvailabilityScreen() {
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
-  const [clock] = useState(() => Date.now());
-  const [days] = useState(() => nextDays(DAYS, clock, true)); // da oggi
-  const [dayIndex, setDayIndex] = useState(0);
-  const [calendar, setCalendar] = useState<Calendar | null>(null);
+  const [draft, setDraft] = useState<ScheduleDraft | null>(null);
+  const [saved, setSaved] = useState<ScheduleDraft | null>(null);
+  const [closed, setClosed] = useState<ClosedDay[]>([]);
+  const [windows, setWindows] = useState<Window[]>([]);
+  const [outside, setOutside] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
-  const [busyAction, setBusyAction] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [closedDay, setClosedDay] = useState('');
+  const [closedNote, setClosedNote] = useState('');
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     if (!userId) return;
-    let active = true;
+    let alive = true;
     (async () => {
-      const r = await loadCalendar(userId, days[0], days[DAYS - 1]);
-      if (!active) return;
-      setCalendar(r.calendar);
-      setErrorKey(r.errorKey);
+      const t0 = nowMs();
+      const today = todayRome(t0);
+      const [stored, days, wins] = await Promise.all([
+        loadSchedule(userId, 'general', null),
+        listClosedDays(userId, today),
+        loadWindows(userId, null, null, t0, t0 + 14 * 86_400_000),
+      ]);
+      if (!alive) return;
+      const base = stored ? cloneDraft(stored) : emptyDraft(t0);
+      setDraft((current) => current ?? base);
+      setSaved(stored ? cloneDraft(stored) : null);
+      setClosed(days);
+      setWindows(wins);
     })();
     return () => {
-      active = false;
+      alive = false;
     };
-  }, [userId, days]);
+  }, [userId, reload]);
 
-  if (!calendar) return errorKey ? <Screen><ErrorText>{t(errorKey)}</ErrorText></Screen> : <LoadingView />;
+  const errors = useMemo(() => (draft ? validateDraft(draft) : {}), [draft]);
 
-  const day = days[dayIndex];
-  // un'ora già finita non si può più aprire
-  const editable = (s: number) => s + HOUR_MS > clock && !isBusy(calendar, s);
-  const startsOf = (d: string, hours: string[]) => hours.map((h) => hourStart(d, h)).filter(editable);
-  const dayStarts = startsOf(day, HOURS);
+  if (!draft) return <LoadingView />;
 
-  const apply = async (list: number[], open: boolean) => {
-    if (!userId || list.length === 0) return;
-    setBusyAction(true);
+  const save = async () => {
+    if (!userId) return;
+    if (Object.keys(errors).length > 0) return setErrorKey('availability.errors.fix');
+    setSaving(true);
     setErrorKey(null);
-    const failure = await setHours(userId, list, open);
-    setBusyAction(false);
+    setMessage(null);
+    const failure = await saveSchedule('general', null, null, draft);
     if (failure) {
-      setErrorKey(failure);
-      return;
+      setSaving(false);
+      return setErrorKey(failure);
     }
-    setCalendar((current) => {
-      if (!current) return current;
-      const next = new Set(current.open);
-      list.forEach((s) => (open ? next.add(s) : next.delete(s)));
-      return { ...current, open: next };
-    });
+    setOutside(await bookingsOutsideSchedule(userId));
+    setSaving(false);
+    setMessage(t('availability.saved'));
+    setReload((n) => n + 1);
   };
 
-  // Le ore aperte del giorno scelto, replicate su tutti gli stessi giorni della settimana del periodo.
-  const sameWeekdays = days.filter((d, i) => i !== dayIndex && (i - dayIndex) % 7 === 0);
-  const replicate = () => {
-    const openHours = HOURS.filter((h) => calendar.open.has(hourStart(day, h)));
-    return sameWeekdays.flatMap((d) => startsOf(d, openHours));
+  const addClosed = async () => {
+    if (!userId || !/^\d{4}-\d{2}-\d{2}$/.test(closedDay)) return setErrorKey('availability.errors.closedDay');
+    setErrorKey(null);
+    const failure = await addClosedDay(userId, closedDay, closedNote);
+    if (failure) return setErrorKey(failure);
+    setClosedDay('');
+    setClosedNote('');
+    setReload((n) => n + 1);
+  };
+  const removeClosed = async (day: string) => {
+    if (!userId) return;
+    await removeClosedDay(userId, day);
+    setReload((n) => n + 1);
   };
 
-  const openCount = (d: string) => HOURS.filter((h) => calendar.open.has(hourStart(d, h))).length;
+  const fmtDay = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Intl.DateTimeFormat(i18n.language, { weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(y, m - 1, d));
+  };
+  const fmtTime = (ms: number) => {
+    const p = localParts(new Date(ms));
+    return `${String(Math.floor(p.minutes / 60)).padStart(2, '0')}:${String(p.minutes % 60).padStart(2, '0')}`;
+  };
+  // anteprima: finestre libere raggruppate per giorno (ora di Roma)
+  const byDay = new Map<string, string[]>();
+  for (const w of windows) {
+    const day = localParts(new Date(w.from)).date;
+    byDay.set(day, [...(byDay.get(day) ?? []), `${fmtTime(w.from)}–${w.to - w.from >= 86_400_000 ? '24:00' : fmtTime(w.to)}`]);
+  }
+  const previewDays = Array.from({ length: 14 }, (_, i) => todayRome(nowMs() + i * 86_400_000));
+  const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
 
   return (
     <Screen>
@@ -77,59 +114,45 @@ export default function AvailabilityScreen() {
       <Spacer />
       {userId ? <AvailableNowCard userId={userId} /> : null}
       <Spacer />
-      <Body>{t('availability.scheduled')}</Body>
+      <Title>{t('availability.generalTitle')}</Title>
+      <Body muted>{t('availability.generalHint')}</Body>
       <Spacer size={8} />
-      <ChipRow>
-        {days.map((d, i) => {
-          const count = openCount(d);
-          const label = i === 0 ? t('availability.today') : dayLabel(d, i18n.language, { weekday: 'short', day: 'numeric', month: 'short' });
-          return <Chip key={d} label={`${label}${count ? ` · ${count}` : ''}`} selected={i === dayIndex} onPress={() => setDayIndex(i)} />;
-        })}
-      </ChipRow>
-      <Spacer size={8} />
-      <Body>{dayLabel(day, i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })}</Body>
-      <Spacer size={8} />
-      {DAY_PARTS.map((part) => {
-        const list = startsOf(day, part.hours);
-        const allOpen = list.length > 0 && list.every((s) => calendar.open.has(s));
-        return (
-          <Card key={part.key}>
-            <Body>{t(`availability.${part.key}`)}</Body>
-            <Spacer size={8} />
-            <ChipRow>
-              {part.hours.map((h) => {
-                const s = hourStart(day, h);
-                const busy = isBusy(calendar, s);
-                const past = s + HOUR_MS <= clock;
-                const isOpen = calendar.open.has(s);
-                return (
-                  <Chip
-                    key={h}
-                    label={`${h}${busy ? ` · ${t('availability.booked')}` : ''}`}
-                    selected={isOpen || busy}
-                    onPress={() => {
-                      if (!busy && !past && !busyAction) void apply([s], !isOpen);
-                    }}
-                  />
-                );
-              })}
-            </ChipRow>
-            {list.length > 0 ? <Button title={t(allOpen ? 'availability.closePart' : 'availability.openPart')} variant="ghost" onPress={() => void apply(list, !allOpen)} loading={busyAction} /> : null}
-          </Card>
-        );
-      })}
-      <Body muted>{t('availability.legend')}</Body>
-      <Spacer size={8} />
+      <AvailabilityPanel draft={draft} onChange={setDraft} errors={errors} />
+
+      <Spacer />
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
-      <Button title={t('availability.openAll')} variant="ghost" onPress={() => void apply(dayStarts, true)} loading={busyAction} />
+      {message ? <Body>{message}</Body> : null}
+      {outside ? <ErrorText>{t('availability.outside', { count: outside })}</ErrorText> : null}
+      <Button title={t('availability.save')} onPress={() => void save()} loading={saving} />
+      {dirty ? <Body muted>{t('availability.unsaved')}</Body> : null}
+
+      <Spacer />
+      <Title>{t('availability.closedTitle')}</Title>
+      <Body muted>{t('availability.closedHint')}</Body>
       <Spacer size={8} />
-      <Button title={t('availability.closeAll')} variant="ghost" onPress={() => void apply(dayStarts, false)} loading={busyAction} />
-      {sameWeekdays.length > 0 ? (
-        <>
-          <Spacer size={8} />
-          <Button title={t('availability.repeat', { count: sameWeekdays.length })} variant="ghost" onPress={() => void apply(replicate(), true)} loading={busyAction} />
-        </>
-      ) : null}
+      <DateField label={t('availability.closedDayField')} value={closedDay} onChange={setClosedDay} />
+      <TextField label={t('availability.closedNote')} value={closedNote} onChangeText={setClosedNote} maxLength={120} />
+      <Button title={t('availability.closedAdd')} variant="ghost" onPress={() => void addClosed()} />
+      <Spacer size={8} />
+      {closed.map((c) => (
+        <Card key={c.day}>
+          <Body>{`${fmtDay(c.day)} ${c.day.slice(0, 4)}${c.note ? ` · ${c.note}` : ''}`}</Body>
+          <Button title={t('availability.closedRemove')} variant="ghost" onPress={() => void removeClosed(c.day)} />
+        </Card>
+      ))}
+
+      <Spacer />
+      <Title>{t('availability.previewTitle')}</Title>
+      <Body muted>{t('availability.previewHint')}</Body>
+      <Spacer size={8} />
+      <Card>
+        {previewDays.map((day) => (
+          <Body key={day} muted={!byDay.has(day)}>
+            {`${fmtDay(day)} · ${byDay.get(day)?.join(', ') ?? t('availability.previewClosed')}`}
+          </Body>
+        ))}
+      </Card>
+
       <Spacer size={16} />
       <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/seller')} />
     </Screen>

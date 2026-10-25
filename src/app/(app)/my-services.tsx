@@ -3,10 +3,11 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { listSpecificIds } from '@/lib/availability';
 import { listMyServices, type MyService } from '@/lib/my-services';
 import { formatEuro } from '@/lib/booking';
 
-type Loaded = { services: MyService[]; errorKey: string | null };
+type Loaded = { services: MyService[]; errorKey: string | null; specific: Set<string> };
 
 export default function MyServicesScreen() {
   const { t, i18n } = useTranslation();
@@ -18,8 +19,8 @@ export default function MyServicesScreen() {
     if (!userId) return;
     let active = true;
     (async () => {
-      const s = await listMyServices(userId, ['slot', 'package', 'per_minute']);
-      if (active) setLoaded(s);
+      const [s, ids] = await Promise.all([listMyServices(userId, ['slot', 'package', 'per_minute']), listSpecificIds(userId)]);
+      if (active) setLoaded({ ...s, specific: ids.services });
     })();
     return () => {
       active = false;
@@ -50,6 +51,7 @@ export default function MyServicesScreen() {
                 ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: formatEuro(service.price_cents, i18n.language) })
                 : `${formatEuro(service.price_cents, i18n.language)} · ${service.duration_min} min`}
           </Body>
+          {loaded.specific.has(service.id) ? <Body muted>{t('availability.specificTag')}</Body> : null}
           {service.kind === 'per_minute' ? null : <Body muted>{t('myServices.policyLine', { name: policyLabel(service) })}</Body>}
           <Spacer size={8} />
           <Button title={t('myServices.edit')} variant="ghost" onPress={() => router.push({ pathname: '/service-edit', params: { id: service.id } })} />

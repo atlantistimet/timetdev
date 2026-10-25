@@ -4,20 +4,21 @@ import { useTranslation } from 'react-i18next';
 import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro } from '@/lib/booking';
+import { listSpecificIds } from '@/lib/availability';
 import { finalPriceCents, listMyOffers, validityText, type Offer } from '@/lib/offers';
 
 export default function MyOffersScreen() {
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
-  const [loaded, setLoaded] = useState<{ offers: Offer[]; errorKey: string | null } | null>(null);
+  const [loaded, setLoaded] = useState<{ offers: Offer[]; errorKey: string | null; specific: Set<string> } | null>(null);
 
   useEffect(() => {
     if (!userId) return;
     let active = true;
     (async () => {
-      const r = await listMyOffers(userId);
-      if (active) setLoaded(r);
+      const [r, ids] = await Promise.all([listMyOffers(userId), listSpecificIds(userId)]);
+      if (active) setLoaded({ ...r, specific: ids.offers });
     })();
     return () => {
       active = false;
@@ -44,6 +45,7 @@ export default function MyOffersScreen() {
             {formatEuro(finalPriceCents(offer), i18n.language)} · {offer.duration_min} min
           </Body>
           <Body muted>{validityText(offer.validity, i18n.language, t)}</Body>
+          {loaded.specific.has(offer.id) ? <Body muted>{t('availability.specificTag')}</Body> : null}
           <Spacer size={8} />
           <Button title={t('offers.edit')} variant="ghost" onPress={() => router.push({ pathname: '/offer-edit', params: { id: offer.id } })} />
         </Card>

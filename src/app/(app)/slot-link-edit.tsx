@@ -8,7 +8,6 @@ import { useAuth } from '@/lib/auth';
 import { createPost } from '@/lib/feed';
 import { type MediaItem } from '@/lib/media';
 import { formatEuro } from '@/lib/booking';
-import { HOURS, hourStart, isBusy, loadCalendar, type Calendar } from '@/lib/availability';
 import { centsToEuroText, createQuickService, listMyServices, MIN_PRICE_CENTS, parseEuroToCents, PLACES, type MyService, type Place } from '@/lib/my-services';
 import { loadMyProfile } from '@/lib/profile-edit';
 import { createLink, linkUrl, shareText, type SlotLink } from '@/lib/slot-links';
@@ -28,7 +27,6 @@ export default function SlotLinkEditScreen() {
   const [days] = useState(() => nextDays(14, Date.now()));
   const [ready, setReady] = useState(false);
   const [services, setServices] = useState<MyService[]>([]);
-  const [calendar, setCalendar] = useState<Calendar | null>(null);
   const [travelFee, setTravelFee] = useState(0);
   const [serviceId, setServiceId] = useState<string | null>(null);
   const [preview, setPreview] = useState<MediaItem[]>([]);
@@ -59,7 +57,7 @@ export default function SlotLinkEditScreen() {
     if (!userId) return;
     let alive = true;
     (async () => {
-      const [svc, cal, profile] = await Promise.all([listMyServices(userId), loadCalendar(userId, days[0], days[days.length - 1]), loadMyProfile(userId)]);
+      const [svc, profile] = await Promise.all([listMyServices(userId), loadMyProfile(userId)]);
       if (!alive) return;
       const active = svc.services.filter((s) => s.active);
       setServices(active);
@@ -67,7 +65,6 @@ export default function SlotLinkEditScreen() {
         setCreating(true); // senza servizi si parte creandone uno
         setPlaces(['online']);
       }
-      setCalendar(cal.calendar);
       setTravelFee(profile?.travel_fee_cents ?? 0);
       setReady(true);
     })();
@@ -79,7 +76,6 @@ export default function SlotLinkEditScreen() {
   if (!ready) return <LoadingView />;
 
   const service = services.find((s) => s.id === serviceId) ?? null;
-  const freeHours = (day: string) => (calendar ? HOURS.filter((h) => calendar.open.has(hourStart(day, h)) && !isBusy(calendar, hourStart(day, h))).length : 0);
   const priceCents = parseEuroToCents(price);
 
   const pickService = (s: MyService) => {
@@ -258,9 +254,8 @@ export default function SlotLinkEditScreen() {
           <Spacer size={8} />
           <ChipRow>
             {days.map((day) => {
-              const free = freeHours(day);
-              const label = `${dayLabel(day, i18n.language, { weekday: 'short', day: 'numeric', month: 'short' })} · ${free ? t('slotLinks.free', { count: free }) : t('slotLinks.closed')}`;
-              return <Chip key={day} label={label} selected={picked.includes(day)} onPress={() => free && setPicked((p) => toggle(p, day))} />;
+              const label = dayLabel(day, i18n.language, { weekday: 'short', day: 'numeric', month: 'short' });
+              return <Chip key={day} label={label} selected={picked.includes(day)} onPress={() => setPicked((p) => toggle(p, day))} />;
             })}
           </ChipRow>
           <Body muted>{t('slotLinks.daysHint')}</Body>

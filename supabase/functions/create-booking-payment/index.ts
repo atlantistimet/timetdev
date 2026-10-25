@@ -10,7 +10,6 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/http.ts';
 import { bookingFees } from '../_shared/fees.ts';
 import { STANDARD_TIERS } from '../_shared/cancel.ts';
-import { isCovered } from '../_shared/slots.ts';
 import { discountedCents, offerApplies, type Validity } from '../_shared/validity.ts';
 import { stripeRequest, StripeError } from '../_shared/stripe.ts';
 
@@ -105,19 +104,23 @@ Deno.serve(async (req) => {
 
   const endsAt = new Date(startsAt.getTime() + durationMin * 60_000);
 
-  const [{ data: seller }, { data: account }, { data: window }, { data: policy }] = await Promise.all([
+  const [{ data: seller }, { data: account }, { data: policy }] = await Promise.all([
     admin.from('profiles').select('is_pro, travel_fee_cents, place_address').eq('id', service.seller_id).single(),
     admin.from('stripe_accounts').select('stripe_account_id, charges_enabled').eq('seller_id', service.seller_id).maybeSingle(),
-    // lo slot richiesto deve essere coperto senza buchi dalle ore aperte del venditore
-    admin.from('availability_slots').select('starts_at, ends_at').eq('seller_id', service.seller_id).eq('status', 'open')
-      .lt('starts_at', endsAt.toISOString()).gt('ends_at', startsAt.toISOString()),
     // fasce proprie dell'offerta, altrimenti policy predefinita del venditore (se non ne ha, vale la standard)
     admin.from('cancel_policies').select('tiers').eq('seller_id', service.seller_id).eq('is_default', true).maybeSingle(),
   ]);
   if (!account?.charges_enabled) return json({ error: 'seller_not_ready' }, 409);
-  const openRanges = (window ?? []).map((r) => ({ from: new Date(r.starts_at).getTime(), to: new Date(r.ends_at).getTime() }));
-  // con un link a orario preciso lo propone il venditore: non serve che l'ora sia aperta nel calendario
-  if (!link?.starts_at && !isCovered(openRanges, startsAt.getTime(), endsAt.getTime())) return json({ error: 'slot_unavailable' }, 409);
+  // Disponibilità risolta (offerta → servizio → generale), giorni chiusi e occupato: il controllo vero sta nel database.
+  // Un link "Invia slot" ha giorni e fasce propri e non usa questa disponibilità (resta il vincolo anti-sovrapposizione sulle prenotazioni).
+  if (!link) {
+    const { data: covered, error: coverError } = await admin.rpc('schedule_covers', {
+      p_seller: service.seller_id, p_service: service.id, p_offer: body.offer_id ?? null,
+      p_start: startsAt.toISOString(), p_end: endsAt.toISOString(), p_subtract_busy: true,
+    });
+    if (coverError) { console.error('schedule_covers', coverError); return json({ error: 'server_error' }, 500); }
+    if (!covered) return json({ error: 'slot_unavailable' }, 409);
+  }
 
   if (place === 'sede' && !seller!.place_address) return json({ error: 'place_not_offered' }, 400);
   // costi aggiuntivi: trasferta (profilo) a domicilio, spazio (servizio) nel luogo del venditore

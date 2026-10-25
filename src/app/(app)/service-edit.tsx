@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { PhotosSection } from '@/components/PhotosSection';
+import { SpecificAvailabilityPicker, useSpecificAvailability } from '@/components/SpecificAvailability';
 import { PolicySection } from '@/components/PolicySection';
 import { fromRows, rowsIncomplete, toRows, type TierRow } from '@/components/TierEditor';
 import { Body, Button, Checkbox, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
@@ -33,6 +34,7 @@ export default function ServiceEditScreen() {
   const [rows, setRows] = useState<TierRow[]>(toRows(STANDARD_TIERS));
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const availability = useSpecificAvailability({ sellerId: userId, scope: 'service', targetId: id ?? null, inheritServiceId: null });
 
   useEffect(() => {
     if (!userId) return;
@@ -80,9 +82,9 @@ export default function ServiceEditScreen() {
       if (lines.length > 8 || lines.some((x) => x.length > 80)) return setErrorKey('myServices.errors.includes');
       setSaving(true);
       setErrorKey(null);
-      const fail = await saveService({ id: id ?? null, sellerId: userId, title, description, priceCents: 0, durationMin: 0, active, cancelTiers: null, places: ['online'], includes: lines, spaceFeeCents: 0, kind: 'per_minute', rateCents });
+      const done = await saveService({ id: id ?? null, sellerId: userId, title, description, priceCents: 0, durationMin: 0, active, cancelTiers: null, places: ['online'], includes: lines, spaceFeeCents: 0, kind: 'per_minute', rateCents });
       setSaving(false);
-      if (fail) setErrorKey(fail);
+      if (done.errorKey) setErrorKey(done.errorKey);
       else router.replace('/my-services');
       return;
     }
@@ -94,6 +96,7 @@ export default function ServiceEditScreen() {
     const sessions = Number(sessionsText);
     if (isPackage && (!Number.isInteger(sessions) || sessions < 2 || sessions > 50)) return setErrorKey('myServices.errors.sessions');
     if (places.length === 0) return setErrorKey('myServices.errors.places');
+    if (!availability.valid) return setErrorKey('availability.errors.fix');
     const spaceFeeCents = places.includes('sede') && spaceFee.trim() ? parseEuroToCents(spaceFee) : 0;
     if (spaceFeeCents === null) return setErrorKey('myServices.errors.spaceFee');
     const includes = includesText.split('\n').map((x) => x.trim()).filter(Boolean);
@@ -107,9 +110,15 @@ export default function ServiceEditScreen() {
     }
     setSaving(true);
     setErrorKey(null);
-    const failure = await saveService({ id: id ?? null, sellerId: userId, title, description, priceCents, durationMin, active, cancelTiers, places, includes, spaceFeeCents, kind: isPackage ? 'package' : 'slot', sessions: isPackage ? sessions : null });
+    const done = await saveService({ id: id ?? null, sellerId: userId, title, description, priceCents, durationMin, active, cancelTiers, places, includes, spaceFeeCents, kind: isPackage ? 'package' : 'slot', sessions: isPackage ? sessions : null });
+    if (done.errorKey || !done.id) {
+      setSaving(false);
+      return setErrorKey(done.errorKey ?? 'errors.generic');
+    }
+    // disponibilità specifica del servizio: salvata dopo il servizio (serve il suo id)
+    const availFailure = await availability.persist(done.id);
     setSaving(false);
-    if (failure) setErrorKey(failure);
+    if (availFailure) setErrorKey(availFailure);
     else router.replace('/my-services');
   };
 
@@ -164,6 +173,9 @@ export default function ServiceEditScreen() {
       {places.includes('domicilio') ? <Body muted>{t('myServices.travelNote')}</Body> : null}
       <Spacer size={8} />
       <Checkbox label={t('myServices.activeLabel')} checked={active} onChange={setActive} />
+
+      <Spacer />
+      <SpecificAvailabilityPicker state={availability} defaultLabel={t('availability.followGeneral')} specificLabel={t('availability.specificService')} />
 
       <Spacer />
       <Title>{t('myServices.policySection')}</Title>

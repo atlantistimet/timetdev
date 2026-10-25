@@ -67,16 +67,16 @@ export async function saveService(input: {
   kind?: 'slot' | 'package' | 'per_minute';
   sessions?: number | null;
   rateCents?: number;
-}): Promise<string | null> {
+}): Promise<{ errorKey: string | null; id: string | null }> {
   if (input.kind === 'per_minute') {
     const perMinute = {
       title: input.title.trim(), description: input.description.trim() || null, includes: input.includes, active: input.active,
       rate_cents_per_min: input.rateCents ?? null, min_minutes: 5, max_minutes: 60, places: ['online'] as Place[], price_cents: null, duration_min: null, sessions: null, cancel_tiers: null, space_fee_cents: 0,
     };
-    const { error } = input.id
-      ? await supabase.from('services').update(perMinute).eq('id', input.id)
-      : await supabase.from('services').insert({ ...perMinute, seller_id: input.sellerId, kind: 'per_minute' });
-    return error ? 'errors.generic' : null;
+    const { data, error } = input.id
+      ? await supabase.from('services').update(perMinute).eq('id', input.id).select('id').single()
+      : await supabase.from('services').insert({ ...perMinute, seller_id: input.sellerId, kind: 'per_minute' }).select('id').single();
+    return error || !data ? { errorKey: 'errors.generic', id: null } : { errorKey: null, id: data.id as string };
   }
   const row = {
     title: input.title.trim(),
@@ -90,10 +90,10 @@ export async function saveService(input: {
     space_fee_cents: input.places.includes('sede') ? input.spaceFeeCents : 0,
     sessions: input.kind === 'package' ? input.sessions ?? null : null,
   };
-  const { error } = input.id
-    ? await supabase.from('services').update(row).eq('id', input.id)
-    : await supabase.from('services').insert({ ...row, seller_id: input.sellerId, kind: input.kind ?? 'slot' });
-  return error ? 'errors.generic' : null;
+  const { data, error } = input.id
+    ? await supabase.from('services').update(row).eq('id', input.id).select('id').single()
+    : await supabase.from('services').insert({ ...row, seller_id: input.sellerId, kind: input.kind ?? 'slot' }).select('id').single();
+  return error || !data ? { errorKey: 'errors.generic', id: null } : { errorKey: null, id: data.id as string };
 }
 
 /** Crea al volo un servizio a slot (da offerta o da link): solo titolo, prezzo, durata e luoghi; il resto si completa dopo da "I miei servizi". */

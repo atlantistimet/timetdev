@@ -1,22 +1,19 @@
-/** Intervalli [from, to) in millisecondi. */
+/** Finestra libera [from, to) in millisecondi. */
 export type Interval = { from: number; to: number };
 
-/** Vero se [start, end] è coperto senza buchi dagli intervalli aperti. */
-export function isCovered(open: Interval[], start: number, end: number): boolean {
-  let cursor = start;
-  for (const r of [...open].sort((a, b) => a.from - b.from)) {
-    if (r.from <= cursor && r.to > cursor) cursor = r.to;
-    if (cursor >= end) return true;
-  }
-  return cursor >= end;
-}
+const HOUR = 3_600_000;
 
-/** Orari di inizio prenotabili: ogni inizio di fascia aperta, futuro, coperto per tutta la durata e senza sovrapposizioni. */
-export function bookableStarts(open: Interval[], busy: Interval[], durationMin: number, now: number): number[] {
+/**
+ * Orari di inizio proposti al cliente: l'inizio di ogni finestra e poi ogni ora in punto, purché futuri
+ * e con tutta la durata dentro la stessa finestra continua (le finestre arrivano già senza l'occupato).
+ */
+export function startsInWindows(windows: Interval[], durationMin: number, now: number): number[] {
   const len = durationMin * 60_000;
-  return [...new Set(open.map((r) => r.from))]
-    .filter((start) => start > now)
-    .filter((start) => isCovered(open, start, start + len))
-    .filter((start) => !busy.some((b) => b.from < start + len && b.to > start))
-    .sort((a, b) => a - b);
+  const out = new Set<number>();
+  for (const w of windows) {
+    const candidates = [w.from];
+    for (let t = Math.ceil((w.from + 1) / HOUR) * HOUR; t < w.to; t += HOUR) candidates.push(t);
+    for (const start of candidates) if (start > now && start + len <= w.to) out.add(start);
+  }
+  return [...out].sort((a, b) => a - b);
 }

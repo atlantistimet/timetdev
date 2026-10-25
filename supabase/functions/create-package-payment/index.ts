@@ -8,7 +8,6 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/http.ts';
 import { bookingFees } from '../_shared/fees.ts';
 import { STANDARD_TIERS } from '../_shared/cancel.ts';
-import { isCovered } from '../_shared/slots.ts';
 import { stripeRequest, StripeError } from '../_shared/stripe.ts';
 
 type PI = { id: string; client_secret: string };
@@ -56,19 +55,20 @@ Deno.serve(async (req) => {
   const sorted = [...starts].sort((a, b) => a.getTime() - b.getTime());
   for (let i = 1; i < sorted.length; i++) if (sorted[i].getTime() < sorted[i - 1].getTime() + durationMin * 60_000) return json({ error: 'slot_unavailable' }, 409);
 
-  const first = sorted[0];
-  const last = new Date(sorted[sorted.length - 1].getTime() + durationMin * 60_000);
-  const [{ data: seller }, { data: account }, { data: window }, { data: policy }] = await Promise.all([
+  const [{ data: seller }, { data: account }, { data: policy }] = await Promise.all([
     admin.from('profiles').select('is_pro, travel_fee_cents, place_address').eq('id', service.seller_id).single(),
     admin.from('stripe_accounts').select('stripe_account_id, charges_enabled').eq('seller_id', service.seller_id).maybeSingle(),
-    admin.from('availability_slots').select('starts_at, ends_at').eq('seller_id', service.seller_id).eq('status', 'open')
-      .lt('starts_at', last.toISOString()).gt('ends_at', first.toISOString()),
     admin.from('cancel_policies').select('tiers').eq('seller_id', service.seller_id).eq('is_default', true).maybeSingle(),
   ]);
   if (!account?.charges_enabled) return json({ error: 'seller_not_ready' }, 409);
-  const openRanges = (window ?? []).map((r) => ({ from: new Date(r.starts_at).getTime(), to: new Date(r.ends_at).getTime() }));
+  // ogni sessione deve stare in una finestra continua della disponibilità del servizio (o generale), non chiusa e non occupata
   for (const s of sorted) {
-    if (!isCovered(openRanges, s.getTime(), s.getTime() + durationMin * 60_000)) return json({ error: 'slot_unavailable' }, 409);
+    const { data: covered, error: coverError } = await admin.rpc('schedule_covers', {
+      p_seller: service.seller_id, p_service: service.id, p_offer: null,
+      p_start: s.toISOString(), p_end: new Date(s.getTime() + durationMin * 60_000).toISOString(), p_subtract_busy: true,
+    });
+    if (coverError) { console.error('schedule_covers', coverError); return json({ error: 'server_error' }, 500); }
+    if (!covered) return json({ error: 'slot_unavailable' }, 409);
   }
   if (place === 'sede' && !seller!.place_address) return json({ error: 'place_not_offered' }, 400);
 
