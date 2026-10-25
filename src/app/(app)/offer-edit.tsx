@@ -12,14 +12,12 @@ import { type MediaItem } from '@/lib/media';
 import { formatEuro } from '@/lib/booking';
 import { listPolicies, STANDARD_TIERS, validateTiers, type CancelPolicy, type Tier } from '@/lib/cancel-policy';
 import { createQuickService, listMyServices, centsToEuroText, parseEuroToCents, MIN_PRICE_CENTS, type MyService, type Place } from '@/lib/my-services';
-import { loadOffer, saveOffer, validityText } from '@/lib/offers';
-import { discountedCents, EMPTY_VALIDITY, validateValidity, type Validity } from '@/lib/validity';
+import { loadOffer, saveOffer } from '@/lib/offers';
+import { discountedCents, EMPTY_VALIDITY } from '@/lib/validity';
 import { SpecificAvailabilityPicker, useSpecificAvailability } from '@/components/SpecificAvailability';
 
 const DISCOUNTS = [0, 10, 20, 30];
 const DURATIONS = [15, 30, 45, 60, 90, 120];
-
-const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export default function OfferEditScreen() {
   const { t, i18n } = useTranslation();
@@ -39,14 +37,12 @@ export default function OfferEditScreen() {
   const [price, setPrice] = useState('');
   const [duration, setDuration] = useState('');
   const [discount, setDiscount] = useState(0);
-  const [validity, setValidity] = useState<Validity>(EMPTY_VALIDITY);
   const [message, setMessage] = useState('');
   const [active, setActive] = useState(true);
   const [custom, setCustom] = useState(false);
   const [rows, setRows] = useState<TierRow[]>(toRows(STANDARD_TIERS));
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [days14] = useState(() => [...Array(14)].map((_, i) => new Date(Date.now() + (i + 1) * 86_400_000)));
 
   useEffect(() => {
     if (!userId) return;
@@ -65,7 +61,6 @@ export default function OfferEditScreen() {
         setPrice(centsToEuroText(offer.price_cents));
         setDuration(String(offer.duration_min));
         setDiscount(offer.discount_pct);
-        setValidity({ ...EMPTY_VALIDITY, ...offer.validity });
         setMessage(offer.message ?? '');
         setActive(offer.active);
         setCustom(offer.cancel_tiers !== null);
@@ -105,9 +100,6 @@ export default function OfferEditScreen() {
     setPrice(centsToEuroText(s.price_cents));
     setDuration(String(s.duration_min));
   };
-  const toggleMode = (mode: string) =>
-    setValidity((v) => ({ ...v, modes: v.modes.includes(mode) ? v.modes.filter((m) => m !== mode) : [...v.modes, mode] }));
-  const toggleIn = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
 
   const save = async () => {
     if (!userId) return;
@@ -117,8 +109,6 @@ export default function OfferEditScreen() {
     if (creating && newPlaces.length === 0) return setErrorKey('myServices.errors.places');
     if (priceCents === null || priceCents < MIN_PRICE_CENTS) return setErrorKey('myServices.errors.price');
     if (!Number.isInteger(durationMin) || durationMin < 5 || durationMin > 480) return setErrorKey('myServices.errors.duration');
-    const invalid = validateValidity(validity);
-    if (invalid) return setErrorKey(`offers.errors.${invalid}`);
     if (!availability.valid) return setErrorKey('availability.errors.fix');
     let cancelTiers: Tier[] | null = null;
     if (custom) {
@@ -149,7 +139,7 @@ export default function OfferEditScreen() {
       priceCents,
       durationMin,
       discountPct: discount,
-      validity,
+      validity: EMPTY_VALIDITY,
       message,
       active,
       cancelTiers,
@@ -211,33 +201,6 @@ export default function OfferEditScreen() {
       {finalCents !== null ? (
         <Body muted>{t('offers.finalPrice', { amount: formatEuro(finalCents, i18n.language) })}</Body>
       ) : null}
-
-      <Spacer />
-      <Body>{t('offers.validity')}</Body>
-      <Spacer size={8} />
-      <ChipRow>
-        <Chip label={t('offers.always')} selected={validity.modes.length === 0} onPress={() => setValidity((v) => ({ ...v, modes: [] }))} />
-        <Chip label={t('offers.mode.giorni')} selected={validity.modes.includes('giorni')} onPress={() => toggleMode('giorni')} />
-      </ChipRow>
-      {validity.modes.includes('giorni') ? (
-        <>
-          <ChipRow>
-            {days14.map((d) => {
-              const key = isoDay(d);
-              return (
-                <Chip
-                  key={key}
-                  label={new Intl.DateTimeFormat(i18n.language, { weekday: 'short', day: 'numeric', month: 'short' }).format(d)}
-                  selected={validity.days.includes(key)}
-                  onPress={() => setValidity((v) => ({ ...v, days: toggleIn(v.days, key) }))}
-                />
-              );
-            })}
-          </ChipRow>
-          <Body muted>{t('offers.daysRestrict')}</Body>
-        </>
-      ) : null}
-      <Body muted>{t('offers.validityNow', { text: validityText(validity, i18n.language, t) })}</Body>
 
       <Spacer />
       <SpecificAvailabilityPicker state={availability} defaultLabel={t('availability.followService')} specificLabel={t('availability.specificOffer')} />
