@@ -131,7 +131,15 @@ export default function ServiceDetailScreen() {
           onPress={() => (callableNow ? router.push({ pathname: '/call-start', params: { serviceId: service.id } }) : undefined)}
         />
       ) : (
-        <Button title={`${t('book.choose')} · ${fmt(service.price_cents)}`} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })} />
+        <>
+          {service.kind === 'slot' && callableNow ? (
+            <>
+              <Button title={`${t('book.instantNow')} · ${fmt(service.price_cents)}`} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id, instant: '1' } })} />
+              <Spacer size={8} />
+            </>
+          ) : null}
+          <Button title={`${t('book.choose')} · ${fmt(service.price_cents)}`} variant={service.kind === 'slot' && callableNow ? 'ghost' : 'primary'} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })} />
+        </>
       )}
       <Spacer size={12} />
       <Button title={t('common.back')} variant="ghost" onPress={() => (router.canGoBack() ? router.back() : router.replace('/services'))} />

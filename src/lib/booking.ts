@@ -101,6 +101,7 @@ export async function loadExactSlot(sellerId: string, startsAt: string, duration
 const KNOWN_ERRORS = [
   'adult_required',
   'slot_unavailable',
+  'not_available_now',
   'seller_not_ready',
   'service_not_found',
   'own_service',
@@ -122,9 +123,10 @@ export async function createBookingPayment(input: {
   place: 'online' | 'sede' | 'domicilio';
   clientAddress?: string;
   offerId?: string;
+  instant?: boolean;
 }): Promise<{ payment: PaymentIntentInfo | null; errorKey: string | null }> {
   const { data, error } = await supabase.functions.invoke<PaymentIntentInfo>('create-booking-payment', {
-    body: { service_id: input.serviceId, code: input.code, starts_at: input.startsAt, place: input.place, client_address: input.clientAddress, offer_id: input.offerId },
+    body: { service_id: input.serviceId, code: input.code, starts_at: input.startsAt, place: input.place, client_address: input.clientAddress, offer_id: input.offerId, instant: input.instant },
   });
   if (!error && data) return { payment: data, errorKey: null };
   if (error instanceof FunctionsHttpError) {

@@ -163,7 +163,8 @@
       "offer_not_valid": "This time is outside the offer's validity.",
       "offer_not_found": "Offer not available.",
       "link_not_found": "This link is no longer valid.",
-      "wrong_session_count": "Pick exactly all the sessions of the package."
+      "wrong_session_count": "Pick exactly all the sessions of the package.",
+      "not_available_now": "The seller is no longer available right now."
     },
     "offersTitle": "Offers",
     "servicesSection": "Services",
@@ -179,7 +180,11 @@
     "summaryTotal": "Service + extras: {{amount}}",
     "packageLine": "Package of {{count}} sessions of {{minutes}} min · {{price}} in total",
     "perSession": "per session",
-    "pickSlots": "Pick the dates for the sessions ({{picked}} of {{count}})"
+    "pickSlots": "Pick the dates for the sessions ({{picked}} of {{count}})",
+    "instantNow": "Book now",
+    "instantPay": "Go to payment: starts right away",
+    "instantHint": "The seller is available now. After payment the session ({{minutes}} min) starts right away, no time to pick.",
+    "paidBodyInstant": "Payment went through: your session has started. Find it in Agenda."
   },
   "policy": {
     "title": "Cancellation policy",

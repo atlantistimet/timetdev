@@ -163,7 +163,8 @@
       "offer_not_valid": "Questo orario non rientra nella validità dell'offerta.",
       "offer_not_found": "Offerta non disponibile.",
       "link_not_found": "Questo link non è più valido.",
-      "wrong_session_count": "Scegli esattamente tutte le sessioni del pacchetto."
+      "wrong_session_count": "Scegli esattamente tutte le sessioni del pacchetto.",
+      "not_available_now": "Il venditore non è più disponibile ora."
     },
     "offersTitle": "Offerte",
     "servicesSection": "Servizi",
@@ -179,7 +180,11 @@
     "summaryTotal": "Servizio + extra: {{amount}}",
     "packageLine": "Pacchetto da {{count}} sessioni da {{minutes}} min · {{price}} in tutto",
     "perSession": "a sessione",
-    "pickSlots": "Scegli le date delle sessioni ({{picked}} di {{count}})"
+    "pickSlots": "Scegli le date delle sessioni ({{picked}} di {{count}})",
+    "instantNow": "Prenota subito",
+    "instantPay": "Vai al pagamento: parte subito",
+    "instantHint": "Il venditore è disponibile ora. Dopo il pagamento la sessione ({{minutes}} min) parte subito, senza scegliere un orario.",
+    "paidBodyInstant": "Pagamento riuscito: la sessione è iniziata. La trovi in Agenda."
   },
   "policy": {
     "title": "Policy di cancellazione",

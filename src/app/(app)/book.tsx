@@ -31,7 +31,8 @@ type Loaded = { service: SlotService; offer: Offer | null; link: SlotLink | null
 
 export default function BookScreen() {
   const { t, i18n } = useTranslation();
-  const { serviceId, offerId, code } = useLocalSearchParams<{ serviceId?: string; offerId?: string; code?: string }>();
+  const { serviceId, offerId, code, instant } = useLocalSearchParams<{ serviceId?: string; offerId?: string; code?: string; instant?: string }>();
+  const isInstant = instant === '1' && !offerId && !code;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [slotId, setSlotId] = useState<string | null>(null);
   const [picked, setPicked] = useState<string[]>([]); // pacchetto: inizi (ISO) delle sessioni scelte
@@ -134,11 +135,22 @@ export default function BookScreen() {
     else setErrorKey(result.errorKey);
   };
 
+  const startInstant = async () => {
+    if (!chosen) return;
+    if (chosen === 'domicilio' && !address.trim()) return setErrorKey('book.errors.address_required');
+    setStarting(true);
+    setErrorKey(null);
+    const result = await createBookingPayment({ serviceId: service.id, startsAt: new Date().toISOString(), place: chosen, clientAddress: chosen === 'domicilio' ? address.trim() : undefined, instant: true });
+    setStarting(false);
+    if (result.payment) setPayment(result.payment);
+    else setErrorKey(result.errorKey);
+  };
+
   if (paid) {
     return (
       <Screen>
         <Title>{t('book.paidTitle')}</Title>
-        <Body muted>{t('book.paidBody')}</Body>
+        <Body muted>{t(isInstant ? 'book.paidBodyInstant' : 'book.paidBody')}</Body>
         <Spacer />
         <Button title={t('common.back')} onPress={() => router.replace('/')} />
       </Screen>
@@ -203,6 +215,13 @@ export default function BookScreen() {
           {t('book.summaryTotal', { amount: formatEuro(priceCents + extraCents * (isPackage ? sessions : 1), i18n.language) })}
         </Body>
       ) : null}
+      {isInstant ? (
+        <>
+          <Spacer />
+          <Body muted>{t('book.instantHint', { minutes: durationMin })}</Body>
+        </>
+      ) : null}
+      {!isInstant ? <>
       <Spacer />
       <Body>{isPackage ? t('book.pickSlots', { picked: picked.length, count: sessions }) : t('book.pickSlot')}</Body>
       <Spacer size={8} />
@@ -215,13 +234,15 @@ export default function BookScreen() {
           onPress={() => (isPackage ? togglePicked(slot.starts_at) : setSlotId(slot.id))}
         />
       ))}
+      </> : null}
       <Spacer />
       <Body>{t('policy.cancelRules')}</Body>
       <TierLines tiers={tiers} />
       <Spacer />
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
       {isPackage && chosen && picked.length === sessions ? <Button title={t('book.continue')} onPress={() => void startPackage()} loading={starting} /> : null}
-      {!isPackage && slotId && chosen ? <Button title={t('book.continue')} onPress={() => void start()} loading={starting} /> : null}
+      {isInstant && chosen ? <Button title={t('book.instantPay')} onPress={() => void startInstant()} loading={starting} /> : null}
+      {!isPackage && !isInstant && slotId && chosen ? <Button title={t('book.continue')} onPress={() => void start()} loading={starting} /> : null}
       <Spacer size={12} />
       <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/services')} />
     </Screen>

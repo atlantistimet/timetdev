@@ -27,13 +27,15 @@ Deno.serve(async (req) => {
   if (userError || !userData.user) return json({ error: 'unauthorized' }, 401);
   const user = userData.user;
 
-  const body = (await req.json().catch(() => ({}))) as { service_id?: string; starts_at?: string; place?: string; client_address?: string; offer_id?: string; code?: string };
-  let startsAt = body.starts_at ? new Date(body.starts_at) : null;
+  const body = (await req.json().catch(() => ({}))) as { service_id?: string; starts_at?: string; place?: string; client_address?: string; offer_id?: string; code?: string; instant?: boolean };
+  const instant = body.instant === true;
+  if (instant && (body.code || body.offer_id)) return json({ error: 'bad_request' }, 400);
+  let startsAt = instant ? new Date() : body.starts_at ? new Date(body.starts_at) : null;
   if ((!body.service_id && !body.code) || !startsAt || Number.isNaN(startsAt.getTime()) || !['online', 'sede', 'domicilio'].includes(body.place ?? '')) {
     return json({ error: 'bad_request' }, 400);
   }
   const place = body.place as 'online' | 'sede' | 'domicilio';
-  if (startsAt.getTime() < Date.now()) return json({ error: 'in_the_past' }, 400);
+  if (!instant && startsAt.getTime() < Date.now()) return json({ error: 'in_the_past' }, 400);
   if (place === 'domicilio' && !body.client_address?.trim()) return json({ error: 'address_required' }, 400);
 
   const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -105,7 +107,7 @@ Deno.serve(async (req) => {
   const endsAt = new Date(startsAt.getTime() + durationMin * 60_000);
 
   const [{ data: seller }, { data: account }, { data: policy }] = await Promise.all([
-    admin.from('profiles').select('is_pro, travel_fee_cents, place_address').eq('id', service.seller_id).single(),
+    admin.from('profiles').select('is_pro, travel_fee_cents, place_address, available_until').eq('id', service.seller_id).single(),
     admin.from('stripe_accounts').select('stripe_account_id, charges_enabled').eq('seller_id', service.seller_id).maybeSingle(),
     // fasce proprie dell'offerta, altrimenti policy predefinita del venditore (se non ne ha, vale la standard)
     admin.from('cancel_policies').select('tiers').eq('seller_id', service.seller_id).eq('is_default', true).maybeSingle(),
@@ -113,7 +115,15 @@ Deno.serve(async (req) => {
   if (!account?.charges_enabled) return json({ error: 'seller_not_ready' }, 409);
   // Disponibilità risolta (offerta → servizio → generale), giorni chiusi e occupato: il controllo vero sta nel database.
   // Un link "Invia slot" ha giorni e fasce propri e non usa questa disponibilità (resta il vincolo anti-sovrapposizione sulle prenotazioni).
-  if (!link) {
+  if (instant) {
+    // "Disponibile ora": vale al posto dell'orario settimanale, ma serve libertà per tutta la durata più 15 minuti per pagare
+    if (!seller!.available_until || new Date(seller!.available_until).getTime() <= Date.now()) return json({ error: 'not_available_now' }, 409);
+    const guardEnd = new Date(endsAt.getTime() + 15 * 60_000);
+    const { count: clashes } = await admin.from('bookings').select('id', { count: 'exact', head: true })
+      .eq('seller_id', service.seller_id).eq('status', 'confirmed')
+      .lt('starts_at', guardEnd.toISOString()).gt('ends_at', startsAt.toISOString());
+    if ((clashes ?? 0) > 0) return json({ error: 'slot_unavailable' }, 409);
+  } else if (!link) {
     const { data: covered, error: coverError } = await admin.rpc('schedule_covers', {
       p_seller: service.seller_id, p_service: service.id, p_offer: body.offer_id ?? null,
       p_start: startsAt.toISOString(), p_end: endsAt.toISOString(), p_subtract_busy: true,
@@ -137,7 +147,7 @@ Deno.serve(async (req) => {
       client_address: place === 'domicilio' ? body.client_address!.trim() : null,
       price_cents: priceCents, extra_cents: extraCents,
       client_fee_cents: fees.clientFeeCents, seller_fee_cents: fees.sellerFeeCents,
-      cancel_tiers: offerTiers ?? service.cancel_tiers ?? policy?.tiers ?? STANDARD_TIERS, source: link ? 'link' : 'app', slot_link_id: link?.id ?? null,
+      cancel_tiers: offerTiers ?? service.cancel_tiers ?? policy?.tiers ?? STANDARD_TIERS, source: link ? 'link' : 'app', slot_link_id: link?.id ?? null, instant,
     })
     .select('id')
     .single();

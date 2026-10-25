@@ -154,7 +154,15 @@ export default function PublicProfileScreen() {
                       onPress={() => (callableNow ? router.push({ pathname: '/call-start', params: { serviceId: service.id } }) : undefined)}
                     />
                   ) : (
-                    <Button title={t('book.choose')} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })} />
+                    <>
+                      {service.kind === 'slot' && callableNow ? (
+                        <>
+                          <Button title={t('book.instantNow')} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id, instant: '1' } })} />
+                          <Spacer size={8} />
+                        </>
+                      ) : null}
+                      <Button title={t('book.choose')} variant={service.kind === 'slot' && callableNow ? 'ghost' : 'primary'} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })} />
+                    </>
                   )}
                 </>
               ) : null}

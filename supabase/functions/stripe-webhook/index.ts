@@ -63,6 +63,17 @@ Deno.serve(async (req) => {
       console.error('Aggiornamento pagamento fallito', intent.id, error);
       return new Response('db error', { status: 500 });
     }
+    if (payment?.booking_id && status === 'captured') { // prenotazione immediata: la sessione parte adesso, stessa durata
+      const { data: b } = await admin.from('bookings').select('starts_at, ends_at, instant, status').eq('id', payment.booking_id).maybeSingle();
+      if (b?.instant && b.status === 'confirmed' && new Date(b.starts_at).getTime() < Date.now()) {
+        const now = Date.now();
+        const len = new Date(b.ends_at).getTime() - new Date(b.starts_at).getTime();
+        const { error: shiftError } = await admin.from('bookings')
+          .update({ starts_at: new Date(now).toISOString(), ends_at: new Date(now + len).toISOString() })
+          .eq('id', payment.booking_id);
+        if (shiftError) console.error('Spostamento immediata fallito', payment.booking_id, shiftError); // resta l'orario originale
+      }
+    }
     if (payment?.booking_id && status === 'canceled') { // un rifiuto carta (failed) non libera lo slot: il cliente può riprovare
       await admin.from('bookings')
         .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
