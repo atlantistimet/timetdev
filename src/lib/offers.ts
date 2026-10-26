@@ -12,11 +12,12 @@ export type Offer = {
   validity: Validity;
   message: string | null;
   active: boolean;
+  deleted_at?: string | null;
   cancel_tiers: Tier[] | null;
   service_title: string;
 };
 
-const COLUMNS = 'id, service_id, seller_id, price_cents, duration_min, discount_pct, validity, message, active, cancel_tiers, services(title)';
+const COLUMNS = 'id, service_id, seller_id, price_cents, duration_min, discount_pct, validity, message, active, cancel_tiers, deleted_at, services(title)';
 
 type Row = Omit<Offer, 'service_title'> & { services: { title: string } | { title: string }[] | null };
 
@@ -29,7 +30,7 @@ const toOffer = (row: Row): Offer => {
 export const finalPriceCents = (offer: Pick<Offer, 'price_cents' | 'discount_pct'>) => discountedCents(offer.price_cents, offer.discount_pct);
 
 export async function listMyOffers(sellerId: string): Promise<{ offers: Offer[]; errorKey: string | null }> {
-  const { data, error } = await supabase.from('offers').select(COLUMNS).eq('seller_id', sellerId).order('created_at', { ascending: false });
+  const { data, error } = await supabase.from('offers').select(COLUMNS).eq('seller_id', sellerId).is('deleted_at', null).order('created_at', { ascending: false });
   if (error) return { offers: [], errorKey: 'errors.generic' };
   return { offers: ((data ?? []) as unknown as Row[]).map(toOffer), errorKey: null };
 }
@@ -96,8 +97,14 @@ export async function saveOffer(input: {
 }
 
 export async function deleteOffer(id: string): Promise<string | null> {
-  const { error } = await supabase.from('offers').delete().eq('id', id);
+  const { error } = await supabase.rpc('delete_offer', { p_id: id });
   return error ? 'errors.generic' : null;
+}
+
+/** Offerte eliminate: non più prenotabili, le prenotazioni già fatte restano. */
+export async function listPastOffers(sellerId: string): Promise<Offer[]> {
+  const { data } = await supabase.from('offers').select(COLUMNS).eq('seller_id', sellerId).not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).limit(50);
+  return ((data ?? []) as unknown as Row[]).map(toOffer);
 }
 
 /** Descrizione leggibile della validità ("martedì, giovedì · dalle 09:00 alle 13:00"). */

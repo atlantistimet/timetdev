@@ -4,28 +4,30 @@ import { useTranslation } from 'react-i18next';
 import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { listSpecificIds } from '@/lib/availability';
-import { listMyServices, type MyService } from '@/lib/my-services';
+import { DeleteButton } from '@/components/DeleteButton';
+import { countFutureBookings, deleteService, listMyServices, listPastServices, type MyService } from '@/lib/my-services';
 import { formatEuro } from '@/lib/booking';
 
-type Loaded = { services: MyService[]; errorKey: string | null; specific: Set<string> };
+type Loaded = { services: MyService[]; past: MyService[]; errorKey: string | null; specific: Set<string> };
 
 export default function MyServicesScreen() {
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!userId) return;
     let active = true;
     (async () => {
-      const [s, ids] = await Promise.all([listMyServices(userId, ['slot', 'package', 'per_minute']), listSpecificIds(userId)]);
-      if (active) setLoaded({ ...s, specific: ids.services });
+      const [s, ids, past] = await Promise.all([listMyServices(userId, ['slot', 'package', 'per_minute']), listSpecificIds(userId), listPastServices(userId)]);
+      if (active) setLoaded({ ...s, past, specific: ids.services });
     })();
     return () => {
       active = false;
     };
-  }, [userId]);
+  }, [userId, reloadKey]);
 
   if (!loaded) return <LoadingView />;
 
@@ -57,8 +59,33 @@ export default function MyServicesScreen() {
           <Button title={t('myServices.edit')} variant="ghost" onPress={() => router.push({ pathname: '/service-edit', params: { id: service.id } })} />
           <Spacer size={8} />
           {service.kind === 'slot' ? <Button title={t('myServices.createOffer')} variant="ghost" onPress={() => router.push({ pathname: '/offer-edit', params: { serviceId: service.id } })} /> : null}
+          <Spacer size={8} />
+          <DeleteButton
+            label={t('myServices.delete')}
+            warning={t('myServices.deleteWarning')}
+            loadCount={() => countFutureBookings('service_id', service.id)}
+            onConfirm={async () => {
+              await deleteService(service.id);
+              setReloadKey((k) => k + 1);
+            }}
+          />
         </Card>
       ))}
+      {loaded.past.length > 0 ? (
+        <>
+          <Spacer />
+          <Title>{t('myServices.pastTitle')}</Title>
+          <Body muted>{t('myServices.pastHelp')}</Body>
+          {loaded.past.map((service) => (
+            <Card key={service.id}>
+              <Body>{service.title}</Body>
+              <Body muted>
+                {t('delete.deletedOn', { date: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(service.deleted_at ?? 0)) })}
+              </Body>
+            </Card>
+          ))}
+        </>
+      ) : null}
       <Spacer size={24} />
       <Button title={t('myServices.new')} onPress={() => router.push('/service-edit')} />
       <Spacer size={12} />

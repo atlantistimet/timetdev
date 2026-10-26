@@ -314,7 +314,11 @@
     "fieldPackagePrice": "Prezzo del pacchetto (totale, in euro)",
     "packagePriceHint": "Il cliente paga una volta sola per tutte le sessioni.",
     "fieldDurationEach": "Durata di ogni sessione (minuti)",
-    "kindPerMinute": "Chiamata al minuto"
+    "kindPerMinute": "Chiamata al minuto",
+    "delete": "Elimina",
+    "deleteWarning": "Eliminare questo servizio? Non sarà più visibile né prenotabile, e verranno eliminate anche le sue offerte e i suoi link. Lo ritrovi in «Servizi passati».",
+    "pastTitle": "Servizi passati",
+    "pastHelp": "Servizi eliminati: non sono più prenotabili, le prenotazioni già fatte restano valide."
   },
   "offers": {
     "title": "Le mie offerte",
@@ -367,7 +371,11 @@
     "notFound": "Offerta non disponibile.",
     "publish": "Pubblica nel feed",
     "publishHint": "Compare nel feed con il tuo messaggio e le foto o i video che aggiungi.",
-    "daysRestrict": "Le date scelte restringono l'offerta: vale solo in quei giorni, dentro la disponibilità."
+    "daysRestrict": "Le date scelte restringono l'offerta: vale solo in quei giorni, dentro la disponibilità.",
+    "delete": "Elimina",
+    "deleteWarning": "Eliminare questa offerta? Non sarà più visibile né prenotabile. La ritrovi in «Offerte passate».",
+    "pastTitle": "Offerte passate",
+    "pastHelp": "Offerte eliminate: le prenotazioni già fatte restano valide."
   },
   "availability": {
     "title": "Disponibilità",
@@ -497,7 +505,10 @@
     "exactHint": "Per esempio 15:30. Ora italiana.",
     "nowStart": "Inizia",
     "nowIn": "tra {{minutes}} min",
-    "nowHint": "Il cliente prenota e paga subito; il link scade all'orario di inizio. Vale anche se non hai aperto quell'ora nel calendario."
+    "nowHint": "Il cliente prenota e paga subito; il link scade all'orario di inizio. Vale anche se non hai aperto quell'ora nel calendario.",
+    "deleteWarning": "Eliminare questo link? Non si aprirà più. Lo ritrovi in «Link passati».",
+    "pastTitle": "Link passati",
+    "pastHelp": "Link eliminati: le prenotazioni già fatte restano valide."
   },
   "newService": {
     "chip": "+ Nuovo servizio",
@@ -728,5 +739,11 @@
       "livekit_not_configured": "Il servizio video non è ancora attivo.",
       "stripe_error": "Il pagamento non è partito. Riprova."
     }
+  },
+  "delete": {
+    "yes": "Sì, elimina",
+    "keepBookings": "Le prenotazioni già fatte ({{count}}) restano valide e identiche.",
+    "noBookings": "Nessuna prenotazione futura collegata.",
+    "deletedOn": "Eliminato il {{date}}"
   }
 }

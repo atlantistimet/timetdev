@@ -314,7 +314,11 @@
     "fieldPackagePrice": "Package price (total, in euros)",
     "packagePriceHint": "The client pays once for all the sessions.",
     "fieldDurationEach": "Length of each session (minutes)",
-    "kindPerMinute": "Per minute"
+    "kindPerMinute": "Per minute",
+    "delete": "Delete",
+    "deleteWarning": "Delete this service? It will no longer be visible or bookable, and its offers and links are deleted too. You can find it in \"Past services\".",
+    "pastTitle": "Past services",
+    "pastHelp": "Deleted services: no longer bookable, existing bookings stay valid."
   },
   "offers": {
     "title": "My offers",
@@ -367,7 +371,11 @@
     "notFound": "Offer not available.",
     "publish": "Publish to the feed",
     "publishHint": "Shows in the feed with your message and any photos or videos you add.",
-    "daysRestrict": "The chosen dates narrow the offer: it only applies on those days, within the availability."
+    "daysRestrict": "The chosen dates narrow the offer: it only applies on those days, within the availability.",
+    "delete": "Delete",
+    "deleteWarning": "Delete this offer? It will no longer be visible or bookable. You can find it in \"Past offers\".",
+    "pastTitle": "Past offers",
+    "pastHelp": "Deleted offers: existing bookings stay valid."
   },
   "availability": {
     "title": "Availability",
@@ -497,7 +505,10 @@
     "exactHint": "For example 15:30. Italian time.",
     "nowStart": "Starts",
     "nowIn": "in {{minutes}} min",
-    "nowHint": "The client books and pays right away; the link expires at the start time. It works even if you haven't opened that hour in your calendar."
+    "nowHint": "The client books and pays right away; the link expires at the start time. It works even if you haven't opened that hour in your calendar.",
+    "deleteWarning": "Delete this link? It will stop opening. You can find it in \"Past links\".",
+    "pastTitle": "Past links",
+    "pastHelp": "Deleted links: existing bookings stay valid."
   },
   "newService": {
     "chip": "+ New service",
@@ -728,5 +739,11 @@
       "livekit_not_configured": "The video service is not active yet.",
       "stripe_error": "The payment didn't start. Try again."
     }
+  },
+  "delete": {
+    "yes": "Yes, delete",
+    "keepBookings": "Existing bookings ({{count}}) stay valid and unchanged.",
+    "noBookings": "No upcoming bookings attached.",
+    "deletedOn": "Deleted on {{date}}"
   }
 }

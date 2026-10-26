@@ -52,10 +52,10 @@ Deno.serve(async (req) => {
     if (body.offer_id) return json({ error: 'bad_request' }, 400);
     const { data } = await admin
       .from('slot_links')
-      .select('id, seller_id, service_id, price_cents, duration_min, discount_pct, days, ranges, places, extra_space_cents, extra_travel_cents, starts_at, expires_at')
+      .select('id, seller_id, service_id, price_cents, duration_min, discount_pct, days, ranges, places, extra_space_cents, extra_travel_cents, starts_at, expires_at, deleted_at')
       .eq('code', body.code)
       .maybeSingle();
-    if (!data || !data.service_id || (data.expires_at && new Date(data.expires_at).getTime() < Date.now())) return json({ error: 'link_not_found' }, 404);
+    if (!data || data.deleted_at || !data.service_id || (data.expires_at && new Date(data.expires_at).getTime() < Date.now())) return json({ error: 'link_not_found' }, 404);
     link = data as Link;
   }
 

@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro } from '@/lib/booking';
-import { deleteLink, linkUrl, listMyLinks, shareText, type SlotLink } from '@/lib/slot-links';
+import { DeleteButton } from '@/components/DeleteButton';
+import { countFutureBookings } from '@/lib/my-services';
+import { deleteLink, linkUrl, listMyLinks, listPastLinks, shareText, type SlotLink } from '@/lib/slot-links';
 import { dayLabel } from '@/lib/time';
 import { discountedCents } from '@/lib/validity';
 
@@ -12,7 +14,7 @@ export default function SlotLinksScreen() {
   const { t, i18n } = useTranslation();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
-  const [loaded, setLoaded] = useState<{ links: SlotLink[]; errorKey: string | null } | null>(null);
+  const [loaded, setLoaded] = useState<{ links: SlotLink[]; past: SlotLink[]; errorKey: string | null } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [now, setNow] = useState(0);
   const [note, setNote] = useState<string | null>(null);
@@ -21,9 +23,9 @@ export default function SlotLinksScreen() {
     if (!userId) return;
     let active = true;
     (async () => {
-      const r = await listMyLinks(userId);
+      const [r, past] = await Promise.all([listMyLinks(userId), listPastLinks(userId)]);
       if (active) {
-        setLoaded(r);
+        setLoaded({ ...r, past });
         setNow(Date.now());
       }
     })();
@@ -75,10 +77,25 @@ export default function SlotLinksScreen() {
             <Spacer size={8} />
             {!expired ? <Button title={t('slotLinks.share')} variant="ghost" onPress={() => void share(link)} /> : null}
             <Spacer size={8} />
-            <Button title={t('slotLinks.delete')} variant="ghost" onPress={() => void remove(link)} />
+            <DeleteButton label={t('slotLinks.delete')} warning={t('slotLinks.deleteWarning')} loadCount={() => countFutureBookings('slot_link_id', link.id)} onConfirm={() => remove(link)} />
           </Card>
         );
       })}
+      {loaded.past.length > 0 ? (
+        <>
+          <Spacer />
+          <Title>{t('slotLinks.pastTitle')}</Title>
+          <Body muted>{t('slotLinks.pastHelp')}</Body>
+          {loaded.past.map((link) => (
+            <Card key={link.id}>
+              <Body>{link.service_title}</Body>
+              <Body muted>
+                {t('delete.deletedOn', { date: new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(new Date(link.deleted_at ?? 0)) })}
+              </Body>
+            </Card>
+          ))}
+        </>
+      ) : null}
       <Spacer size={16} />
       <Button title={t('slotLinks.new')} onPress={() => router.push('/slot-link-edit')} />
       <Spacer size={12} />

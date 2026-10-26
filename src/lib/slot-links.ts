@@ -22,12 +22,13 @@ export type SlotLink = {
   preview_path: string | null;
   preview_type: 'image' | 'video' | null;
   starts_at: string | null;
+  deleted_at?: string | null;
   expires_at: string | null;
   created_at: string;
   service_title?: string;
 };
 
-const COLUMNS = 'id, code, seller_id, service_id, price_cents, duration_min, discount_pct, days, ranges, places, extra_space_cents, extra_travel_cents, message, preview_path, preview_type, starts_at, expires_at, created_at';
+const COLUMNS = 'id, code, seller_id, service_id, price_cents, duration_min, discount_pct, days, ranges, places, extra_space_cents, extra_travel_cents, message, preview_path, preview_type, starts_at, expires_at, created_at, deleted_at';
 
 /** Indirizzo da condividere: sul web quello del sito, in app quello pubblico. */
 export function linkUrl(code: string): string {
@@ -40,6 +41,7 @@ export async function listMyLinks(sellerId: string): Promise<{ links: SlotLink[]
     .from('slot_links')
     .select(`${COLUMNS}, services(title)`)
     .eq('seller_id', sellerId)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(50);
   if (error) return { links: [], errorKey: 'errors.generic' };
@@ -112,8 +114,15 @@ export async function createLink(input: {
 }
 
 export async function deleteLink(id: string): Promise<string | null> {
-  const { error } = await supabase.from('slot_links').delete().eq('id', id);
+  const { error } = await supabase.rpc('delete_slot_link', { p_id: id });
   return error ? 'errors.generic' : null;
+}
+
+/** Link eliminati: non si aprono più, le prenotazioni già fatte restano. */
+export async function listPastLinks(sellerId: string): Promise<SlotLink[]> {
+  const { data } = await supabase.from('slot_links').select(`${COLUMNS}, services(title)`).eq('seller_id', sellerId).not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).limit(50);
+  const rows = (data ?? []) as unknown as (SlotLink & { services: { title: string } | { title: string }[] | null })[];
+  return rows.map(({ services, ...rest }) => ({ ...rest, service_title: (Array.isArray(services) ? services[0] : services)?.title ?? '' }));
 }
 
 /** Condivide il testo: foglio di condivisione su telefono, appunti sul web. Restituisce true se è stato copiato. */

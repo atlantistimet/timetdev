@@ -15,12 +15,13 @@ export type MyService = {
   kind: 'slot' | 'package' | 'per_minute';
   sessions: number | null;
   rate_cents_per_min: number | null;
+  deleted_at?: string | null;
 };
 
 export type Place = 'online' | 'sede' | 'domicilio';
 export const PLACES: Place[] = ['online', 'sede', 'domicilio'];
 
-const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers, places, includes, space_fee_cents, kind, sessions, rate_cents_per_min';
+const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers, places, includes, space_fee_cents, kind, sessions, rate_cents_per_min, deleted_at';
 
 /** Servizi del venditore (anche quelli in pausa). Di norma solo a slot: offerte e link non valgono per i pacchetti. */
 export async function listMyServices(sellerId: string, kinds: ('slot' | 'package' | 'per_minute')[] = ['slot']): Promise<{ services: MyService[]; errorKey: string | null }> {
@@ -29,6 +30,7 @@ export async function listMyServices(sellerId: string, kinds: ('slot' | 'package
     .select(COLUMNS)
     .eq('seller_id', sellerId)
     .in('kind', kinds)
+    .is('deleted_at', null)
     .order('created_at', { ascending: false });
   if (error) return { services: [], errorKey: 'errors.generic' };
   return { services: (data ?? []) as MyService[], errorKey: null };
@@ -119,4 +121,21 @@ export async function createQuickService(input: {
     .single();
   if (error || !data) return { service: null, errorKey: 'errors.generic' };
   return { service: data as unknown as MyService, errorKey: null };
+}
+
+/** Servizi eliminati: non più prenotabili, ma le prenotazioni già fatte restano. */
+export async function listPastServices(sellerId: string): Promise<MyService[]> {
+  const { data } = await supabase.from('services').select(COLUMNS).eq('seller_id', sellerId).not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).limit(50);
+  return (data ?? []) as MyService[];
+}
+
+export async function deleteService(id: string): Promise<string | null> {
+  const { error } = await supabase.rpc('delete_service', { p_id: id });
+  return error ? 'errors.generic' : null;
+}
+
+/** Prenotazioni confermate e ancora da fare legate a un servizio, a un'offerta o a un link. */
+export async function countFutureBookings(column: 'service_id' | 'offer_id' | 'slot_link_id', id: string): Promise<number> {
+  const { count } = await supabase.from('bookings').select('id', { count: 'exact', head: true }).eq(column, id).eq('status', 'confirmed').gt('starts_at', new Date().toISOString());
+  return count ?? 0;
 }
