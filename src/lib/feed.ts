@@ -12,7 +12,7 @@ export type Post = {
   offer_id: string | null;
   service_id: string | null;
   slot_link_id: string | null;
-  author: { full_name: string; handle: string | null; role_title: string | null };
+  author: { full_name: string; handle: string | null; role_title: string | null; available_until: string | null };
   media: MediaItem[];
   likes: number;
   liked: boolean;
@@ -44,7 +44,7 @@ type Row = {
 const first = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
 
 const SELECT = `id, author_id, kind, body, created_at, offer_id, service_id, slot_link_id,
-  profiles!posts_author_id_fkey(full_name, handle, role_title),
+  profiles!posts_author_id_fkey(full_name, handle, role_title, available_until),
   post_media(path, type, position),
   post_likes(count),
   post_comments(count),
@@ -67,7 +67,7 @@ async function hydrate(rows: Row[], userId: string): Promise<Post[]> {
     offer_id: r.offer_id,
     service_id: r.service_id,
     slot_link_id: r.slot_link_id,
-    author: first(r.profiles) ?? { full_name: '', handle: null, role_title: null },
+    author: first(r.profiles) ?? { full_name: '', handle: null, role_title: null, available_until: null },
     media: [...(r.post_media ?? [])].sort((a, b) => a.position - b.position).map((m) => ({ path: m.path, type: m.type })),
     likes: r.post_likes?.[0]?.count ?? 0,
     liked: likedSet.has(r.id),

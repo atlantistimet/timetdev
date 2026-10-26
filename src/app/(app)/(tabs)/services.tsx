@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, Card, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import { MediaGallery } from '@/components/MediaView';
+import { NowBadge } from '@/components/NowBadge';
 import { useAuth } from '@/lib/auth';
 import { formatEuro, listSlotServices, type SlotService } from '@/lib/booking';
 import { loadCategories, loadSellers, isAvailableNow, type Category, type Seller } from '@/lib/explore';
@@ -92,6 +93,7 @@ export default function ServicesScreen() {
             {offer.discount_pct ? ` · −${offer.discount_pct}%` : ''}
           </Body>
           {byline(offer.seller_id) ? <Body muted>{byline(offer.seller_id)}</Body> : null}
+          {isAvailableNow(result.sellers[offer.seller_id], now) ? <NowBadge /> : null}
           <Body muted>
             {formatEuro(finalPriceCents(offer), i18n.language)} · {offer.duration_min} min
           </Body>
@@ -100,7 +102,13 @@ export default function ServicesScreen() {
           <Spacer size={8} />
           {result.sellers[offer.seller_id]?.handle ? <Button title={t('explore.viewProfile')} variant="ghost" onPress={() => openSeller(offer.seller_id)} /> : null}
           <Spacer size={8} />
-          <Button title={t('book.choose')} onPress={() => router.push({ pathname: '/book', params: { serviceId: offer.service_id, offerId: offer.id } })} />
+          {isAvailableNow(result.sellers[offer.seller_id], now) ? (
+            <>
+              <Button title={t('book.instantNow')} onPress={() => router.push({ pathname: '/book', params: { serviceId: offer.service_id, offerId: offer.id, instant: '1' } })} />
+              <Spacer size={8} />
+            </>
+          ) : null}
+          <Button title={t('book.choose')} variant={isAvailableNow(result.sellers[offer.seller_id], now) ? 'ghost' : 'primary'} onPress={() => router.push({ pathname: '/book', params: { serviceId: offer.service_id, offerId: offer.id } })} />
         </Card>
       ))}
       {filtered.offers.length > 0 && filtered.services.length > 0 ? <Body>{t('book.servicesSection')}</Body> : null}
@@ -110,6 +118,7 @@ export default function ServicesScreen() {
           <MediaGallery items={result.covers[service.id] ? [result.covers[service.id]] : []} bucket="service-media" size="small" />
           <Body>{service.title}</Body>
           {byline(service.seller_id) ? <Body muted>{byline(service.seller_id)}</Body> : null}
+          {isAvailableNow(result.sellers[service.seller_id], now) ? <NowBadge /> : null}
           <Body muted>
             {service.kind === 'package'
               ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: formatEuro(service.price_cents, i18n.language) })
@@ -118,7 +127,13 @@ export default function ServicesScreen() {
           <Spacer size={8} />
           <Button title={t('publicProfile.details')} variant="ghost" onPress={() => router.push({ pathname: '/service/[id]', params: { id: service.id } })} />
           <Spacer size={8} />
-          <Button title={t('book.choose')} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })} />
+          {service.kind === 'slot' && isAvailableNow(result.sellers[service.seller_id], now) ? (
+            <>
+              <Button title={t('book.instantNow')} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id, instant: '1' } })} />
+              <Spacer size={8} />
+            </>
+          ) : null}
+          <Button title={t('book.choose')} variant={service.kind === 'slot' && isAvailableNow(result.sellers[service.seller_id], now) ? 'ghost' : 'primary'} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })} />
         </Card>
       ))}
     </Screen>

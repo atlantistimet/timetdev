@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
 
   const body = (await req.json().catch(() => ({}))) as { service_id?: string; starts_at?: string; place?: string; client_address?: string; offer_id?: string; code?: string; instant?: boolean };
   const instant = body.instant === true;
-  if (instant && (body.code || body.offer_id)) return json({ error: 'bad_request' }, 400);
+  if (instant && body.code) return json({ error: 'bad_request' }, 400);
   let startsAt = instant ? new Date() : body.starts_at ? new Date(body.starts_at) : null;
   if ((!body.service_id && !body.code) || !startsAt || Number.isNaN(startsAt.getTime()) || !['online', 'sede', 'domicilio'].includes(body.place ?? '')) {
     return json({ error: 'bad_request' }, 400);

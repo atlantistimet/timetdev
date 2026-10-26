@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { CommentsSection } from '@/components/CommentsSection';
 import { MediaGallery } from '@/components/MediaView';
+import { NowBadge } from '@/components/NowBadge';
 import { Body, Button, Card, Spacer } from '@/components/ui';
 import { formatEuro } from '@/lib/booking';
 import { deletePost, setLike, type Post } from '@/lib/feed';
@@ -50,6 +51,7 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
   };
   const openAuthor = () => post.author.handle && router.push({ pathname: '/u/[handle]', params: { handle: post.author.handle } });
 
+  const availableNow = !!post.author.available_until && new Date(post.author.available_until).getTime() > nowMs;
   const expired = !!post.link?.expires_at && new Date(post.link.expires_at).getTime() < nowMs;
 
   return (
@@ -63,6 +65,7 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
           <Text style={{ color: theme.muted, fontSize: 12 }}>
             {[post.author.role_title, timeAgo(post.created_at, i18n.language, nowMs)].filter(Boolean).join(' · ')}
           </Text>
+          {availableNow ? <NowBadge /> : null}
         </View>
         {post.kind !== 'update' ? (
           <View style={[styles.badge, { backgroundColor: theme.accentSoft }]}>
@@ -82,8 +85,14 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
             {post.offer.service_title}
             {post.offer.discount_pct ? ` · −${post.offer.discount_pct}%` : ''} · {fmt(discountedCents(post.offer.price_cents, post.offer.discount_pct))} · {post.offer.duration_min} min
           </Body>
+          {!mine && availableNow ? (
+            <>
+              <Button title={t('book.instantNow')} onPress={() => router.push({ pathname: '/book', params: { serviceId: post.offer!.service_id, offerId: post.offer_id!, instant: '1' } })} />
+              <Spacer size={8} />
+            </>
+          ) : null}
           {!mine ? (
-            <Button title={t('book.choose')} onPress={() => router.push({ pathname: '/book', params: { serviceId: post.offer!.service_id, offerId: post.offer_id! } })} />
+            <Button title={t('book.choose')} variant={availableNow ? 'ghost' : 'primary'} onPress={() => router.push({ pathname: '/book', params: { serviceId: post.offer!.service_id, offerId: post.offer_id! } })} />
           ) : null}
         </>
       ) : null}

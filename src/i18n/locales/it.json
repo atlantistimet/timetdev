@@ -181,7 +181,7 @@
     "packageLine": "Pacchetto da {{count}} sessioni da {{minutes}} min · {{price}} in tutto",
     "perSession": "a sessione",
     "pickSlots": "Scegli le date delle sessioni ({{picked}} di {{count}})",
-    "instantNow": "Prenota subito",
+    "instantNow": "Prenota ora",
     "instantPay": "Vai al pagamento: parte subito",
     "instantHint": "Il venditore è disponibile ora. Dopo il pagamento la sessione ({{minutes}} min) parte subito, senza scegliere un orario.",
     "paidBodyInstant": "Pagamento riuscito: la sessione è iniziata. La trovi in Agenda."

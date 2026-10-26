@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { NowBadge } from '@/components/NowBadge';
 import { MediaGallery } from '@/components/MediaView';
 import { TierLines } from '@/components/TierLines';
 import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
@@ -71,6 +72,7 @@ export default function ServiceDetailScreen() {
             ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: fmt(service.price_cents) })
             : `${fmt(service.price_cents)} · ${service.duration_min} min`}
       </Body>
+      {callableNow ? <NowBadge /> : null}
       {seller ? (
         <>
           <Spacer size={8} />

@@ -32,7 +32,7 @@ type Loaded = { service: SlotService; offer: Offer | null; link: SlotLink | null
 export default function BookScreen() {
   const { t, i18n } = useTranslation();
   const { serviceId, offerId, code, instant } = useLocalSearchParams<{ serviceId?: string; offerId?: string; code?: string; instant?: string }>();
-  const isInstant = instant === '1' && !offerId && !code;
+  const isInstant = instant === '1' && !code;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [slotId, setSlotId] = useState<string | null>(null);
   const [picked, setPicked] = useState<string[]>([]); // pacchetto: inizi (ISO) delle sessioni scelte
@@ -140,7 +140,7 @@ export default function BookScreen() {
     if (chosen === 'domicilio' && !address.trim()) return setErrorKey('book.errors.address_required');
     setStarting(true);
     setErrorKey(null);
-    const result = await createBookingPayment({ serviceId: service.id, startsAt: new Date().toISOString(), place: chosen, clientAddress: chosen === 'domicilio' ? address.trim() : undefined, instant: true });
+    const result = await createBookingPayment({ serviceId: service.id, startsAt: new Date().toISOString(), place: chosen, clientAddress: chosen === 'domicilio' ? address.trim() : undefined, offerId: offer?.id, instant: true });
     setStarting(false);
     if (result.payment) setPayment(result.payment);
     else setErrorKey(result.errorKey);

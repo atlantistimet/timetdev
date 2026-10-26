@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, Card, Chip, ChipRow, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { NowBadge } from '@/components/NowBadge';
 import { MediaGallery } from '@/components/MediaView';
 import { PostCard } from '@/components/PostCard';
 import { useAuth } from '@/lib/auth';
@@ -78,6 +79,7 @@ export default function PublicProfileScreen() {
         </View>
         <Title>{profile.full_name}</Title>
         {profile.handle ? <Body muted>@{profile.handle}</Body> : null}
+        {callableNow ? <NowBadge /> : null}
         {profile.role_title ? <Body>{profile.role_title}</Body> : null}
         {profile.city ? <Body muted>{profile.city}</Body> : null}
         {summary.count > 0 ? <Body>{`${stars(summary.average)} ${summary.average.toFixed(1)} · ${t('reviews.count', { count: summary.count })}`}</Body> : null}
@@ -197,7 +199,13 @@ export default function PublicProfileScreen() {
               {!mine ? (
                 <>
                   <Spacer size={8} />
-                  <Button title={t('book.choose')} onPress={() => router.push({ pathname: '/book', params: { serviceId: offer.service_id, offerId: offer.id } })} />
+                  {callableNow ? (
+                    <>
+                      <Button title={t('book.instantNow')} onPress={() => router.push({ pathname: '/book', params: { serviceId: offer.service_id, offerId: offer.id, instant: '1' } })} />
+                      <Spacer size={8} />
+                    </>
+                  ) : null}
+                  <Button title={t('book.choose')} variant={callableNow ? 'ghost' : 'primary'} onPress={() => router.push({ pathname: '/book', params: { serviceId: offer.service_id, offerId: offer.id } })} />
                 </>
               ) : null}
             </Card>
