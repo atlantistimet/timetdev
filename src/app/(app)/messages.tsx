@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, CardButton, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { listConversations, type ConversationItem } from '@/lib/chat';
 
 export default function MessagesScreen() {
@@ -14,12 +15,18 @@ export default function MessagesScreen() {
   useEffect(() => {
     if (!me) return;
     let alive = true;
-    (async () => {
+    const load = async () => {
       const list = await listConversations(me);
       if (alive) setItems(list);
-    })();
+    };
+    void load();
+    const channel = supabase
+      .channel(`inbox-${me}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => void load())
+      .subscribe();
     return () => {
       alive = false;
+      void supabase.removeChannel(channel);
     };
   }, [me]);
 

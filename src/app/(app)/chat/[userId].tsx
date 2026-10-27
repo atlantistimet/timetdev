@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { loadMessages, markRead, openConversation, sendMessage, type Message } from '@/lib/chat';
 import { loadProfileById } from '@/lib/public-profile';
 import { useTheme } from '@/theme';
@@ -53,8 +54,16 @@ export default function ChatScreen() {
   }, [me]);
   useEffect(() => {
     if (!convId) return;
-    const timer = setInterval(() => void refresh(), 5000);
-    return () => clearInterval(timer);
+    // Tempo reale: appena arriva un messaggio (o viene letto) ricarichiamo. Il controllo lento resta come rete di sicurezza.
+    const channel = supabase
+      .channel(`chat-${convId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` }, () => void refresh())
+      .subscribe();
+    const timer = setInterval(() => void refresh(), 30000);
+    return () => {
+      clearInterval(timer);
+      void supabase.removeChannel(channel);
+    };
   }, [convId, refresh]);
 
   if (!messages) return <LoadingView />;
