@@ -118,6 +118,20 @@ Deno.serve(async (req) => {
   if (instant) {
     // "Disponibile ora": vale al posto dell'orario settimanale, ma serve libertà per tutta la durata più 15 minuti per pagare
     if (!seller!.available_until || new Date(seller!.available_until).getTime() <= Date.now()) return json({ error: 'not_available_now' }, 409);
+    // Un tentativo precedente dello stesso cliente, mai pagato, non deve bloccare il nuovo: lo si annulla (anche su Stripe).
+    const { data: mine } = await admin.from('payments')
+      .select('id, booking_id, stripe_payment_intent_id, stripe_account_id, bookings!inner(seller_id, instant, status)')
+      .eq('payer_id', user.id).eq('status', 'pending').eq('bookings.seller_id', service.seller_id).eq('bookings.instant', true).eq('bookings.status', 'confirmed');
+    for (const old of mine ?? []) {
+      try {
+        await stripeRequest('POST', `/v1/payment_intents/${old.stripe_payment_intent_id}/cancel`, {}, { stripeAccount: old.stripe_account_id, idempotencyKey: `timeet-retry-${old.id}` });
+      } catch (e) {
+        console.error('Annullamento tentativo precedente fallito', old.stripe_payment_intent_id, e instanceof StripeError ? JSON.stringify(e.body) : e);
+        continue; // magari è già stato pagato: allora resta e il controllo sotto lo vede
+      }
+      await admin.from('payments').update({ status: 'canceled' }).eq('id', old.id).eq('status', 'pending');
+      await admin.from('bookings').update({ status: 'cancelled', cancelled_at: new Date().toISOString() }).eq('id', old.booking_id).eq('status', 'confirmed');
+    }
     const guardEnd = new Date(endsAt.getTime() + 15 * 60_000);
     const { count: clashes } = await admin.from('bookings').select('id', { count: 'exact', head: true })
       .eq('seller_id', service.seller_id).eq('status', 'confirmed')
