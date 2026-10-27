@@ -612,7 +612,13 @@
     "send": "Pubblica recensione",
     "pickRating": "Scegli da 1 a 5 stelle.",
     "already": "Hai già recensito questa prenotazione.",
-    "thanks": "Grazie, hai lasciato la tua recensione."
+    "thanks": "Grazie, hai lasciato la tua recensione.",
+    "reply": "Rispondi",
+    "replyEdit": "Modifica la risposta",
+    "replyLabel": "La tua risposta",
+    "replySend": "Pubblica risposta",
+    "replyRemove": "Togli la risposta",
+    "replyFrom": "Risposta di {{name}}"
   },
   "chat": {
     "title": "Messaggi",
@@ -764,7 +770,8 @@
       "review": "{{name}} ti ha lasciato una recensione ({{rating}}/5).",
       "call_missed": "Chiamata persa da {{name}} per «{{title}}».",
       "availability_expiring": "La tua disponibilità scade il {{date}}: rinnovala per restare prenotabile.",
-      "tag_request": "Qualcuno ti ha taggato in un post."
+      "tag_request": "Qualcuno ti ha taggato in un post.",
+      "review_reply": "{{name}} ha risposto alla tua recensione: «{{snippet}}»"
     }
   }
 }

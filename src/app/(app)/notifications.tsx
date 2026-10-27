@@ -62,6 +62,7 @@ export default function NotificationsScreen() {
       case 'tag_request':
         if (n.ref_id) router.push({ pathname: '/p/[id]', params: { id: n.ref_id } });
         break;
+      case 'review_reply':
       case 'follow':
         if (p.handle) router.push({ pathname: '/u/[handle]', params: { handle: p.handle } });
         break;

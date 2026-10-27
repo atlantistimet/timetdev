@@ -1,20 +1,20 @@
 import { supabase } from '@/lib/supabase';
 
-export type Review = { id: string; rating: number; body: string | null; created_at: string; author_name: string; author_handle: string | null };
+export type Review = { id: string; rating: number; body: string | null; created_at: string; author_name: string; author_handle: string | null; reply: string | null; replied_at: string | null };
 export type ReviewSummary = { count: number; average: number };
 
-type Row = { id: string; rating: number; body: string | null; created_at: string; profiles: { full_name: string; handle: string | null } | { full_name: string; handle: string | null }[] | null };
+type Row = { id: string; rating: number; body: string | null; created_at: string; reply: string | null; replied_at: string | null; profiles: { full_name: string; handle: string | null } | { full_name: string; handle: string | null }[] | null };
 
 export async function loadReviews(sellerId: string): Promise<{ reviews: Review[]; summary: ReviewSummary }> {
   const { data } = await supabase
     .from('reviews')
-    .select('id, rating, body, created_at, profiles!reviews_author_id_fkey(full_name, handle)')
+    .select('id, rating, body, created_at, reply, replied_at, profiles!reviews_author_id_fkey(full_name, handle)')
     .eq('seller_id', sellerId)
     .order('created_at', { ascending: false })
     .limit(50);
   const reviews = ((data ?? []) as unknown as Row[]).map((r) => {
     const p = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
-    return { id: r.id, rating: r.rating, body: r.body, created_at: r.created_at, author_name: p?.full_name ?? '', author_handle: p?.handle ?? null };
+    return { id: r.id, rating: r.rating, body: r.body, created_at: r.created_at, author_name: p?.full_name ?? '', author_handle: p?.handle ?? null, reply: r.reply, replied_at: r.replied_at };
   });
   const average = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
   return { reviews, summary: { count: reviews.length, average } };
@@ -40,3 +40,9 @@ export async function createReview(input: { bookingId: string; authorId: string;
 }
 
 export const stars = (n: number) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
+
+/** Il venditore risponde a una recensione (testo vuoto = toglie la risposta). */
+export async function replyToReview(reviewId: string, body: string): Promise<string | null> {
+  const { error } = await supabase.rpc('reply_to_review', { p_id: reviewId, p_body: body });
+  return error ? 'errors.generic' : null;
+}

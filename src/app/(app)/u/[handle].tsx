@@ -6,6 +6,7 @@ import { Body, Button, Card, Chip, ChipRow, LoadingView, Screen, Spacer, Title }
 import { NowBadge } from '@/components/NowBadge';
 import { MediaGallery } from '@/components/MediaView';
 import { PostCard } from '@/components/PostCard';
+import { ReviewReply } from '@/components/ReviewReply';
 import { useAuth } from '@/lib/auth';
 import { followInfo, loadPosts, setFollow, type Post } from '@/lib/feed';
 import { formatEuro, listSellerServices, type SlotService } from '@/lib/booking';
@@ -179,6 +180,7 @@ export default function PublicProfileScreen() {
               <Body>{`${stars(r.rating)} · ${r.author_name}`}</Body>
               {r.body ? <Body muted>{r.body}</Body> : null}
               <Body muted>{new Date(r.created_at).toLocaleDateString(i18n.language)}</Body>
+              <ReviewReply reviewId={r.id} reply={r.reply} sellerName={profile.full_name} canReply={mine} onDone={() => setReloadKey((k) => k + 1)} />
             </Card>
           ))}
         </>

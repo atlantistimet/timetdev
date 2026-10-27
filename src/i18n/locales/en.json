@@ -612,7 +612,13 @@
     "send": "Post review",
     "pickRating": "Pick 1 to 5 stars.",
     "already": "You already reviewed this booking.",
-    "thanks": "Thanks, your review is in."
+    "thanks": "Thanks, your review is in.",
+    "reply": "Reply",
+    "replyEdit": "Edit reply",
+    "replyLabel": "Your reply",
+    "replySend": "Post reply",
+    "replyRemove": "Remove reply",
+    "replyFrom": "Reply from {{name}}"
   },
   "chat": {
     "title": "Messages",
@@ -764,7 +770,8 @@
       "review": "{{name}} left you a review ({{rating}}/5).",
       "call_missed": "Missed call from {{name}} for \"{{title}}\".",
       "availability_expiring": "Your availability ends on {{date}}: renew it to stay bookable.",
-      "tag_request": "Someone tagged you in a post."
+      "tag_request": "Someone tagged you in a post.",
+      "review_reply": "{{name}} replied to your review: \"{{snippet}}\""
     }
   }
 }
