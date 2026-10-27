@@ -6,6 +6,7 @@ import { AvailableNowCard } from '@/components/AvailableNowCard';
 import { Body, Button, Card, CardButton, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { loadMyProfile } from '@/lib/profile-edit';
+import { useUnreadCount } from '@/lib/notifications';
 import { languageNames, supportedLanguages } from '@/i18n';
 
 export default function ProfileScreen() {
@@ -13,6 +14,7 @@ export default function ProfileScreen() {
   const { profile, session, signOut, setLanguage } = useAuth();
   const [handle, setHandle] = useState<string | null>(null);
   const userId = session?.user.id ?? null;
+  const unread = useUnreadCount(userId);
   useEffect(() => {
     if (!userId) return;
     let alive = true;
@@ -30,6 +32,7 @@ export default function ProfileScreen() {
       <Title>{profile?.full_name || t('tabs.profile')}</Title>
       <Body muted>{t('home.signedInAs', { email: session?.user.email })}</Body>
       <Spacer size={20} />
+      <CardButton title={`${t('notifications.title')}${unread > 0 ? ` (${unread})` : ''}`} subtitle={t('notifications.hint')} onPress={() => router.push('/notifications')} />
       <CardButton
         title={t('publicProfile.mine')}
         subtitle={handle ? `@${handle}` : t('publicProfile.needHandle')}

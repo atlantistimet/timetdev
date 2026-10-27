@@ -2,6 +2,8 @@ import type { ColorValue } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/lib/auth';
+import { useUnreadCount } from '@/lib/notifications';
 import { useTheme } from '@/theme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -10,6 +12,8 @@ type IconName = React.ComponentProps<typeof Ionicons>['name'];
 export default function TabsLayout() {
   const { t } = useTranslation();
   const theme = useTheme();
+  const { session } = useAuth();
+  const unread = useUnreadCount(session?.user.id ?? null);
   const icon = (name: IconName, nameOn: IconName) =>
     function TabIcon({ color, focused }: { color: ColorValue; focused: boolean }) {
       return <Ionicons name={focused ? nameOn : name} size={22} color={color} />;
@@ -55,7 +59,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen name="bookings" options={{ title: t('tabs.agenda'), tabBarIcon: icon('calendar-outline', 'calendar') }} />
-      <Tabs.Screen name="profile" options={{ title: t('tabs.profile'), tabBarIcon: icon('person-outline', 'person') }} />
+      <Tabs.Screen name="profile" options={{ title: t('tabs.profile'), tabBarIcon: icon('person-outline', 'person'), tabBarBadge: unread > 0 ? (unread > 9 ? '9+' : unread) : undefined }} />
     </Tabs>
   );
 }

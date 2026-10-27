@@ -746,5 +746,25 @@
     "keepBookings": "Existing bookings ({{count}}) stay valid and unchanged.",
     "noBookings": "No upcoming bookings attached.",
     "deletedOn": "Deleted on {{date}}"
+  },
+  "notifications": {
+    "title": "Notifications",
+    "hint": "Bookings, messages, comments and news",
+    "empty": "No notifications yet.",
+    "markAll": "Mark all as read",
+    "open": "Open",
+    "kind": {
+      "booking_new": "{{name}} booked \"{{title}}\" for {{date}}.",
+      "package_new": "{{name}} bought the \"{{title}}\" package.",
+      "booking_cancelled": "{{name}} cancelled \"{{title}}\" on {{date}}.",
+      "tip": "{{name}} left you a {{amount}} tip.",
+      "message": "{{name}} wrote to you ({{count}}).",
+      "comment": "{{name}} commented on your post: \"{{snippet}}\"",
+      "follow": "{{name}} started following you.",
+      "review": "{{name}} left you a review ({{rating}}/5).",
+      "call_missed": "Missed call from {{name}} for \"{{title}}\".",
+      "availability_expiring": "Your availability ends on {{date}}: renew it to stay bookable.",
+      "tag_request": "Someone tagged you in a post."
+    }
   }
 }

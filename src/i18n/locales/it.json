@@ -746,5 +746,25 @@
     "keepBookings": "Le prenotazioni già fatte ({{count}}) restano valide e identiche.",
     "noBookings": "Nessuna prenotazione futura collegata.",
     "deletedOn": "Eliminato il {{date}}"
+  },
+  "notifications": {
+    "title": "Notifiche",
+    "hint": "Prenotazioni, messaggi, commenti e novità",
+    "empty": "Nessuna notifica per ora.",
+    "markAll": "Segna tutte come lette",
+    "open": "Apri",
+    "kind": {
+      "booking_new": "{{name}} ha prenotato «{{title}}» per {{date}}.",
+      "package_new": "{{name}} ha acquistato il pacchetto «{{title}}».",
+      "booking_cancelled": "{{name}} ha annullato «{{title}}» del {{date}}.",
+      "tip": "{{name}} ti ha lasciato una mancia di {{amount}}.",
+      "message": "{{name}} ti ha scritto ({{count}}).",
+      "comment": "{{name}} ha commentato il tuo post: «{{snippet}}»",
+      "follow": "{{name}} ha iniziato a seguirti.",
+      "review": "{{name}} ti ha lasciato una recensione ({{rating}}/5).",
+      "call_missed": "Chiamata persa da {{name}} per «{{title}}».",
+      "availability_expiring": "La tua disponibilità scade il {{date}}: rinnovala per restare prenotabile.",
+      "tag_request": "Qualcuno ti ha taggato in un post."
+    }
   }
 }
