@@ -117,7 +117,7 @@ export default function CallScreen() {
 
   if (call.status === 'active') {
     return (
-      <Screen>
+      <Screen wide>
         <Title>{call.service_title ?? t('calls.title')}</Title>
         <Body muted>
           {t('calls.timer', { time: mmss(elapsed) })}

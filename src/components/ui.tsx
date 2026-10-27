@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme';
 
 /** Contenitore di schermata: area sicura, tastiera che non copre i campi, contenuto centrato e largo al massimo 440. */
-export function Screen({ children, tabs }: { children: ReactNode; tabs?: boolean }) {
+export function Screen({ children, tabs, wide }: { children: ReactNode; tabs?: boolean; wide?: boolean }) {
   const theme = useTheme();
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: theme.bg }]}>
@@ -24,7 +24,7 @@ export function Screen({ children, tabs }: { children: ReactNode; tabs?: boolean
           contentContainerStyle={[styles.screenContent, tabs && styles.screenTabs]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
-          <View style={styles.screenColumn}>{children}</View>
+          <View style={[styles.screenColumn, wide && styles.screenColumnWide]}>{children}</View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -212,6 +212,7 @@ const styles = StyleSheet.create({
   card: { borderRadius: 24, padding: 16, marginBottom: 10 },
   cardTitle: { fontSize: 17, fontWeight: '700', marginBottom: 2 },
   screenColumn: { width: '100%', maxWidth: 440, alignSelf: 'center' },
+  screenColumnWide: { maxWidth: 960 },
   title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.8, marginBottom: 8 },
   body: { fontSize: 16, lineHeight: 22 },
   field: { marginBottom: 16 },
