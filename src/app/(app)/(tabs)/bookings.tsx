@@ -105,7 +105,7 @@ export default function BookingsScreen() {
       {shown.map((booking) => {
         const mine = booking.client_id === userId;
         const preview = previews[booking.id];
-        const future = new Date(booking.starts_at).getTime() > now;
+        const future = new Date(booking.ends_at).getTime() > now; // annullabile finché la sessione non è finita
         return (
           <Card key={booking.id}>
             <Body>{booking.service_title}</Body>

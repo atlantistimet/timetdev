@@ -30,14 +30,15 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const { data: booking } = await admin
     .from('bookings')
-    .select('id, client_id, seller_id, starts_at, status, cancel_tiers, package_id, price_cents, extra_cents, client_fee_cents')
+    .select('id, client_id, seller_id, starts_at, ends_at, status, cancel_tiers, package_id, price_cents, extra_cents, client_fee_cents')
     .eq('id', body.booking_id)
     .maybeSingle();
   // Non si rivela se la prenotazione esiste a chi non ne fa parte.
   if (!booking || (booking.client_id !== user.id && booking.seller_id !== user.id)) return json({ error: 'not_found' }, 404);
   if (booking.status !== 'confirmed') return json({ error: 'not_cancellable' }, 409);
   const startsAt = new Date(booking.starts_at);
-  if (startsAt.getTime() <= Date.now()) return json({ error: 'already_started' }, 409);
+  // Una sessione già iniziata (es. "Prenota ora") si può annullare finché non è finita; la policy decide il rimborso (venditore: sempre totale).
+  if (new Date(booking.ends_at).getTime() <= Date.now()) return json({ error: 'already_started' }, 409);
 
   const { data: payment } = await admin
     .from('payments')
