@@ -738,7 +738,8 @@
       "not_active": "The call is not in progress.",
       "livekit_not_configured": "The video service is not active yet.",
       "stripe_error": "The payment didn't start. Try again."
-    }
+    },
+    "ringLeftSeller": "{{name}} has {{seconds}} more seconds to answer."
   },
   "delete": {
     "yes": "Yes, delete",

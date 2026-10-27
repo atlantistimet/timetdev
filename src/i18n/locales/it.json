@@ -738,7 +738,8 @@
       "not_active": "La chiamata non è in corso.",
       "livekit_not_configured": "Il servizio video non è ancora attivo.",
       "stripe_error": "Il pagamento non è partito. Riprova."
-    }
+    },
+    "ringLeftSeller": "{{name}} ha ancora {{seconds}} secondi per rispondere."
   },
   "delete": {
     "yes": "Sì, elimina",

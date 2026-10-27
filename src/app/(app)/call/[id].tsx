@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { CallRoom } from '@/components/CallRoom';
 import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import { formatEuro } from '@/lib/booking';
 import {
   acceptCall, callsSupported, callToken, cancelCall, clientCallTotal, declineCall, endCall, heartbeat, loadCall, type CallRow,
@@ -42,6 +43,20 @@ export default function CallScreen() {
       clearInterval(tick);
     };
   }, [refresh]);
+
+  // nome dell'altra persona (venditore per il cliente, cliente per il venditore)
+  const otherId = call && call !== 'missing' ? (call.client_id === me ? call.seller_id : call.client_id) : null;
+  const [otherName, setOtherName] = useState<string | null>(null);
+  useEffect(() => {
+    if (!otherId) return;
+    let alive = true;
+    void supabase.from('profiles').select('full_name').eq('id', otherId).maybeSingle().then(({ data }) => {
+      if (alive) setOtherName((data?.full_name as string | undefined) ?? null);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [otherId]);
 
   // battito di presenza finché la chiamata è viva
   const live = call && call !== 'missing' && ['ringing', 'active'].includes(call.status);
@@ -96,10 +111,10 @@ export default function CallScreen() {
   if (call.status === 'ringing') {
     return (
       <Screen>
-        <Title>{t(isClient ? 'calls.calling' : 'calls.incoming')}</Title>
+        <Title>{!isClient && otherName ? t('calls.incomingFrom', { name: otherName }) : t(isClient ? 'calls.calling' : 'calls.incoming')}</Title>
         <Body muted>{call.service_title}</Body>
         <Spacer />
-        <Body>{t('calls.ringLeft', { seconds: ringLeft })}</Body>
+        <Body>{isClient && otherName ? t('calls.ringLeftSeller', { name: otherName, seconds: ringLeft }) : t('calls.ringLeft', { seconds: ringLeft })}</Body>
         <Spacer />
         {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
         {isClient ? (
