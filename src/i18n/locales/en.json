@@ -800,8 +800,9 @@
       "review": "{{name}} left you a review ({{rating}}/5).",
       "call_missed": "Missed call from {{name}} for \"{{title}}\".",
       "availability_expiring": "Your availability ends on {{date}}: renew it to stay bookable.",
-      "tag_request": "Someone tagged you in a post.",
-      "review_reply": "{{name}} replied to your review: \"{{snippet}}\""
+      "tag_request": "{{name}} tagged you in a post.",
+      "review_reply": "{{name}} replied to your review: \"{{snippet}}\"",
+      "tag_accepted": "{{name}} accepted the tag in your post."
     }
   }
 }

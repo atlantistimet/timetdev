@@ -800,8 +800,9 @@
       "review": "{{name}} ti ha lasciato una recensione ({{rating}}/5).",
       "call_missed": "Chiamata persa da {{name}} per «{{title}}».",
       "availability_expiring": "La tua disponibilità scade il {{date}}: rinnovala per restare prenotabile.",
-      "tag_request": "Qualcuno ti ha taggato in un post.",
-      "review_reply": "{{name}} ha risposto alla tua recensione: «{{snippet}}»"
+      "tag_request": "{{name}} ti ha taggato in un post.",
+      "review_reply": "{{name}} ha risposto alla tua recensione: «{{snippet}}»",
+      "tag_accepted": "{{name}} ha accettato il tag nel tuo post."
     }
   }
 }

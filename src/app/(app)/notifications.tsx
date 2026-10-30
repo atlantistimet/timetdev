@@ -60,6 +60,7 @@ export default function NotificationsScreen() {
         break;
       case 'comment':
       case 'tag_request':
+      case 'tag_accepted':
         if (n.ref_id) router.push({ pathname: '/p/[id]', params: { id: n.ref_id } });
         break;
       case 'review_reply':
