@@ -628,7 +628,9 @@
     "write": "Write a message",
     "send": "Send",
     "read": "read",
-    "write_to": "Send a message"
+    "write_to": "Send a message",
+    "typing": "typing…",
+    "online": "online"
   },
   "sessions": {
     "title": "My sessions",

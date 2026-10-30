@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { GiftedChat, type IMessage } from 'react-native-gifted-chat';
 import { useTranslation } from 'react-i18next';
-import { Body, Button, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
+import { LoadingView } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
 import { loadMessages, markRead, openConversation, sendMessage, type Message } from '@/lib/chat';
+import { useChatPresence } from '@/lib/chat-presence';
 import { loadProfileById } from '@/lib/public-profile';
 import { useTheme } from '@/theme';
 
@@ -18,8 +20,6 @@ export default function ChatScreen() {
   const [convId, setConvId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [messages, setMessages] = useState<Message[] | null>(null);
-  const [text, setText] = useState('');
-  const [busy, setBusy] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const convRef = useRef<string | null>(null);
 
@@ -45,71 +45,73 @@ export default function ChatScreen() {
     };
   }, [me, userId]);
 
-  // I nuovi messaggi arrivano controllando ogni pochi secondi.
   const refresh = useCallback(async () => {
     const id = convRef.current;
     if (!id) return;
     setMessages(await loadMessages(id));
     void markRead(id, me);
   }, [me]);
+
+  // Tempo reale: nuovi messaggi/letture, "sta scrivendo" e stato online passano dallo stesso canale.
+  const { otherOnline, otherTyping, notifyTyping } = useChatPresence(convId, me, userId ?? '', refresh);
+
   useEffect(() => {
     if (!convId) return;
-    // Tempo reale: appena arriva un messaggio (o viene letto) ricarichiamo. Il controllo lento resta come rete di sicurezza.
-    const channel = supabase
-      .channel(`chat-${convId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` }, () => void refresh())
-      .subscribe();
     const timer = setInterval(() => void refresh(), 30000);
-    return () => {
-      clearInterval(timer);
-      void supabase.removeChannel(channel);
-    };
+    return () => clearInterval(timer);
   }, [convId, refresh]);
+
+  // GiftedChat vuole i messaggi dal più recente: ✓ = inviato, ✓✓ = letto.
+  const items: IMessage[] = useMemo(
+    () =>
+      [...(messages ?? [])].reverse().map((m) => ({
+        _id: m.id,
+        text: m.body,
+        createdAt: new Date(m.created_at),
+        user: { _id: m.sender_id, name: m.sender_id === me ? '' : name },
+        sent: true,
+        received: !!m.read_at,
+      })),
+    [messages, me, name],
+  );
+
+  const onSend = useCallback(
+    async (out: IMessage[]) => {
+      if (!convId) return;
+      setErrorKey(null);
+      const failure = await sendMessage(convId, me, out[0]?.text ?? '', i18n.language.slice(0, 2));
+      if (failure) setErrorKey(failure);
+      else await refresh();
+    },
+    [convId, me, i18n.language, refresh],
+  );
 
   if (!messages) return <LoadingView />;
 
-  const send = async () => {
-    if (!convId || !text.trim()) return;
-    setBusy(true);
-    setErrorKey(null);
-    const failure = await sendMessage(convId, me, text, i18n.language.slice(0, 2));
-    setBusy(false);
-    if (failure) setErrorKey(failure);
-    else {
-      setText('');
-      await refresh();
-    }
-  };
-
   return (
-    <Screen>
-      <Title>{name}</Title>
-      <Spacer size={8} />
-      {messages.length === 0 ? <Body muted>{t('chat.empty')}</Body> : null}
-      {messages.map((m) => {
-        const mine = m.sender_id === me;
-        return (
-          <View key={m.id} style={{ alignItems: mine ? 'flex-end' : 'flex-start', marginBottom: 6 }}>
-            <View style={{ maxWidth: '85%', borderRadius: 16, padding: 10, backgroundColor: mine ? theme.primary : theme.fill }}>
-              <Text style={{ color: mine ? theme.onPrimary : theme.text }}>{m.body}</Text>
-            </View>
-            <Text style={{ color: theme.muted, fontSize: 11 }}>
-              {new Date(m.created_at).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
-              {mine && m.read_at ? ` · ${t('chat.read')}` : ''}
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
+      <View style={{ flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12 }}>
+          <Pressable accessibilityRole="button" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
+            <Text style={{ color: theme.text, fontSize: 22 }}>‹</Text>
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: theme.text, fontSize: 17, fontWeight: '600' }}>{name}</Text>
+            <Text style={{ color: otherTyping || otherOnline ? theme.accent : theme.muted, fontSize: 12 }}>
+              {otherTyping ? t('chat.typing') : otherOnline ? t('chat.online') : ''}
             </Text>
           </View>
-        );
-      })}
-      <Spacer size={8} />
-      {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
-      {convId ? (
-        <>
-          <TextField label={t('chat.write')} value={text} onChangeText={setText} multiline maxLength={2000} />
-          <Button title={t('chat.send')} onPress={() => void send()} loading={busy} />
-        </>
-      ) : null}
-      <Spacer size={8} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-    </Screen>
+        </View>
+        {errorKey ? <Text style={{ color: theme.danger, paddingHorizontal: 12 }}>{t(errorKey)}</Text> : null}
+        <GiftedChat
+          messages={items}
+          onSend={(out) => void onSend(out)}
+          user={{ _id: me }}
+          isTyping={otherTyping}
+          locale={i18n.language.slice(0, 2)}
+          textInputProps={{ placeholder: t('chat.write'), maxLength: 2000, onChangeText: () => notifyTyping() }}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
