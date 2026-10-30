@@ -6,7 +6,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GiftedChat, type IMessage } from 'react-native-gifted-chat';
 import { useTranslation } from 'react-i18next';
-import { ChatVideo } from '@/components/ChatVideo';
+import { ChatVideo, ChatVideoFull } from '@/components/ChatVideo';
 import { LoadingView } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { isBlockedByMe, loadMessages, markRead, openConversation, reportMessage, sendAttachment, sendMessage, setBlocked, signedUrls, type Message } from '@/lib/chat';
@@ -30,7 +30,7 @@ export default function ChatScreen() {
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [panel, setPanel] = useState<Panel>(null);
   const [blocked, setBlockedState] = useState(false);
-  const [lightbox, setLightbox] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState<{ uri: string; video: boolean } | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const convRef = useRef<string | null>(null);
 
@@ -217,12 +217,12 @@ export default function ChatScreen() {
           )}
           renderMessageImage={(p) =>
             p.currentMessage.image ? (
-              <Pressable accessibilityRole="imagebutton" onPress={() => setLightbox(p.currentMessage.image ?? null)} style={{ margin: 4 }}>
+              <Pressable accessibilityRole="imagebutton" onPress={() => setLightbox({ uri: p.currentMessage.image ?? '', video: false })} style={{ margin: 4 }}>
                 <Image source={{ uri: p.currentMessage.image }} style={{ width: 220, height: 160, borderRadius: 12 }} resizeMode="cover" />
               </Pressable>
             ) : null
           }
-          renderMessageVideo={(p) => (p.currentMessage.video ? <ChatVideo uri={p.currentMessage.video} /> : null)}
+          renderMessageVideo={(p) => (p.currentMessage.video ? <ChatVideo uri={p.currentMessage.video} onOpen={() => setLightbox({ uri: p.currentMessage.video ?? '', video: true })} /> : null)}
           renderCustomView={(p) => {
             const m = p.currentMessage as ChatItem;
             return m.fileName ? (
@@ -236,10 +236,18 @@ export default function ChatScreen() {
         />
       </View>
       <Modal visible={!!lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(null)}>
-        <Pressable onPress={() => setLightbox(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
-          {lightbox ? <Image source={{ uri: lightbox }} style={{ width: '100%', height: '100%' }} resizeMode="contain" /> : null}
-          <Text style={{ position: 'absolute', top: 40, right: 24, color: '#FFFFFF', fontSize: 28 }}>✕</Text>
-        </Pressable>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
+          {lightbox?.video ? (
+            <ChatVideoFull uri={lightbox.uri} />
+          ) : lightbox ? (
+            <Pressable onPress={() => setLightbox(null)} style={{ width: '100%', height: '100%' }}>
+              <Image source={{ uri: lightbox.uri }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+            </Pressable>
+          ) : null}
+          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.close')} onPress={() => setLightbox(null)} style={{ position: 'absolute', top: 40, right: 24, padding: 8 }}>
+            <Text style={{ color: '#FFFFFF', fontSize: 28 }}>✕</Text>
+          </Pressable>
+        </View>
       </Modal>
     </SafeAreaView>
   );
