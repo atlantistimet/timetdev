@@ -630,7 +630,27 @@
     "read": "read",
     "write_to": "Send a message",
     "typing": "typing…",
-    "online": "online"
+    "online": "online",
+    "attach": "Attach",
+    "photoVideo": "Photo or video",
+    "pdf": "PDF document",
+    "menu": "Options",
+    "block": "Block user",
+    "unblock": "Unblock user",
+    "blockedByMe": "You blocked this user. Unblock to message them.",
+    "cantWrite": "You cannot write in this conversation.",
+    "report": "Report message",
+    "reportDone": "Report sent. Thank you.",
+    "reasonSpam": "Spam or scam",
+    "reasonAbuse": "Harassment or abuse",
+    "reasonExplicit": "Inappropriate content",
+    "reasonOther": "Other",
+    "close": "Close",
+    "openFile": "Open",
+    "errors": {
+      "type": "File type not allowed (photo, video or PDF).",
+      "size": "File too large (max 25 MB)."
+    }
   },
   "sessions": {
     "title": "My sessions",

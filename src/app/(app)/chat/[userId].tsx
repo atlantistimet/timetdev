@@ -1,15 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GiftedChat, type IMessage } from 'react-native-gifted-chat';
 import { useTranslation } from 'react-i18next';
+import { ChatVideo } from '@/components/ChatVideo';
 import { LoadingView } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { loadMessages, markRead, openConversation, sendMessage, type Message } from '@/lib/chat';
+import { isBlockedByMe, loadMessages, markRead, openConversation, reportMessage, sendAttachment, sendMessage, setBlocked, signedUrls, type Message } from '@/lib/chat';
 import { useChatPresence } from '@/lib/chat-presence';
 import { loadProfileById } from '@/lib/public-profile';
 import { useTheme } from '@/theme';
+
+type ChatItem = IMessage & { fileUrl?: string; fileName?: string };
+type Panel = null | 'attach' | 'menu' | { report: string };
 
 export default function ChatScreen() {
   const { t, i18n } = useTranslation();
@@ -21,6 +27,10 @@ export default function ChatScreen() {
   const [name, setName] = useState('');
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const [panel, setPanel] = useState<Panel>(null);
+  const [blocked, setBlockedState] = useState(false);
+  const [info, setInfo] = useState<string | null>(null);
   const convRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -35,6 +45,7 @@ export default function ChatScreen() {
         setConvId(conv.id);
         setMessages(await loadMessages(conv.id));
         void markRead(conv.id, me);
+        setBlockedState(await isBlockedByMe(me, userId));
       } else {
         setErrorKey(conv.errorKey);
         setMessages([]);
@@ -61,8 +72,21 @@ export default function ChatScreen() {
     return () => clearInterval(timer);
   }, [convId, refresh]);
 
+  // Gli allegati sono privati: servono indirizzi temporanei.
+  useEffect(() => {
+    const missing = (messages ?? []).flatMap((m) => (m.attachment && !urls[m.attachment.path] ? [m.attachment.path] : []));
+    if (missing.length === 0) return;
+    let alive = true;
+    void signedUrls(missing).then((got) => {
+      if (alive) setUrls((prev) => ({ ...prev, ...got }));
+    });
+    return () => {
+      alive = false;
+    };
+  }, [messages, urls]);
+
   // GiftedChat vuole i messaggi dal più recente: ✓ = inviato, ✓✓ = letto.
-  const items: IMessage[] = useMemo(
+  const items: ChatItem[] = useMemo(
     () =>
       [...(messages ?? [])].reverse().map((m) => ({
         _id: m.id,
@@ -71,8 +95,12 @@ export default function ChatScreen() {
         user: { _id: m.sender_id, name: m.sender_id === me ? '' : name },
         sent: true,
         received: !!m.read_at,
+        image: m.attachment?.type === 'image' ? urls[m.attachment.path] : undefined,
+        video: m.attachment?.type === 'video' ? urls[m.attachment.path] : undefined,
+        fileUrl: m.attachment?.type === 'file' ? urls[m.attachment.path] : undefined,
+        fileName: m.attachment?.type === 'file' ? m.attachment.name : undefined,
       })),
-    [messages, me, name],
+    [messages, me, name, urls],
   );
 
   const onSend = useCallback(
@@ -84,6 +112,51 @@ export default function ChatScreen() {
       else await refresh();
     },
     [convId, me, i18n.language, refresh],
+  );
+
+  const reload = async (id: string) => setMessages(await loadMessages(id));
+
+  const pickMedia = async () => {
+    setPanel(null);
+    if (!convId) return;
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images', 'videos'], quality: 0.8 });
+    const a = res.canceled ? null : res.assets[0];
+    if (!a) return;
+    const mime = a.mimeType ?? (a.type === 'video' ? 'video/mp4' : 'image/jpeg');
+    const failure = await sendAttachment(convId, me, { uri: a.uri, name: a.fileName ?? 'media', mime }, i18n.language.slice(0, 2));
+    if (failure) setErrorKey(failure);
+    else await reload(convId);
+  };
+
+  const pickPdf = async () => {
+    setPanel(null);
+    if (!convId) return;
+    const res = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true });
+    const a = res.canceled ? null : res.assets[0];
+    if (!a) return;
+    const failure = await sendAttachment(convId, me, { uri: a.uri, name: a.name, mime: 'application/pdf' }, i18n.language.slice(0, 2));
+    if (failure) setErrorKey(failure);
+    else await reload(convId);
+  };
+
+  const toggleBlock = async () => {
+    const next = !blocked;
+    await setBlocked(userId ?? '', next);
+    setBlockedState(next);
+    setPanel(null);
+  };
+
+  const report = async (id: string, reason: string) => {
+    const failure = await reportMessage(me, id, reason);
+    setPanel(null);
+    setInfo(failure ? null : t('chat.reportDone'));
+    if (failure) setErrorKey(failure);
+  };
+
+  const chip = (label: string, onPress: () => void, key?: string) => (
+    <Pressable key={key ?? label} accessibilityRole="button" onPress={onPress} style={{ backgroundColor: theme.fill, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8 }}>
+      <Text style={{ color: theme.text }}>{label}</Text>
+    </Pressable>
   );
 
   if (!messages) return <LoadingView />;
@@ -101,14 +174,56 @@ export default function ChatScreen() {
               {otherTyping ? t('chat.typing') : otherOnline ? t('chat.online') : ''}
             </Text>
           </View>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.menu')} onPress={() => setPanel(panel === 'menu' ? null : 'menu')}>
+            <Text style={{ color: theme.text, fontSize: 22 }}>⋯</Text>
+          </Pressable>
         </View>
+        {panel !== null ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 12, paddingBottom: 8 }}>
+            {panel === 'attach' ? (
+              <>
+                {chip(t('chat.photoVideo'), () => void pickMedia())}
+                {chip(t('chat.pdf'), () => void pickPdf())}
+              </>
+            ) : panel === 'menu' ? (
+              chip(blocked ? t('chat.unblock') : t('chat.block'), () => void toggleBlock())
+            ) : (
+              <>
+                {chip(t('chat.reasonSpam'), () => void report(panel.report, 'spam'))}
+                {chip(t('chat.reasonAbuse'), () => void report(panel.report, 'abuse'))}
+                {chip(t('chat.reasonExplicit'), () => void report(panel.report, 'inappropriate'))}
+                {chip(t('chat.reasonOther'), () => void report(panel.report, 'other'))}
+              </>
+            )}
+            {chip(t('chat.close'), () => setPanel(null), 'close')}
+          </View>
+        ) : null}
+        {info ? <Text style={{ color: theme.accent, paddingHorizontal: 12 }}>{info}</Text> : null}
         {errorKey ? <Text style={{ color: theme.danger, paddingHorizontal: 12 }}>{t(errorKey)}</Text> : null}
-        <GiftedChat
+        <GiftedChat<ChatItem>
           messages={items}
           onSend={(out) => void onSend(out)}
           user={{ _id: me }}
           isTyping={otherTyping}
           locale={i18n.language.slice(0, 2)}
+          onLongPressMessage={(_ctx, m) => {
+            if (m.user._id !== me) setPanel({ report: String(m._id) });
+          }}
+          renderActions={() => (
+            <Pressable accessibilityRole="button" accessibilityLabel={t('chat.attach')} onPress={() => setPanel(panel === 'attach' ? null : 'attach')} style={{ paddingHorizontal: 12, justifyContent: 'center' }}>
+              <Text style={{ color: theme.text, fontSize: 26 }}>＋</Text>
+            </Pressable>
+          )}
+          renderMessageVideo={(p) => (p.currentMessage.video ? <ChatVideo uri={p.currentMessage.video} /> : null)}
+          renderCustomView={(p) => {
+            const m = p.currentMessage as ChatItem;
+            return m.fileName ? (
+              <Pressable onPress={() => m.fileUrl && void Linking.openURL(m.fileUrl)} style={{ padding: 10 }}>
+                <Text style={{ color: theme.text, textDecorationLine: 'underline' }}>{`📄 ${m.fileName}`}</Text>
+              </Pressable>
+            ) : null;
+          }}
+          renderInputToolbar={blocked ? () => <Text style={{ color: theme.muted, padding: 12 }}>{t('chat.blockedByMe')}</Text> : undefined}
           textInputProps={{ placeholder: t('chat.write'), maxLength: 2000, onChangeText: () => notifyTyping() }}
         />
       </View>

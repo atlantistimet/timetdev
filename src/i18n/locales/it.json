@@ -630,7 +630,27 @@
     "read": "letto",
     "write_to": "Scrivi un messaggio",
     "typing": "sta scrivendo…",
-    "online": "online"
+    "online": "online",
+    "attach": "Allega",
+    "photoVideo": "Foto o video",
+    "pdf": "Documento PDF",
+    "menu": "Opzioni",
+    "block": "Blocca utente",
+    "unblock": "Sblocca utente",
+    "blockedByMe": "Hai bloccato questo utente. Sbloccalo per scrivergli.",
+    "cantWrite": "Non puoi scrivere in questa conversazione.",
+    "report": "Segnala messaggio",
+    "reportDone": "Segnalazione inviata. Grazie.",
+    "reasonSpam": "Spam o truffa",
+    "reasonAbuse": "Molestie o offese",
+    "reasonExplicit": "Contenuto inappropriato",
+    "reasonOther": "Altro",
+    "close": "Chiudi",
+    "openFile": "Apri",
+    "errors": {
+      "type": "Tipo di file non consentito (foto, video o PDF).",
+      "size": "File troppo grande (massimo 25 MB)."
+    }
   },
   "sessions": {
     "title": "Le mie sessioni",
