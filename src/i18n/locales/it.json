@@ -577,7 +577,15 @@
     "share": "Condividi",
     "linkCopied": "Link copiato negli appunti.",
     "postNotFound": "Post non trovato",
-    "postNotFoundHint": "Potrebbe essere stato eliminato."
+    "postNotFoundHint": "Potrebbe essere stato eliminato.",
+    "tagHint": "Tagga le persone che sono nel post: dovranno accettare prima che il tag sia visibile.",
+    "tagSearch": "Cerca per nome o @handle",
+    "with": "con",
+    "tagsPending": "{{count}} tag in attesa di risposta",
+    "tagRequest": "{{name}} ti ha taggato in questo post.",
+    "tagAccept": "Accetta il tag",
+    "tagDecline": "Rifiuta",
+    "tagRemove": "Rimuovi il mio tag"
   },
   "explore": {
     "search": "Cerca servizi, offerte o persone",

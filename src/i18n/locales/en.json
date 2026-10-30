@@ -577,7 +577,15 @@
     "share": "Share",
     "linkCopied": "Link copied to the clipboard.",
     "postNotFound": "Post not found",
-    "postNotFoundHint": "It may have been deleted."
+    "postNotFoundHint": "It may have been deleted.",
+    "tagHint": "Tag the people in this post: they must accept before the tag is visible.",
+    "tagSearch": "Search by name or @handle",
+    "with": "with",
+    "tagsPending": "{{count}} tag(s) awaiting a reply",
+    "tagRequest": "{{name}} tagged you in this post.",
+    "tagAccept": "Accept tag",
+    "tagDecline": "Decline",
+    "tagRemove": "Remove my tag"
   },
   "explore": {
     "search": "Search services, offers or people",

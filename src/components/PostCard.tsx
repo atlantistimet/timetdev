@@ -7,7 +7,7 @@ import { MediaGallery } from '@/components/MediaView';
 import { NowBadge } from '@/components/NowBadge';
 import { Body, Button, Card, Spacer } from '@/components/ui';
 import { formatEuro } from '@/lib/booking';
-import { deletePost, setLike, type Post } from '@/lib/feed';
+import { answerTag, deletePost, setLike, type Post } from '@/lib/feed';
 import { initials } from '@/lib/public-profile';
 import { postUrl, shareLink } from '@/lib/share';
 import { dayLabel } from '@/lib/time';
@@ -31,6 +31,7 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
   const [showComments, setShowComments] = useState(openComments);
   const [commentCount, setCommentCount] = useState(post.comments);
   const [shareNote, setShareNote] = useState<string | null>(null);
+  const [tags, setTags] = useState(post.tags);
   const mine = post.author_id === userId;
   const fmt = (cents: number) => formatEuro(cents, i18n.language);
 
@@ -44,6 +45,13 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
       setLikes((n) => n + (next ? -1 : 1));
     }
   };
+  const myTag = tags.find((x) => x.tagged_id === userId);
+  const answer = async (status: 'accepted' | 'declined' | 'removed') => {
+    if ((await answerTag(post.id, userId, status)) !== null) return;
+    setTags((l) => (status === 'accepted' ? l.map((x) => (x.tagged_id === userId ? { ...x, status: 'accepted' as const } : x)) : l.filter((x) => x.tagged_id !== userId)));
+  };
+  const visibleTags = tags.filter((x) => x.status === 'accepted');
+  const pendingCount = tags.filter((x) => x.status === 'pending' && x.tagged_id !== userId).length;
   const share = async () => {
     const text = post.body ? `${post.author.full_name}: ${post.body.slice(0, 120)}` : post.author.full_name;
     const result = await shareLink(text, postUrl(post.id));
@@ -77,6 +85,28 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
       {post.media.length > 0 ? <MediaGallery items={post.media} bucket="media" /> : null}
       {post.kind === 'slots' && post.link?.preview && post.media.length === 0 ? <MediaGallery items={[post.link.preview]} bucket="media" /> : null}
       {post.body ? <Body>{post.body}</Body> : null}
+      {visibleTags.length > 0 ? (
+        <Text style={{ color: theme.muted, fontSize: 13 }}>
+          {t('feed.with')}{' '}
+          {visibleTags.map((x, i) => (
+            <Text key={x.tagged_id} onPress={() => x.handle && router.push({ pathname: '/u/[handle]', params: { handle: x.handle } })} style={{ color: theme.text, fontWeight: '600' }}>
+              {x.full_name}
+              {i < visibleTags.length - 1 ? ', ' : ''}
+            </Text>
+          ))}
+        </Text>
+      ) : null}
+      {mine && pendingCount > 0 ? <Text style={{ color: theme.muted, fontSize: 12 }}>{t('feed.tagsPending', { count: pendingCount })}</Text> : null}
+      {myTag?.status === 'pending' ? (
+        <>
+          <Spacer size={8} />
+          <Body>{t('feed.tagRequest', { name: post.author.full_name })}</Body>
+          <Button title={t('feed.tagAccept')} onPress={() => void answer('accepted')} />
+          <Spacer size={8} />
+          <Button title={t('feed.tagDecline')} variant="ghost" onPress={() => void answer('declined')} />
+        </>
+      ) : null}
+      {myTag?.status === 'accepted' ? <Button title={t('feed.tagRemove')} variant="ghost" onPress={() => void answer('removed')} /> : null}
 
       {post.kind === 'offer' && post.offer ? (
         <>

@@ -1,6 +1,7 @@
 import { type MediaItem } from '@/lib/media';
 import { supabase } from '@/lib/supabase';
 
+export type PostTag = { tagged_id: string; status: 'pending' | 'accepted' | 'declined' | 'removed'; full_name: string; handle: string | null };
 export type PostKind = 'update' | 'offer' | 'slots';
 
 export type Post = {
@@ -14,6 +15,7 @@ export type Post = {
   slot_link_id: string | null;
   author: { full_name: string; handle: string | null; role_title: string | null; available_until: string | null };
   media: MediaItem[];
+  tags: PostTag[];
   likes: number;
   liked: boolean;
   comments: number;
@@ -32,6 +34,7 @@ type Row = {
   slot_link_id: string | null;
   profiles: Post['author'] | Post['author'][] | null;
   post_media: { path: string; type: 'image' | 'video'; position: number }[] | null;
+  post_tags: { tagged_id: string; status: PostTag['status']; profiles: { full_name: string; handle: string | null } | { full_name: string; handle: string | null }[] | null }[] | null;
   post_likes: { count: number }[] | null;
   post_comments: { count: number }[] | null;
   offers: { price_cents: number; discount_pct: number; duration_min: number; service_id: string; services: { title: string } | { title: string }[] | null } | null;
@@ -46,6 +49,7 @@ const first = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? 
 const SELECT = `id, author_id, kind, body, created_at, offer_id, service_id, slot_link_id,
   profiles!posts_author_id_fkey(full_name, handle, role_title, available_until),
   post_media(path, type, position),
+  post_tags(tagged_id, status, profiles!post_tags_tagged_id_fkey(full_name, handle)),
   post_likes(count),
   post_comments(count),
   offers(price_cents, discount_pct, duration_min, service_id, services(title)),
@@ -69,6 +73,9 @@ async function hydrate(rows: Row[], userId: string): Promise<Post[]> {
     slot_link_id: r.slot_link_id,
     author: first(r.profiles) ?? { full_name: '', handle: null, role_title: null, available_until: null },
     media: [...(r.post_media ?? [])].sort((a, b) => a.position - b.position).map((m) => ({ path: m.path, type: m.type })),
+    tags: (r.post_tags ?? [])
+      .filter((x) => x.status === 'accepted' || x.status === 'pending')
+      .map((x) => ({ tagged_id: x.tagged_id, status: x.status, full_name: first(x.profiles)?.full_name ?? '', handle: first(x.profiles)?.handle ?? null })),
     likes: r.post_likes?.[0]?.count ?? 0,
     liked: likedSet.has(r.id),
     comments: r.post_comments?.[0]?.count ?? 0,
@@ -109,6 +116,7 @@ export async function createPost(input: {
   offerId?: string;
   serviceId?: string;
   slotLinkId?: string;
+  tagIds?: string[];
 }): Promise<{ id: string | null; errorKey: string | null }> {
   const { data, error } = await supabase
     .from('posts')
@@ -130,7 +138,29 @@ export async function createPost(input: {
       .insert(input.media.map((m, i) => ({ post_id: data.id, path: m.path, type: m.type, position: i })));
     if (mediaError) return { id: data.id, errorKey: 'errors.generic' };
   }
+  if (input.tagIds && input.tagIds.length > 0) {
+    const { error: tagError } = await supabase.from('post_tags').insert(input.tagIds.slice(0, MAX_TAGS).map((tagged_id) => ({ post_id: data.id, tagged_id })));
+    if (tagError) return { id: data.id, errorKey: 'errors.generic' };
+  }
   return { id: data.id, errorKey: null };
+}
+
+export const MAX_TAGS = 5;
+
+export type PersonHit = { id: string; full_name: string; handle: string | null };
+
+/** Cerca persone per nome o @handle, per taggarle. */
+export async function searchPeople(text: string, excludeId: string): Promise<PersonHit[]> {
+  const q = text.trim().replace(/^@/, '').replace(/[%,()]/g, ' ');
+  if (q.length < 2) return [];
+  const { data } = await supabase.from('profiles').select('id, full_name, handle').or(`full_name.ilike.%${q}%,handle.ilike.%${q}%`).neq('id', excludeId).limit(6);
+  return (data ?? []) as PersonHit[];
+}
+
+/** Chi è taggato accetta o rifiuta (o toglie il proprio tag). */
+export async function answerTag(postId: string, userId: string, status: 'accepted' | 'declined' | 'removed'): Promise<string | null> {
+  const { error } = await supabase.from('post_tags').update({ status, responded_at: new Date().toISOString() }).eq('post_id', postId).eq('tagged_id', userId);
+  return error ? 'errors.generic' : null;
 }
 
 export async function deletePost(id: string): Promise<string | null> {

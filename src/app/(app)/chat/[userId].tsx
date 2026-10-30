@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Image, Linking, Modal, Pressable, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -30,6 +30,7 @@ export default function ChatScreen() {
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [panel, setPanel] = useState<Panel>(null);
   const [blocked, setBlockedState] = useState(false);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const convRef = useRef<string | null>(null);
 
@@ -214,6 +215,13 @@ export default function ChatScreen() {
               <Text style={{ color: theme.text, fontSize: 26 }}>＋</Text>
             </Pressable>
           )}
+          renderMessageImage={(p) =>
+            p.currentMessage.image ? (
+              <Pressable accessibilityRole="imagebutton" onPress={() => setLightbox(p.currentMessage.image ?? null)} style={{ margin: 4 }}>
+                <Image source={{ uri: p.currentMessage.image }} style={{ width: 220, height: 160, borderRadius: 12 }} resizeMode="cover" />
+              </Pressable>
+            ) : null
+          }
           renderMessageVideo={(p) => (p.currentMessage.video ? <ChatVideo uri={p.currentMessage.video} /> : null)}
           renderCustomView={(p) => {
             const m = p.currentMessage as ChatItem;
@@ -227,6 +235,12 @@ export default function ChatScreen() {
           textInputProps={{ placeholder: t('chat.write'), maxLength: 2000, onChangeText: () => notifyTyping() }}
         />
       </View>
+      <Modal visible={!!lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(null)}>
+        <Pressable onPress={() => setLightbox(null)} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
+          {lightbox ? <Image source={{ uri: lightbox }} style={{ width: '100%', height: '100%' }} resizeMode="contain" /> : null}
+          <Text style={{ position: 'absolute', top: 40, right: 24, color: '#FFFFFF', fontSize: 28 }}>✕</Text>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
