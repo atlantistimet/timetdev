@@ -7,7 +7,13 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "world.timeet.dev",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Timeet usa la fotocamera per le videochiamate.",
+        "NSMicrophoneUsageDescription": "Timeet usa il microfono per le chiamate.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -16,7 +22,13 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "world.timeet.dev",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -30,7 +42,18 @@
       "expo-video",
       [
         "expo-image-picker",
-        { "photosPermission": "Timeet usa le tue foto e i tuoi video per servizi, post e anteprime." }
+        {
+          "photosPermission": "Timeet usa le tue foto e i tuoi video per servizi, post e anteprime."
+        }
+      ],
+      "expo-dev-client",
+      "@livekit/react-native-expo-plugin",
+      "@config-plugins/react-native-webrtc",
+      [
+        "@stripe/stripe-react-native",
+        {
+          "enableGooglePay": false
+        }
       ]
     ],
     "scheme": "timeet",

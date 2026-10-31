@@ -1,9 +1,10 @@
 import { FunctionsHttpError } from '@supabase/supabase-js';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
 import { supabase } from '@/lib/supabase';
 
-/** Per ora la stanza video funziona dal browser; sul telefono arriverà con la build di sviluppo (libreria LiveKit nativa). */
-export const callsSupported = Platform.OS === 'web';
+/** Le chiamate funzionano dal browser e nell'app installata (build di sviluppo o di produzione), non in Expo Go: manca la libreria LiveKit nativa. */
+export const callsSupported = Platform.OS === 'web' || Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
 
 // Regole di prezzo (le stesse del server, qui solo per le anteprime: il server ricalcola sempre).
 export const CALL_BLOCK_MIN = 15;

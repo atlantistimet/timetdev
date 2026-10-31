@@ -783,7 +783,12 @@
       "livekit_not_configured": "The video service is not active yet.",
       "stripe_error": "The payment didn't start. Try again."
     },
-    "ringLeftSeller": "{{name}} has {{seconds}} more seconds to answer."
+    "ringLeftSeller": "{{name}} has {{seconds}} more seconds to answer.",
+    "micOn": "Unmute",
+    "micOff": "Mute",
+    "camOn": "Camera on",
+    "camOff": "Camera off",
+    "hangup": "Hang up"
   },
   "delete": {
     "yes": "Yes, delete",

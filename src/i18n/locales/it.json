@@ -783,7 +783,12 @@
       "livekit_not_configured": "Il servizio video non è ancora attivo.",
       "stripe_error": "Il pagamento non è partito. Riprova."
     },
-    "ringLeftSeller": "{{name}} ha ancora {{seconds}} secondi per rispondere."
+    "ringLeftSeller": "{{name}} ha ancora {{seconds}} secondi per rispondere.",
+    "micOn": "Attiva microfono",
+    "micOff": "Silenzia",
+    "camOn": "Attiva camera",
+    "camOff": "Spegni camera",
+    "hangup": "Chiudi"
   },
   "delete": {
     "yes": "Sì, elimina",
