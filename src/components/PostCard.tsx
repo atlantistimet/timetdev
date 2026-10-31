@@ -7,6 +7,7 @@ import { MediaGallery } from '@/components/MediaView';
 import { NowBadge } from '@/components/NowBadge';
 import { Body, Button, Card, Spacer } from '@/components/ui';
 import { formatEuro } from '@/lib/booking';
+import { TagEditor } from '@/components/TagEditor';
 import { answerTag, deletePost, setLike, type Post } from '@/lib/feed';
 import { initials } from '@/lib/public-profile';
 import { postUrl, shareLink } from '@/lib/share';
@@ -32,6 +33,7 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
   const [commentCount, setCommentCount] = useState(post.comments);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [tags, setTags] = useState(post.tags);
+  const [editingTags, setEditingTags] = useState(false);
   const mine = post.author_id === userId;
   const fmt = (cents: number) => formatEuro(cents, i18n.language);
 
@@ -97,6 +99,12 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
         </Text>
       ) : null}
       {mine && pendingCount > 0 ? <Text style={{ color: theme.muted, fontSize: 12 }}>{t('feed.tagsPending', { count: pendingCount })}</Text> : null}
+      {mine ? (
+        <>
+          <Button title={editingTags ? t('feed.tagEditDone') : t('feed.tagEdit')} variant="ghost" onPress={() => setEditingTags((v) => !v)} />
+          {editingTags ? <TagEditor postId={post.id} authorId={userId} tags={tags} onChange={setTags} /> : null}
+        </>
+      ) : null}
       {myTag?.status === 'pending' ? (
         <>
           <Spacer size={8} />

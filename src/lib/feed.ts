@@ -196,3 +196,10 @@ export async function loadPostById(id: string, userId: string): Promise<Post | n
   if (!data) return null;
   return (await hydrate([data as unknown as Row], userId))[0] ?? null;
 }
+
+/** L'autore aggiunge o toglie un tag a un post già pubblicato. Null se è andata bene, altrimenti la chiave dell'errore. */
+export async function setPostTag(postId: string, userId: string, add: boolean): Promise<string | null> {
+  const { data, error } = await supabase.rpc('set_post_tag', { p_post: postId, p_user: userId, p_add: add });
+  if (error) return 'errors.generic';
+  return data === 'ok' ? null : data === 'max' ? 'feed.tagErrors.max' : data === 'declined' ? 'feed.tagErrors.declined' : 'errors.generic';
+}

@@ -585,7 +585,15 @@
     "tagRequest": "{{name}} ti ha taggato in questo post.",
     "tagAccept": "Accetta il tag",
     "tagDecline": "Rifiuta",
-    "tagRemove": "Rimuovi il mio tag"
+    "tagRemove": "Rimuovi il mio tag",
+    "tagEdit": "Modifica tag",
+    "tagEditDone": "Fatto",
+    "tagEditHint": "Tocca un nome per toglierlo, oppure cerca una persona da taggare. Dovrà accettare prima che il tag sia visibile.",
+    "tagWaiting": "in attesa",
+    "tagErrors": {
+      "max": "Puoi taggare al massimo 5 persone.",
+      "declined": "Questa persona ha già rifiutato o tolto il tag."
+    }
   },
   "explore": {
     "search": "Cerca servizi, offerte o persone",
