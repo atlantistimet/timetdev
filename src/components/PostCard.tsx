@@ -15,13 +15,18 @@ import { dayLabel } from '@/lib/time';
 import { discountedCents } from '@/lib/validity';
 import { useTheme } from '@/theme';
 
+// Intl.RelativeTimeFormat non esiste nel motore JS del telefono (Hermes): formato a mano.
 function timeAgo(iso: string, language: string, nowMs: number): string {
+  const it = language.startsWith('it');
   const diff = (new Date(iso).getTime() - nowMs) / 1000;
-  const rtf = new Intl.RelativeTimeFormat(language, { numeric: 'auto', style: 'short' });
   const abs = Math.abs(diff);
-  if (abs < 3600) return rtf.format(Math.round(diff / 60), 'minute');
-  if (abs < 86_400) return rtf.format(Math.round(diff / 3600), 'hour');
-  return rtf.format(Math.round(diff / 86_400), 'day');
+  if (abs < 60) return it ? 'adesso' : 'now';
+  const [n, unit] =
+    abs < 3600 ? [Math.round(abs / 60), it ? 'min' : 'min'] :
+    abs < 86_400 ? [Math.round(abs / 3600), it ? 'h' : 'h'] :
+    [Math.round(abs / 86_400), it ? 'g' : 'd'];
+  if (diff > 0) return it ? `tra ${n} ${unit}` : `in ${n} ${unit}`;
+  return it ? `${n} ${unit} fa` : `${n} ${unit} ago`;
 }
 
 export function PostCard({ post, userId, nowMs, onDeleted, openComments = false }: { post: Post; userId: string; nowMs: number; onDeleted: () => void; openComments?: boolean }) {
