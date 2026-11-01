@@ -8,7 +8,8 @@
     "translate": "Traduci",
     "translatedAuto": "Tradotto automaticamente",
     "showOriginal": "Mostra originale",
-    "back": "Indietro"
+    "back": "Indietro",
+    "close": "Chiudi"
   },
   "home": {
     "title": "Timeet Marketplace",
@@ -261,11 +262,11 @@
     "noShowHint": "Se il cliente è assente non è previsto alcun rimborso. Senza una tua scelta, dopo 24 ore risulta conclusa."
   },
   "tabs": {
-    "home": "Home",
+    "feed": "Feed",
     "explore": "Esplora",
     "agenda": "Agenda",
-    "profile": "Profilo",
-    "new": "Nuovo"
+    "messages": "Messaggi",
+    "profile": "Profilo"
   },
   "myServices": {
     "title": "I miei servizi",
@@ -825,5 +826,14 @@
       "review_reply": "{{name}} ha risposto alla tua recensione: «{{snippet}}»",
       "tag_accepted": "{{name}} ha accettato il tag nel tuo post."
     }
+  },
+  "create": {
+    "title": "Cosa vuoi creare?",
+    "post": "Nuovo post",
+    "postHint": "Compare nel feed di chi ti segue, con foto, video e persone taggate.",
+    "offer": "Nuova offerta",
+    "offerHint": "Uno sconto pubblico su un tuo servizio, visibile nel tuo profilo.",
+    "slot": "Nuovo slot personalizzato",
+    "slotHint": "Un invito privato per una persona, con un link: non compare in profilo né nel feed."
   }
 }

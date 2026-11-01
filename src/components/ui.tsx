@@ -267,7 +267,7 @@ export function Spacer({ size = 16 }: { size?: number }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   screenContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 24 },
-  screenTabs: { justifyContent: 'flex-start', paddingBottom: 40 },
+  screenTabs: { justifyContent: 'flex-start', paddingBottom: 130 },
   chip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 18, borderRadius: radius.pill },
   chipText: { fontSize: 15, fontFamily: fonts.semibold },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },

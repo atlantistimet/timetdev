@@ -49,11 +49,6 @@ export default function NewPostScreen() {
   return (
     <Screen>
       <Title>{t('feed.newTitle')}</Title>
-      <ChipRow>
-        <Chip label={t('feed.kind.update')} selected onPress={() => {}} />
-        <Chip label={t('feed.kind.offer')} selected={false} onPress={() => router.replace('/offer-edit')} />
-        <Chip label={t('feed.kind.slots')} selected={false} onPress={() => router.replace('/slot-link-edit')} />
-      </ChipRow>
       <Body muted>{t('feed.newHint')}</Body>
       <Spacer />
       <TextField label={t('feed.bodyLabel')} value={body} onChangeText={setBody} multiline maxLength={2000} placeholder={t('feed.bodyPlaceholder')} />

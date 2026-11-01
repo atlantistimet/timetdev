@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Body, Button, CardButton, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { Body, CardButton, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { listConversations, type ConversationItem } from '@/lib/chat';
@@ -32,7 +32,7 @@ export default function MessagesScreen() {
 
   if (!items) return <LoadingView />;
   return (
-    <Screen>
+    <Screen tabs>
       <Title>{t('chat.title')}</Title>
       <Spacer />
       {items.length === 0 ? <Body muted>{t('chat.none')}</Body> : null}
@@ -44,8 +44,6 @@ export default function MessagesScreen() {
           onPress={() => router.push({ pathname: '/chat/[userId]', params: { userId: c.otherId } })}
         />
       ))}
-      <Spacer />
-      <Button title={t('common.back')} variant="ghost" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
     </Screen>
   );
 }

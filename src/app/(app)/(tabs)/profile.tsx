@@ -40,7 +40,6 @@ export default function ProfileScreen() {
       />
       {session?.user.id ? <AvailableNowCard userId={session.user.id} /> : null}
       <CardButton title={t('sessions.title')} subtitle={t('sessions.hint')} onPress={() => router.push('/sessions')} />
-      <CardButton title={t('chat.title')} subtitle={t('chat.hint')} onPress={() => router.push('/messages')} />
       <CardButton title={t('home.sellerArea')} subtitle={t('home.sellerHint')} onPress={() => router.push('/seller')} />
       <Card>
         <Body>{t('settings.language')}</Body>
