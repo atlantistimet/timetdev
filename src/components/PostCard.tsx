@@ -83,8 +83,8 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
           {availableNow ? <NowBadge /> : null}
         </View>
         {post.kind !== 'update' ? (
-          <View style={[styles.badge, { backgroundColor: theme.accentSoft }]}>
-            <Text style={{ color: theme.accent, fontSize: 11, fontWeight: '800' }}>{t(`feed.kind.${post.kind}`)}</Text>
+          <View style={[styles.badge, { backgroundColor: theme.accent }]}>
+            <Text style={{ color: theme.onAccent, fontSize: 12, fontWeight: '600' }}>{t(`feed.kind.${post.kind}`)}</Text>
           </View>
         ) : null}
       </Pressable>

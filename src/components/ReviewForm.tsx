@@ -31,7 +31,7 @@ export function ReviewForm({ bookingId, authorId, sellerId, onDone }: { bookingI
       <View style={{ flexDirection: 'row', gap: 6 }}>
         {[1, 2, 3, 4, 5].map((n) => (
           <Pressable key={n} accessibilityRole="button" accessibilityLabel={`${n}`} onPress={() => setRating(n)}>
-            <Text style={{ fontSize: 30, color: n <= rating ? theme.accent : theme.muted }}>{n <= rating ? '★' : '☆'}</Text>
+            <Text style={{ fontSize: 30, color: n <= rating ? theme.text : theme.muted }}>{n <= rating ? '★' : '☆'}</Text>
           </Pressable>
         ))}
       </View>

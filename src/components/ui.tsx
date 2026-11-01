@@ -12,7 +12,7 @@ import {
   type TextInputProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTheme } from '@/theme';
+import { fonts, useTheme } from '@/theme';
 
 /** Contenitore di schermata: area sicura, tastiera che non copre i campi, contenuto centrato e largo al massimo 440. */
 export function Screen({ children, tabs, wide }: { children: ReactNode; tabs?: boolean; wide?: boolean }) {
@@ -84,12 +84,14 @@ type ButtonProps = {
   title: string;
   onPress: () => void;
   loading?: boolean;
-  variant?: 'primary' | 'ghost';
+  /** primary = lime (azione principale) · dark = nero (azione secondaria forte) · ghost = grigio pieno. */
+  variant?: 'primary' | 'dark' | 'ghost';
 };
 
 export function Button({ title, onPress, loading, variant = 'primary' }: ButtonProps) {
   const theme = useTheme();
-  const primary = variant === 'primary';
+  const bg = variant === 'primary' ? theme.accent : variant === 'dark' ? theme.primary : theme.fill;
+  const fg = variant === 'primary' ? theme.onAccent : variant === 'dark' ? theme.onPrimary : theme.text;
   return (
     <Pressable
       accessibilityRole="button"
@@ -98,16 +100,14 @@ export function Button({ title, onPress, loading, variant = 'primary' }: ButtonP
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        primary
-          ? { backgroundColor: theme.primary }
-          : { backgroundColor: theme.fill },
+        { backgroundColor: bg },
         pressed && styles.pressed,
         loading && styles.disabled,
       ]}>
       {loading ? (
-        <ActivityIndicator color={primary ? theme.onPrimary : theme.text} />
+        <ActivityIndicator color={fg} />
       ) : (
-        <Text style={[styles.buttonText, { color: primary ? theme.onPrimary : theme.text }]}>{title}</Text>
+        <Text style={[styles.buttonText, { color: fg }]}>{title}</Text>
       )}
     </Pressable>
   );
@@ -169,7 +169,7 @@ export function ChipRow({ children }: { children: ReactNode }) {
   return <View style={styles.chipRow}>{children}</View>;
 }
 
-/** Card bianca senza bordo, come nel prototipo. */
+/** Card bianca senza bordo (tema C). */
 export function Card({ children }: { children: ReactNode }) {
   const theme = useTheme();
   return <View style={[styles.card, { backgroundColor: theme.surface }]}>{children}</View>;
@@ -205,28 +205,28 @@ export function Spacer({ size = 16 }: { size?: number }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   screenContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 24 },
-  screenTabs: { justifyContent: 'flex-start', paddingBottom: 120 },
-  chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999 },
-  chipText: { fontSize: 13, fontWeight: '600' },
+  screenTabs: { justifyContent: 'flex-start', paddingBottom: 40 },
+  chip: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999 },
+  chipText: { fontSize: 14, fontFamily: fonts.medium },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   card: { borderRadius: 24, padding: 16, marginBottom: 10 },
-  cardTitle: { fontSize: 17, fontWeight: '700', marginBottom: 2 },
+  cardTitle: { fontSize: 17, fontFamily: fonts.medium, marginBottom: 2 },
   screenColumn: { width: '100%', maxWidth: 440, alignSelf: 'center' },
   screenColumnWide: { maxWidth: 960 },
-  title: { fontSize: 28, fontWeight: '800', letterSpacing: -0.8, marginBottom: 8 },
-  body: { fontSize: 16, lineHeight: 22 },
+  title: { fontSize: 32, lineHeight: 36, fontFamily: fonts.regular, letterSpacing: -1, marginBottom: 8 },
+  body: { fontSize: 16, lineHeight: 22, fontFamily: fonts.regular },
   field: { marginBottom: 16 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 6 },
-  input: { minHeight: 50, borderRadius: 14, paddingHorizontal: 14, fontSize: 16 },
-  hint: { fontSize: 13, marginTop: 6 },
-  error: { fontSize: 13, marginTop: 6 },
-  button: { minHeight: 50, borderRadius: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 16 },
-  buttonText: { fontSize: 15, fontWeight: '700' },
+  label: { fontSize: 14, fontFamily: fonts.medium, marginBottom: 6 },
+  input: { minHeight: 50, borderRadius: 14, paddingHorizontal: 14, fontSize: 16, fontFamily: fonts.regular },
+  hint: { fontSize: 13, marginTop: 6, fontFamily: fonts.regular },
+  error: { fontSize: 13, marginTop: 6, fontFamily: fonts.regular },
+  button: { minHeight: 52, borderRadius: 999, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
+  buttonText: { fontSize: 16, fontFamily: fonts.semibold },
   pressed: { opacity: 0.8 },
   disabled: { opacity: 0.7 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', minHeight: 48 },
   checkbox: { width: 24, height: 24, borderWidth: 2, borderRadius: 6, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
   checkmark: { fontSize: 15, fontWeight: '700' },
-  checkboxLabel: { flex: 1, fontSize: 15, lineHeight: 21 },
+  checkboxLabel: { flex: 1, fontSize: 15, lineHeight: 21, fontFamily: fonts.regular },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

@@ -1,14 +1,15 @@
-import type { ColorValue } from 'react-native';
+import { View, type ColorValue } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
 import { useUnreadCount } from '@/lib/notifications';
-import { useTheme } from '@/theme';
+import { fonts, useTheme } from '@/theme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
-// Barra in basso flottante, come nel prototipo: pillola chiara, voce attiva evidenziata.
+// Barra in basso del tema C: fissa (non copre più la fine delle pagine), bianca con bordo sottile,
+// voce attiva con una pillola lime dietro l'icona.
 export default function TabsLayout() {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -16,7 +17,19 @@ export default function TabsLayout() {
   const unread = useUnreadCount(session?.user.id ?? null);
   const icon = (name: IconName, nameOn: IconName) =>
     function TabIcon({ color, focused }: { color: ColorValue; focused: boolean }) {
-      return <Ionicons name={focused ? nameOn : name} size={22} color={color} />;
+      return (
+        <View
+          style={{
+            width: 52,
+            height: 30,
+            borderRadius: 999,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: focused ? theme.accent : 'transparent',
+          }}>
+          <Ionicons name={focused ? nameOn : name} size={22} color={focused ? theme.onAccent : color} />
+        </View>
+      );
     };
   return (
     <Tabs
@@ -25,24 +38,14 @@ export default function TabsLayout() {
         tabBarActiveTintColor: theme.text,
         tabBarInactiveTintColor: theme.muted,
         tabBarShowLabel: true,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
-        tabBarItemStyle: { borderRadius: 999, marginVertical: 5 },
-        tabBarActiveBackgroundColor: theme.glassOn,
+        tabBarLabelStyle: { fontSize: 11, fontFamily: fonts.medium },
         tabBarStyle: {
-          position: 'absolute',
-          left: 16,
-          right: 16,
-          bottom: 14,
-          height: 64,
-          borderRadius: 999,
-          borderTopWidth: 0,
           backgroundColor: theme.glass,
-          paddingHorizontal: 5,
-          shadowColor: '#000',
-          shadowOpacity: 0.1,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: 8,
+          borderTopWidth: 1,
+          borderTopColor: theme.line,
+          paddingTop: 6,
+          elevation: 0,
+          shadowOpacity: 0,
         },
         sceneStyle: { backgroundColor: theme.bg },
       }}>
@@ -59,7 +62,7 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen name="bookings" options={{ title: t('tabs.agenda'), tabBarIcon: icon('calendar-outline', 'calendar') }} />
-      <Tabs.Screen name="profile" options={{ title: t('tabs.profile'), tabBarIcon: icon('person-outline', 'person'), tabBarBadge: unread > 0 ? (unread > 9 ? '9+' : unread) : undefined }} />
+      <Tabs.Screen name="profile" options={{ title: t('tabs.profile'), tabBarIcon: icon('person-outline', 'person'), tabBarBadge: unread > 0 ? (unread > 9 ? '9+' : unread) : undefined, tabBarBadgeStyle: { backgroundColor: theme.primary, color: theme.onPrimary, fontFamily: fonts.semibold } }} />
     </Tabs>
   );
 }

@@ -13,7 +13,8 @@
         "NSCameraUsageDescription": "Timeet usa la fotocamera per le videochiamate.",
         "NSMicrophoneUsageDescription": "Timeet usa il microfono per le chiamate.",
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "appleTeamId": "MP2ZP7C4T6"
     },
     "android": {
       "adaptiveIcon": {
@@ -53,6 +54,14 @@
         "@stripe/stripe-react-native",
         {
           "enableGooglePay": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "enableSceneSupport": true
+          }
         }
       ]
     ],

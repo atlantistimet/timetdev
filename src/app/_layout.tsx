@@ -1,5 +1,12 @@
 import '@/i18n';
 import { useEffect } from 'react';
+import {
+  InterTight_300Light,
+  InterTight_400Regular,
+  InterTight_500Medium,
+  InterTight_600SemiBold,
+  useFonts,
+} from '@expo-google-fonts/inter-tight';
 import { Stack, router, usePathname, type Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -66,6 +73,9 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  // Carattere del tema (Inter Tight): finché non è caricato resta lo splash; se il caricamento fallisce si usa quello di sistema.
+  const [fontsLoaded, fontsError] = useFonts({ InterTight_300Light, InterTight_400Regular, InterTight_500Medium, InterTight_600SemiBold });
+  if (!fontsLoaded && !fontsError) return null;
   return (
     <AuthProvider>
       <RootNavigator />
