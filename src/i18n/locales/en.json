@@ -185,7 +185,8 @@
     "instantNow": "Book now",
     "instantPay": "Go to payment: starts right away",
     "instantHint": "The seller is available now. After payment the session ({{minutes}} min) starts right away, no time to pick.",
-    "paidBodyInstant": "Payment went through: your session has started. Find it in Agenda."
+    "paidBodyInstant": "Payment went through: your session has started. Find it in Agenda.",
+    "packageShort": "{{count}} sessions"
   },
   "policy": {
     "title": "Cancellation policy",
@@ -605,7 +606,7 @@
     }
   },
   "explore": {
-    "search": "Search services, offers or people",
+    "search": "Search people or services",
     "allCategories": "All",
     "availableNow": "Available now",
     "noResults": "No results with these filters.",
@@ -620,14 +621,18 @@
     "activeUntil": "Available until {{time}}",
     "maxCategories": "You can pick up to 3.",
     "viewProfile": "View profile",
-    "greeting": "Hi, {{name}}",
-    "greetingSub": "Who would you like to meet today?",
+    "greeting": "Hi {{name}}",
+    "greetingSub": "Who are you spending time with today?",
     "nowTitle": "Available now",
     "forYou": "For you",
     "perMin": "{{price}}/min",
     "reviewsCount": "({{count}})",
     "noRating": "New",
-    "minutes": "{{n}} min"
+    "minutes": "{{n}} min",
+    "seeAll": "All",
+    "filters": "Filters",
+    "onlyNow": "Only available now",
+    "apply": "Show results"
   },
   "comments": {
     "none": "No comments yet.",

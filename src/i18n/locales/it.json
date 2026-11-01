@@ -185,7 +185,8 @@
     "instantNow": "Prenota ora",
     "instantPay": "Vai al pagamento: parte subito",
     "instantHint": "Il venditore è disponibile ora. Dopo il pagamento la sessione ({{minutes}} min) parte subito, senza scegliere un orario.",
-    "paidBodyInstant": "Pagamento riuscito: la sessione è iniziata. La trovi in Agenda."
+    "paidBodyInstant": "Pagamento riuscito: la sessione è iniziata. La trovi in Agenda.",
+    "packageShort": "{{count}} lezioni"
   },
   "policy": {
     "title": "Policy di cancellazione",
@@ -605,7 +606,7 @@
     }
   },
   "explore": {
-    "search": "Cerca servizi, offerte o persone",
+    "search": "Cerca persone o servizi",
     "allCategories": "Tutte",
     "availableNow": "Disponibile ora",
     "noResults": "Nessun risultato con questi filtri.",
@@ -620,14 +621,18 @@
     "activeUntil": "Disponibile fino alle {{time}}",
     "maxCategories": "Puoi sceglierne al massimo 3.",
     "viewProfile": "Vedi profilo",
-    "greeting": "Ciao, {{name}}",
-    "greetingSub": "Chi vuoi incontrare oggi?",
+    "greeting": "Ciao {{name}}",
+    "greetingSub": "Con chi passi il tempo oggi?",
     "nowTitle": "Disponibili ora",
     "forYou": "Per te",
     "perMin": "{{price}}/min",
     "reviewsCount": "({{count}})",
     "noRating": "Nuovo",
-    "minutes": "{{n}} min"
+    "minutes": "{{n}} min",
+    "seeAll": "Tutti",
+    "filters": "Filtri",
+    "onlyNow": "Solo disponibili ora",
+    "apply": "Mostra risultati"
   },
   "comments": {
     "none": "Ancora nessun commento.",

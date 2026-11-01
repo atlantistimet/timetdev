@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { Emoji } from '@/components/Emoji';
 import { MediaGallery } from '@/components/MediaView';
-import { Body, Button, Card, ErrorText, LoadingView, Pill, Screen, Spacer, TextField } from '@/components/ui';
+import { Body, Button, Chip, ErrorText, LoadingView, Pill, Screen, Spacer } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro, listSlotServices, type SlotService } from '@/lib/booking';
 import {
@@ -18,7 +19,7 @@ import {
   type ServiceRating,
 } from '@/lib/explore';
 import { type MediaItem } from '@/lib/media';
-import { finalPriceCents, listPublicOffers, validityText, type Offer } from '@/lib/offers';
+import { finalPriceCents, listPublicOffers, type Offer } from '@/lib/offers';
 import { listCovers } from '@/lib/service-media';
 import { fonts, pastelFor, radius, type, useTheme } from '@/theme';
 
@@ -41,6 +42,8 @@ export default function ServicesScreen() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<string | null>(null);
   const [now, setNow] = useState(0);
+  const [onlyNow, setOnlyNow] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -68,6 +71,7 @@ export default function ServicesScreen() {
     const ok = (sellerId: string, title: string) => {
       const seller = result.sellers[sellerId];
       if (category && !seller?.categories.includes(category)) return false;
+      if (onlyNow && !isAvailableNow(seller, now)) return false;
       if (!q) return true;
       return [title, seller?.full_name, seller?.handle, seller?.role_title, seller?.city].some((v) => v?.toLowerCase().includes(q));
     };
@@ -75,7 +79,7 @@ export default function ServicesScreen() {
       offers: result.offers.filter((o) => ok(o.seller_id, o.service_title)),
       services: result.services.filter((s) => ok(s.seller_id, s.title)),
     };
-  }, [result, query, category]);
+  }, [result, query, category, onlyNow, now]);
 
   // Persone disponibili ora che hanno almeno un servizio prenotabile.
   const nowPeople = useMemo(() => {
@@ -105,14 +109,68 @@ export default function ServicesScreen() {
       : service.kind === 'package'
         ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: formatEuro(service.price_cents, i18n.language) })
         : `${formatEuro(service.price_cents, i18n.language)} · ${t('explore.minutes', { n: service.duration_min })}`;
-  const nothing = filtered.offers.length === 0 && filtered.services.length === 0;
+
+  const emojiOf = (sellerId: string) => {
+    const key = result.sellers[sellerId]?.categories[0];
+    return result.categories.find((c) => c.key === key)?.emoji ?? null;
+  };
+  const rows = [
+    ...filtered.offers.map((o) => ({
+      id: `o-${o.id}`,
+      sellerId: o.seller_id,
+      serviceId: o.service_id,
+      title: o.service_title,
+      meta: `${t('explore.minutes', { n: o.duration_min })}`,
+      price: formatEuro(finalPriceCents(o), i18n.language),
+      badge: `−${o.discount_pct}%`,
+      onPress: () => router.push({ pathname: '/book', params: { serviceId: o.service_id, offerId: o.id } }),
+    })),
+    ...filtered.services.map((s) => ({
+      id: `s-${s.id}`,
+      sellerId: s.seller_id,
+      serviceId: s.id,
+      title: s.title,
+      meta: s.kind === 'package' ? t('book.packageShort', { count: s.sessions ?? 0 }) : t('explore.minutes', { n: s.duration_min }),
+      price:
+        s.kind === 'per_minute' && s.rate_cents_per_min
+          ? t('explore.perMin', { price: formatEuro(s.rate_cents_per_min, i18n.language) })
+          : formatEuro(s.price_cents, i18n.language),
+      badge: null as string | null,
+      onPress: () => router.push({ pathname: '/service/[id]', params: { id: s.id } }),
+    })),
+  ];
 
   return (
     <Screen tabs>
-      <Text style={[type.title, { color: theme.text }]}>{t('explore.greeting', { name: firstName })}</Text>
-      <Text style={[type.body, { color: theme.muted, marginTop: 4 }]}>{t('explore.greetingSub')}</Text>
-      <Spacer />
-      <TextField label={t('explore.search')} value={query} onChangeText={setQuery} autoCapitalize="none" autoCorrect={false} />
+      <View style={styles.header}>
+        <View style={styles.headerText}>
+          <View style={styles.hello}>
+            <Text style={[type.body, { color: theme.muted }]}>{t('explore.greeting', { name: firstName })}</Text>
+            <Emoji name="waving_hand" size={20} />
+          </View>
+          <Text style={[styles.headline, { color: theme.text }]}>{t('explore.greetingSub')}</Text>
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('tabs.profile')} onPress={() => router.push('/profile')}>
+          <Avatar name={profile?.full_name ?? '?'} seed="me" size={48} uri={null} />
+        </Pressable>
+      </View>
+
+      <View style={[styles.search, { backgroundColor: theme.surface }]}>
+        <Ionicons name="search-outline" size={22} color={theme.muted} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t('explore.search')}
+          placeholderTextColor={theme.muted}
+          autoCapitalize="none"
+          autoCorrect={false}
+          accessibilityLabel={t('explore.search')}
+          style={[styles.searchInput, { color: theme.text }]}
+        />
+        <Pressable accessibilityRole="button" accessibilityLabel={t('explore.filters')} onPress={() => setFiltersOpen(true)} style={[styles.filterBtn, { backgroundColor: onlyNow ? theme.accent : theme.ink }]}>
+          <Ionicons name="options-outline" size={22} color={onlyNow ? theme.onAccent : theme.inkOn} />
+        </Pressable>
+      </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsRow}>
         <CategoryPill label={t('explore.allCategories')} selected={category === null} onPress={() => setCategory(null)} />
@@ -120,98 +178,73 @@ export default function ServicesScreen() {
           <CategoryPill key={c.key} label={c.name} emoji={c.emoji} selected={category === c.key} onPress={() => setCategory(category === c.key ? null : c.key)} />
         ))}
       </ScrollView>
-      <Spacer />
 
       {result.errorKey ? <ErrorText>{t(result.errorKey)}</ErrorText> : null}
 
       {nowPeople.length > 0 ? (
         <>
-          <Text style={[type.section, { color: theme.text }]}>{t('explore.nowTitle')}</Text>
-          <Spacer size={12} />
+          <View style={styles.sectionHead}>
+            <View style={styles.sectionTitle}>
+              <View style={[styles.liveDot, { backgroundColor: theme.accent, borderColor: theme.ink }]} />
+              <Text style={[type.section, { color: theme.text }]}>{t('explore.nowTitle')}</Text>
+            </View>
+            <Text style={[type.body, { color: theme.muted }]}>{t('explore.seeAll')}</Text>
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tilesRow}>
             {nowPeople.map(({ seller, service }) => (
-              <Pressable
-                key={seller.id}
-                accessibilityRole="button"
-                onPress={() => openSeller(seller.id)}
-                style={[styles.tile, { backgroundColor: pastelFor(seller.id) }]}>
-                <Avatar name={seller.full_name} seed={seller.id} size={52} uri={null} />
-                <Text numberOfLines={1} style={[styles.tileName, { color: theme.ink }]}>{seller.full_name}</Text>
-                <Text numberOfLines={1} style={[styles.tileRole, { color: theme.ink }]}>{seller.role_title ?? ''}</Text>
-                <Pill label={priceLine(service)} tone="dark" />
+              <Pressable key={seller.id} accessibilityRole="button" onPress={() => openSeller(seller.id)} style={[styles.tile, { backgroundColor: pastelFor(seller.id) }]}>
+                <View style={styles.tileTop}>
+                  <Avatar name={seller.full_name} seed={seller.id} size={60} uri={null} />
+                  <View style={styles.tileEmoji}>
+                    <Emoji name={result.categories.find((c) => c.key === seller.categories[0])?.emoji} size={20} />
+                  </View>
+                </View>
+                <View style={styles.tileBottom}>
+                  <Text numberOfLines={1} style={[styles.tileName, { color: theme.ink }]}>{seller.full_name.split(/\s+/)[0]}</Text>
+                  <Text numberOfLines={1} style={[styles.tileRole, { color: theme.ink }]}>{seller.role_title ?? ''}</Text>
+                  <Pill label={priceLine(service)} tone="price" />
+                </View>
               </Pressable>
             ))}
           </ScrollView>
-          <Spacer />
         </>
       ) : null}
 
-      <Text style={[type.section, { color: theme.text }]}>{t('explore.forYou')}</Text>
-      <Spacer size={12} />
-      {!result.errorKey && nothing ? <Body muted>{result.services.length === 0 && result.offers.length === 0 ? t('book.noServices') : t('explore.noResults')}</Body> : null}
-
-      {filtered.offers.map((offer) => {
-        const seller = result.sellers[offer.seller_id];
-        const live = isAvailableNow(seller, now);
+      <Text style={[styles.perTe, type.section, { color: theme.text }]}>{t('explore.forYou')}</Text>
+      {!result.errorKey && rows.length === 0 ? <Body muted>{result.services.length === 0 && result.offers.length === 0 ? t('book.noServices') : t('explore.noResults')}</Body> : null}
+      {rows.map((r) => {
+        const seller = result.sellers[r.sellerId];
+        const rating = result.ratings[r.serviceId];
+        const cover = result.covers[r.serviceId];
+        const emoji = emojiOf(r.sellerId);
         return (
-          <Card key={offer.id}>
-            <MediaGallery items={result.covers[offer.service_id] ? [result.covers[offer.service_id]] : []} bucket="service-media" size="small" />
-            <View style={styles.row}>
-              <Pill label={`−${offer.discount_pct}%`} tone="accent" />
-              {live ? <Pill label={t('explore.availableNow')} tone="accent" dot /> : null}
+          <Pressable key={r.id} accessibilityRole="button" onPress={r.onPress} style={[styles.row, { backgroundColor: theme.surface }]}>
+            <View style={[styles.rowTile, { backgroundColor: pastelFor(r.serviceId) }]}>
+              {cover ? <MediaGallery items={[cover]} bucket="service-media" size="small" /> : <Emoji name={emoji} size={34} />}
             </View>
-            <Text style={[styles.cardTitle, { color: theme.text }]}>{offer.service_title}</Text>
-            {seller ? <Text style={[type.small, { color: theme.muted }]}>{t('explore.by', { name: seller.full_name })}</Text> : null}
-            <Text style={[type.small, { color: theme.muted }]}>
-              {formatEuro(finalPriceCents(offer), i18n.language)} · {t('explore.minutes', { n: offer.duration_min })} · {validityText(offer.validity, i18n.language, t)}
-            </Text>
-            {offer.message ? <Body muted>{offer.message}</Body> : null}
-            <Spacer size={12} />
-            {seller?.handle ? <Button title={t('explore.viewProfile')} variant="ghost" onPress={() => openSeller(offer.seller_id)} /> : null}
-            <Spacer size={8} />
-            {live ? (
-              <>
-                <Button title={t('book.instantNow')} variant="accent" onPress={() => router.push({ pathname: '/book', params: { serviceId: offer.service_id, offerId: offer.id, instant: '1' } })} />
-                <Spacer size={8} />
-              </>
-            ) : null}
-            <Button title={t('book.choose')} variant={live ? 'ghost' : 'primary'} onPress={() => router.push({ pathname: '/book', params: { serviceId: offer.service_id, offerId: offer.id } })} />
-          </Card>
+            <View style={styles.rowBody}>
+              <Text numberOfLines={2} style={[styles.rowTitle, { color: theme.text }]}>{r.title}</Text>
+              <Text numberOfLines={1} style={[type.small, { color: theme.muted }]}>
+                {[seller?.full_name.split(/\s+/)[0], r.meta].filter(Boolean).join(' · ')}
+                {rating?.rating_avg ? ` · ★ ${Number(rating.rating_avg).toFixed(1).replace('.', ',')}` : ''}
+              </Text>
+              {r.badge ? <View style={styles.rowBadge}><Pill label={r.badge} tone="accent" /></View> : null}
+            </View>
+            <Text style={[styles.rowPrice, { color: theme.text }]}>{r.price}</Text>
+          </Pressable>
         );
       })}
 
-      {filtered.services.map((service) => {
-        const seller = result.sellers[service.seller_id];
-        const live = isAvailableNow(seller, now);
-        const rating = result.ratings[service.id];
-        return (
-          <Card key={service.id}>
-            <MediaGallery items={result.covers[service.id] ? [result.covers[service.id]] : []} bucket="service-media" size="small" />
-            <View style={styles.row}>
-              {live ? <Pill label={t('explore.availableNow')} tone="accent" dot /> : null}
-              <Pill label={rating?.rating_avg ? `★ ${Number(rating.rating_avg).toFixed(1)} ${t('explore.reviewsCount', { count: rating.reviews_count })}` : t('explore.noRating')} />
-            </View>
-            <Text style={[styles.cardTitle, { color: theme.text }]}>{service.title}</Text>
-            {seller ? (
-              <Pressable accessibilityRole="button" onPress={() => openSeller(service.seller_id)} style={styles.byline}>
-                <Avatar name={seller.full_name} seed={seller.id} size={24} uri={null} />
-                <Text style={[type.small, { color: theme.muted }]}>{seller.full_name}</Text>
-              </Pressable>
-            ) : null}
-            <Text style={[type.small, { color: theme.muted }]}>{priceLine(service)}</Text>
-            <Spacer size={12} />
-            <Button title={t('publicProfile.details')} variant="ghost" onPress={() => router.push({ pathname: '/service/[id]', params: { id: service.id } })} />
-            <Spacer size={8} />
-            {service.kind === 'slot' && live ? (
-              <>
-                <Button title={t('book.instantNow')} variant="accent" onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id, instant: '1' } })} />
-                <Spacer size={8} />
-              </>
-            ) : null}
-            <Button title={t('book.choose')} variant={service.kind === 'slot' && live ? 'ghost' : 'primary'} onPress={() => router.push({ pathname: '/book', params: { serviceId: service.id } })} />
-          </Card>
-        );
-      })}
+      <Modal visible={filtersOpen} transparent animationType="slide" onRequestClose={() => setFiltersOpen(false)}>
+        <Pressable style={[styles.scrim, { backgroundColor: theme.scrim }]} onPress={() => setFiltersOpen(false)} accessibilityLabel={t('common.close')} />
+        <View style={[styles.sheet, { backgroundColor: theme.bg }]}>
+          <Text style={[type.section, { color: theme.text }]}>{t('explore.filters')}</Text>
+          <Spacer size={12} />
+          <Chip label={t('explore.onlyNow')} selected={onlyNow} onPress={() => setOnlyNow((v) => !v)} />
+          <Spacer />
+          <Button title={t('explore.apply')} onPress={() => setFiltersOpen(false)} />
+        </View>
+      </Modal>
     </Screen>
   );
 }
@@ -224,21 +257,41 @@ function CategoryPill({ label, emoji, selected, onPress }: { label: string; emoj
       accessibilityState={{ selected }}
       onPress={onPress}
       style={[styles.catPill, { backgroundColor: selected ? theme.ink : theme.surface }]}>
-      {emoji ? <Emoji name={emoji} size={22} /> : null}
+      {emoji ? <View style={[styles.catIcon, { backgroundColor: theme.fill }]}><Emoji name={emoji} size={20} /></View> : null}
       <Text style={[styles.catText, { color: selected ? theme.inkOn : theme.text }]}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  pillsRow: { gap: 8, paddingVertical: 12 },
-  catPill: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 16, borderRadius: radius.pill },
-  catText: { fontFamily: fonts.semibold, fontSize: 15 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
+  headerText: { flex: 1 },
+  hello: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  headline: { ...type.title, marginTop: 6 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56, borderRadius: radius.pill, paddingLeft: 18, paddingRight: 8, marginTop: 20 },
+  searchInput: { flex: 1, fontFamily: fonts.medium, fontSize: 16, minHeight: 44 },
+  filterBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  pillsRow: { gap: 8, paddingVertical: 16 },
+  catPill: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingLeft: 6, paddingRight: 16, borderRadius: radius.pill },
+  catIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  catText: { fontFamily: fonts.semibold, fontSize: 15, paddingLeft: 2 },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 12 },
+  sectionTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  liveDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
   tilesRow: { gap: 12 },
-  tile: { width: 168, borderRadius: radius.tile, padding: 14, gap: 6 },
-  tileName: { fontFamily: fonts.semibold, fontSize: 17, marginTop: 6 },
-  tileRole: { fontFamily: fonts.medium, fontSize: 13, opacity: 0.7 },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 },
-  cardTitle: { fontFamily: fonts.semibold, fontSize: 19, letterSpacing: -0.3, marginTop: 8 },
-  byline: { flexDirection: 'row', alignItems: 'center', gap: 8, marginVertical: 6 },
+  tile: { width: 152, height: 200, borderRadius: radius.card, padding: 14, justifyContent: 'space-between' },
+  tileTop: { flexDirection: 'row', justifyContent: 'space-between' },
+  tileEmoji: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
+  tileBottom: { gap: 2 },
+  tileName: { fontFamily: fonts.semibold, fontSize: 19, letterSpacing: -0.3 },
+  tileRole: { fontFamily: fonts.medium, fontSize: 13, opacity: 0.75, marginBottom: 6 },
+  perTe: { marginTop: 24, marginBottom: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: radius.card, padding: 14, marginBottom: 12 },
+  rowTile: { width: 58, height: 58, borderRadius: radius.tile, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  rowBody: { flex: 1, gap: 2 },
+  rowTitle: { fontFamily: fonts.semibold, fontSize: 17, letterSpacing: -0.2 },
+  rowBadge: { flexDirection: 'row', marginTop: 4 },
+  rowPrice: { fontFamily: fonts.semibold, fontSize: 20, letterSpacing: -0.4 },
+  scrim: { flex: 1 },
+  sheet: { borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, padding: 24, paddingBottom: 40 },
 });
