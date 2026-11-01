@@ -13,6 +13,7 @@ import {
   loadLinkSlots,
   loadOpenSlots,
   loadSellerPlace,
+  loadLinkService,
   loadSlotService,
   type OpenSlot,
   type PaymentIntentInfo,
@@ -49,7 +50,7 @@ export default function BookScreen() {
       // da link "Invia slot" (codice) oppure da servizio/offerta
       const link = code ? await loadLinkByCode(code) : null;
       const linkServiceId = link?.service_id ?? null;
-      const service = code ? (linkServiceId ? await loadSlotService(linkServiceId) : null) : serviceId ? await loadSlotService(serviceId) : null;
+      const service = code ? (linkServiceId ? await loadLinkService(code) : null) : serviceId ? await loadSlotService(serviceId) : null;
       const found = offerId && !code ? await loadOffer(offerId) : null;
       const offer = found && found.active && found.service_id === service?.id ? found : null;
       let result: Loaded = 'missing';

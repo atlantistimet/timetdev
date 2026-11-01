@@ -30,6 +30,7 @@ export async function listMyServices(sellerId: string, kinds: ('slot' | 'package
     .select(COLUMNS)
     .eq('seller_id', sellerId)
     .in('kind', kinds)
+    .eq('link_only', false)
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
   if (error) return { services: [], errorKey: 'errors.generic' };
@@ -123,9 +124,37 @@ export async function createQuickService(input: {
   return { service: data as unknown as MyService, errorKey: null };
 }
 
+/** Servizio "solo-link" per uno slot personalizzato creato apposta: esiste solo dentro quel link (non compare in profilo, Esplora, offerte). */
+export async function createLinkOnlyService(input: {
+  sellerId: string;
+  title: string;
+  description: string;
+  priceCents: number;
+  durationMin: number;
+  places: Place[];
+}): Promise<{ service: MyService | null; errorKey: string | null }> {
+  const { data, error } = await supabase
+    .from('services')
+    .insert({
+      seller_id: input.sellerId,
+      kind: 'slot',
+      link_only: true,
+      title: input.title.trim(),
+      description: input.description.trim() || null,
+      price_cents: input.priceCents,
+      duration_min: input.durationMin,
+      places: input.places,
+      active: true,
+    })
+    .select(COLUMNS)
+    .single();
+  if (error || !data) return { service: null, errorKey: 'errors.generic' };
+  return { service: data as unknown as MyService, errorKey: null };
+}
+
 /** Servizi eliminati: non più prenotabili, ma le prenotazioni già fatte restano. */
 export async function listPastServices(sellerId: string): Promise<MyService[]> {
-  const { data } = await supabase.from('services').select(COLUMNS).eq('seller_id', sellerId).not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).limit(50);
+  const { data } = await supabase.from('services').select(COLUMNS).eq('seller_id', sellerId).eq('link_only', false).not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).limit(50);
   return (data ?? []) as MyService[];
 }
 

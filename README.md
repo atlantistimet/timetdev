@@ -37,6 +37,17 @@ supabase/migrations/0012_media_feed.sql media (foto e video) e feed: bucket medi
 supabase/migrations/0013_booking_outcome.sql esito della sessione (conclusa / assente) e chiusura automatica dopo 24 ore
 supabase/migrations/0014_comments.sql commenti ai post
 supabase/migrations/0015_exact_slots_session_page.sql slot a orario preciso o immediato, richieste di fattura/ricevuta, mance
+supabase/migrations/0016_calls.sql chiamate al minuto
+supabase/migrations/0017_weekly_availability.sql disponibilità settimanale, specifica per servizio e offerta, giorni chiusi
+supabase/migrations/0018_instant_booking.sql prenota ora
+supabase/migrations/0019_soft_delete.sql eliminazione di servizi, offerte e link senza perdere le prenotazioni
+supabase/migrations/0020_notifications.sql notifiche
+supabase/migrations/0021_review_reply.sql risposta del venditore alle recensioni
+supabase/migrations/0022_realtime_chat.sql chat in tempo reale
+supabase/migrations/0023_chat_media_block.sql media in chat, blocco utenti, segnalazione messaggi
+supabase/migrations/0024_tag_notifications.sql notifiche dei tag
+supabase/migrations/0025_author_tags.sql l'autore aggiunge e toglie tag a un post pubblicato
+supabase/migrations/0026_link_only_services.sql slot personalizzato: servizi solo-link
 supabase/migrations/0016_calls.sql chiamate al minuto: stato, scadenze, blocchi da 15 minuti, job `sweep-calls` ogni minuto
 supabase/migrations/0017_weekly_availability.sql disponibilità settimanale a periodo (generale, per servizio, per offerta), giorni chiusi, `available_windows` / `schedule_covers`
 ```

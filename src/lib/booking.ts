@@ -47,6 +47,7 @@ export async function listSlotServices(userId: string): Promise<{ services: Slot
     .select(SERVICE_COLUMNS)
     .in('kind', ['slot', 'package'])
     .eq('active', true)
+    .eq('link_only', false)
     .neq('seller_id', userId)
     .order('created_at', { ascending: false })
     .limit(50);
@@ -56,13 +57,20 @@ export async function listSlotServices(userId: string): Promise<{ services: Slot
 
 /** Servizi a slot attivi di un venditore, per il suo profilo pubblico. */
 export async function listSellerServices(sellerId: string): Promise<SlotService[]> {
-  const { data } = await supabase.from('services').select(SERVICE_COLUMNS).eq('seller_id', sellerId).in('kind', ['slot', 'package', 'per_minute']).eq('active', true).order('position').order('created_at');
+  const { data } = await supabase.from('services').select(SERVICE_COLUMNS).eq('seller_id', sellerId).in('kind', ['slot', 'package', 'per_minute']).eq('active', true).eq('link_only', false).order('position').order('created_at');
   return (data ?? []) as SlotService[];
 }
 
 export async function loadSlotService(id: string): Promise<SlotService | null> {
   const { data } = await supabase.from('services').select(SERVICE_COLUMNS).eq('id', id).in('kind', ['slot', 'package', 'per_minute']).maybeSingle();
   return (data as SlotService | null) ?? null;
+}
+
+/** Il servizio di uno slot personalizzato, letto dal codice del link (anche se è "solo-link"). */
+export async function loadLinkService(code: string): Promise<SlotService | null> {
+  const { data } = await supabase.rpc('link_service', { p_code: code });
+  const row = ((data ?? []) as SlotService[])[0];
+  return row ?? null;
 }
 
 /** Orari prenotabili nei prossimi 30 giorni: la disponibilità risolta (offerta → servizio → generale) è calcolata dal database. */
