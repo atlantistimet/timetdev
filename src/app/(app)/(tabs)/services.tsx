@@ -5,7 +5,6 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { Emoji } from '@/components/Emoji';
-import { MediaGallery } from '@/components/MediaView';
 import { Body, Button, Chip, ErrorText, LoadingView, Pill, Screen, Spacer } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro, listSlotServices, type SlotService } from '@/lib/booking';
@@ -122,7 +121,7 @@ export default function ServicesScreen() {
       title: o.service_title,
       meta: `${t('explore.minutes', { n: o.duration_min })}`,
       price: formatEuro(finalPriceCents(o), i18n.language),
-      badge: `−${o.discount_pct}%`,
+      badge: o.discount_pct ? `−${o.discount_pct}%` : null,
       onPress: () => router.push({ pathname: '/book', params: { serviceId: o.service_id, offerId: o.id } }),
     })),
     ...filtered.services.map((s) => ({
@@ -148,10 +147,10 @@ export default function ServicesScreen() {
             <Text style={[type.body, { color: theme.muted }]}>{t('explore.greeting', { name: firstName })}</Text>
             <Emoji name="waving_hand" size={20} />
           </View>
-          <Text style={[styles.headline, { color: theme.text }]}>{t('explore.greetingSub')}</Text>
+          <Text style={[styles.headline, { color: theme.text }]}>{t('explore.greetingSub').replace(' il ', '\nil ')}</Text>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={t('tabs.profile')} onPress={() => router.push('/profile')}>
-          <Avatar name={profile?.full_name ?? '?'} seed="me" size={48} path={result.sellers[userId ?? '']?.avatar_path} />
+          <Avatar name={profile?.full_name ?? '?'} size={48} color={theme.initials} path={result.sellers[userId ?? '']?.avatar_path} />
         </Pressable>
       </View>
 
@@ -215,20 +214,20 @@ export default function ServicesScreen() {
       {rows.map((r) => {
         const seller = result.sellers[r.sellerId];
         const rating = result.ratings[r.serviceId];
-        const cover = result.covers[r.serviceId];
         const emoji = emojiOf(r.sellerId);
         return (
           <Pressable key={r.id} accessibilityRole="button" onPress={r.onPress} style={[styles.row, { backgroundColor: theme.surface }]}>
             <View style={[styles.rowTile, { backgroundColor: pastelFor(r.serviceId) }]}>
-              {cover ? <MediaGallery items={[cover]} bucket="service-media" size="small" /> : <Emoji name={emoji} size={34} />}
+              <Emoji name={emoji} size={34} />
             </View>
             <View style={styles.rowBody}>
               <Text numberOfLines={2} style={[styles.rowTitle, { color: theme.text }]}>{r.title}</Text>
               <Text numberOfLines={1} style={[type.small, { color: theme.muted }]}>
                 {[seller?.full_name.split(/\s+/)[0], r.meta].filter(Boolean).join(' · ')}
                 {rating?.rating_avg ? ` · ★ ${Number(rating.rating_avg).toFixed(1).replace('.', ',')}` : ''}
+                {r.badge ? ` · ${r.badge}` : ''}
               </Text>
-              {r.badge ? <View style={styles.rowBadge}><Pill label={r.badge} tone="accent" /></View> : null}
+              
             </View>
             <Text style={[styles.rowPrice, { color: theme.text }]}>{r.price}</Text>
           </Pressable>
