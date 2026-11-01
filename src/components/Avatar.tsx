@@ -1,0 +1,20 @@
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { initials } from '@/lib/public-profile';
+import { fonts, pastelFor, useTheme } from '@/theme';
+
+/** Foto profilo; senza foto, iniziali su fondo pastello stabile per persona. */
+export function Avatar({ name, uri, size = 44, seed }: { name: string; uri?: string | null; size?: number; seed?: string }) {
+  const theme = useTheme();
+  const box = { width: size, height: size, borderRadius: size / 2 };
+  if (uri) return <Image accessibilityLabel={name} source={{ uri }} style={[box, { backgroundColor: theme.fill }]} />;
+  return (
+    <View style={[styles.box, box, { backgroundColor: pastelFor(seed ?? name) }]} accessibilityLabel={name}>
+      <Text style={[styles.text, { fontSize: size * 0.38, color: theme.ink }]}>{initials(name)}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  box: { alignItems: 'center', justifyContent: 'center' },
+  text: { fontFamily: fonts.semibold },
+});

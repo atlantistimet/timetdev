@@ -619,7 +619,15 @@
     "off": "Not available",
     "activeUntil": "Available until {{time}}",
     "maxCategories": "You can pick up to 3.",
-    "viewProfile": "View profile"
+    "viewProfile": "View profile",
+    "greeting": "Hi, {{name}}",
+    "greetingSub": "Who would you like to meet today?",
+    "nowTitle": "Available now",
+    "forYou": "For you",
+    "perMin": "{{price}}/min",
+    "reviewsCount": "({{count}})",
+    "noRating": "New",
+    "minutes": "{{n}} min"
   },
   "comments": {
     "none": "No comments yet.",
