@@ -550,7 +550,17 @@
     "followers_one": "{{count}} follower",
     "followers_other": "{{count}} follower",
     "followingCount_one": "{{count}} seguito",
-    "followingCount_other": "{{count}} seguiti"
+    "followingCount_other": "{{count}} seguiti",
+    "statHours": "condivise",
+    "statSessions": "sessioni",
+    "reviewedBy_one": "Recensito da {{count}} persona",
+    "reviewedBy_other": "Recensito da {{count}} persone",
+    "offerBanner": "Offerta: {{title}} a {{price}}",
+    "callWithRate": "Chiama · {{rate}}",
+    "callUnavailable": "Non disponibile ora",
+    "book": "Prenota",
+    "back": "Indietro",
+    "tabReviews": "Recensioni"
   },
   "serviceDetail": {
     "mine": "È un tuo servizio: lo vedono così i clienti."

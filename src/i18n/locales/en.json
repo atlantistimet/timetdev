@@ -550,7 +550,17 @@
     "followers_one": "{{count}} follower",
     "followers_other": "{{count}} followers",
     "followingCount_one": "{{count}} following",
-    "followingCount_other": "{{count}} following"
+    "followingCount_other": "{{count}} following",
+    "statHours": "shared",
+    "statSessions": "sessions",
+    "reviewedBy_one": "Reviewed by {{count}} person",
+    "reviewedBy_other": "Reviewed by {{count}} people",
+    "offerBanner": "Offer: {{title}} for {{price}}",
+    "callWithRate": "Call · {{rate}}",
+    "callUnavailable": "Not available now",
+    "book": "Book",
+    "back": "Back",
+    "tabReviews": "Reviews"
   },
   "serviceDetail": {
     "mine": "This is your service: clients see it like this."

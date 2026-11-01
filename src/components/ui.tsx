@@ -15,18 +15,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { fonts, radius, type as typo, useTheme } from '@/theme';
 
 /** Contenitore di schermata: area sicura, tastiera che non copre i campi, contenuto centrato e largo al massimo 440. */
-export function Screen({ children, tabs, wide }: { children: ReactNode; tabs?: boolean; wide?: boolean }) {
+export function Screen({ children, tabs, wide, bare, footer }: { children: ReactNode; tabs?: boolean; wide?: boolean; bare?: boolean; footer?: ReactNode }) {
   const theme = useTheme();
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: theme.bg }]}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={[styles.screenContent, tabs && styles.screenTabs]}
+          contentContainerStyle={[styles.screenContent, tabs && styles.screenTabs, bare && styles.screenBare, footer ? styles.screenFooter : null]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <View style={[styles.screenColumn, wide && styles.screenColumnWide]}>{children}</View>
         </ScrollView>
       </KeyboardAvoidingView>
+      {footer ? (
+        <View pointerEvents="box-none" style={styles.footerWrap}>
+          <View style={styles.footerColumn}>{footer}</View>
+        </View>
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -268,6 +273,10 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   screenContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 24 },
   screenTabs: { justifyContent: 'flex-start', paddingBottom: 130 },
+  screenBare: { justifyContent: 'flex-start', paddingHorizontal: 0, paddingTop: 0, paddingBottom: 24 },
+  screenFooter: { paddingBottom: 130 },
+  footerWrap: { position: 'absolute', left: 12, right: 12, bottom: 16, alignItems: 'center' },
+  footerColumn: { width: '100%', maxWidth: 440 },
   chip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 18, borderRadius: radius.pill },
   chipText: { fontSize: 15, fontFamily: fonts.semibold },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },

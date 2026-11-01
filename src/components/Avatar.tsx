@@ -4,10 +4,10 @@ import { initials } from '@/lib/public-profile';
 import { fonts, pastelFor, useTheme } from '@/theme';
 
 /** Foto profilo; senza foto, iniziali su fondo pastello stabile per persona. */
-export function Avatar({ name, path, size = 44, seed }: { name: string; path?: string | null; size?: number; seed?: string }) {
+export function Avatar({ name, path, size = 44, seed, round }: { name: string; path?: string | null; size?: number; seed?: string; round?: number }) {
   const theme = useTheme();
   const uri = avatarUrl(path);
-  const box = { width: size, height: size, borderRadius: size / 2 };
+  const box = { width: size, height: size, borderRadius: round ?? size / 2 };
   if (uri) return <Image accessibilityLabel={name} source={{ uri }} style={[box, { backgroundColor: theme.fill }]} />;
   return (
     <View style={[styles.box, box, { backgroundColor: pastelFor(seed ?? name) }]} accessibilityLabel={name}>
