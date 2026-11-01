@@ -450,7 +450,10 @@
       "handle": "Nome utente non valido.",
       "handleTaken": "Nome utente già in uso.",
       "travel": "Costo di trasferta non valido."
-    }
+    },
+    "photoAdd": "Aggiungi foto",
+    "photoChange": "Cambia foto",
+    "photoRemove": "Togli foto"
   },
   "photos": {
     "title": "Foto",

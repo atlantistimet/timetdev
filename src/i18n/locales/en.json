@@ -450,7 +450,10 @@
       "handle": "Invalid username.",
       "handleTaken": "Username already taken.",
       "travel": "Invalid travel fee."
-    }
+    },
+    "photoAdd": "Add photo",
+    "photoChange": "Change photo",
+    "photoRemove": "Remove photo"
   },
   "photos": {
     "title": "Photos",

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Avatar } from '@/components/Avatar';
+import { pickAndSetAvatar, removeAvatar } from '@/lib/media';
 import { Body, Button, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { centsToEuroText } from '@/lib/my-services';
@@ -9,7 +12,7 @@ import { loadMyProfile, saveMyProfile } from '@/lib/profile-edit';
 
 export default function ProfileEditScreen() {
   const { t, i18n } = useTranslation();
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const userId = session?.user.id ?? null;
   const [ready, setReady] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -26,6 +29,8 @@ export default function ProfileEditScreen() {
   const [picked, setPicked] = useState<string[]>([]);
   const [until, setUntil] = useState<string | null>(null);
   const [now, setNow] = useState(0);
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
+  const [fullName, setFullName] = useState('');
 
   useEffect(() => {
     if (!userId) return;
@@ -36,6 +41,8 @@ export default function ProfileEditScreen() {
       setCategories(cats);
       setPicked(mine);
       setUntil(p?.available_until ?? null);
+      setAvatarPath(p?.avatar_path ?? null);
+      setFullName(profile?.full_name ?? '');
       setNow(Date.now());
       if (p) {
         setHandle(p.handle ?? '');
@@ -52,7 +59,7 @@ export default function ProfileEditScreen() {
     return () => {
       active = false;
     };
-  }, [userId, i18n.language]);
+  }, [userId, i18n.language, profile?.full_name]);
 
   if (!ready) return <LoadingView />;
 
@@ -71,6 +78,20 @@ export default function ProfileEditScreen() {
   };
   const activeUntil = until && new Date(until).getTime() > now ? new Date(until).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' }) : null;
 
+  const changeAvatar = async () => {
+    if (!userId) return;
+    setErrorKey(null);
+    const r = await pickAndSetAvatar(userId, avatarPath);
+    if (r.errorKey) setErrorKey(r.errorKey);
+    else if (r.path) setAvatarPath(r.path);
+  };
+  const clearAvatar = async () => {
+    if (!userId || !avatarPath) return;
+    const failure = await removeAvatar(userId, avatarPath);
+    if (failure) setErrorKey(failure);
+    else setAvatarPath(null);
+  };
+
   const save = async () => {
     if (!userId) return;
     setSaving(true);
@@ -84,6 +105,12 @@ export default function ProfileEditScreen() {
   return (
     <Screen>
       <Title>{t('profileEdit.title')}</Title>
+      <Spacer />
+      <View style={{ alignItems: 'center', gap: 12 }}>
+        <Avatar name={fullName || '?'} seed={userId ?? undefined} size={96} path={avatarPath} />
+        <Button title={avatarPath ? t('profileEdit.photoChange') : t('profileEdit.photoAdd')} variant="ghost" onPress={() => void changeAvatar()} />
+        {avatarPath ? <Button title={t('profileEdit.photoRemove')} variant="ghost" onPress={() => void clearAvatar()} /> : null}
+      </View>
       <Spacer />
       <TextField label={t('profileEdit.handle')} value={handle} onChangeText={setHandle} autoCapitalize="none" autoCorrect={false} maxLength={30} hint={t('profileEdit.handleHint')} />
       <TextField label={t('profileEdit.roleTitle')} value={roleTitle} onChangeText={setRoleTitle} maxLength={60} />

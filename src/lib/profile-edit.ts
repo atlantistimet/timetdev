@@ -11,9 +11,10 @@ export type MyProfile = {
   place_address: string | null;
   service_area: string | null;
   travel_fee_cents: number;
+  avatar_path: string | null;
 };
 
-const COLUMNS = 'handle, available_until, role_title, city, bio, place_type, place_address, service_area, travel_fee_cents';
+const COLUMNS = 'handle, available_until, role_title, city, bio, place_type, place_address, service_area, travel_fee_cents, avatar_path';
 
 export const HANDLE_RE = /^[a-z0-9_.]{3,30}$/;
 

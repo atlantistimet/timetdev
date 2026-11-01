@@ -52,7 +52,7 @@ export default function ServicesScreen() {
       const [r, o, categories] = await Promise.all([listSlotServices(userId), listPublicOffers(userId), loadCategories(i18n.language)]);
       const [covers, sellers, ratings] = await Promise.all([
         listCovers(r.services.map((x) => x.id)),
-        loadSellers([...r.services.map((x) => x.seller_id), ...o.offers.map((x) => x.seller_id)]),
+        loadSellers([userId, ...r.services.map((x) => x.seller_id), ...o.offers.map((x) => x.seller_id)]),
         loadServiceRatings(r.services.map((x) => x.id)),
       ]);
       if (active) {
@@ -151,7 +151,7 @@ export default function ServicesScreen() {
           <Text style={[styles.headline, { color: theme.text }]}>{t('explore.greetingSub')}</Text>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={t('tabs.profile')} onPress={() => router.push('/profile')}>
-          <Avatar name={profile?.full_name ?? '?'} seed="me" size={48} uri={null} />
+          <Avatar name={profile?.full_name ?? '?'} seed="me" size={48} path={result.sellers[userId ?? '']?.avatar_path} />
         </Pressable>
       </View>
 
@@ -194,7 +194,7 @@ export default function ServicesScreen() {
             {nowPeople.map(({ seller, service }) => (
               <Pressable key={seller.id} accessibilityRole="button" onPress={() => openSeller(seller.id)} style={[styles.tile, { backgroundColor: pastelFor(seller.id) }]}>
                 <View style={styles.tileTop}>
-                  <Avatar name={seller.full_name} seed={seller.id} size={60} uri={null} />
+                  <Avatar name={seller.full_name} seed={seller.id} size={60} path={seller.avatar_path} />
                   <View style={styles.tileEmoji}>
                     <Emoji name={result.categories.find((c) => c.key === seller.categories[0])?.emoji} size={20} />
                   </View>
