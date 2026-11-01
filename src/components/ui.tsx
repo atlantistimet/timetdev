@@ -230,12 +230,14 @@ export function ActionBar({
   actionTitle,
   onAction,
   loading,
+  disabled,
 }: {
   label: string;
   caption?: string;
   actionTitle: string;
   onAction: () => void;
   loading?: boolean;
+  disabled?: boolean;
 }) {
   const theme = useTheme();
   return (
@@ -246,10 +248,10 @@ export function ActionBar({
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityState={{ disabled: !!loading, busy: !!loading }}
-        disabled={loading}
+        accessibilityState={{ disabled: !!loading || !!disabled, busy: !!loading }}
+        disabled={loading || disabled}
         onPress={onAction}
-        style={({ pressed }) => [styles.actionButton, { backgroundColor: theme.accent }, pressed && styles.pressed, loading && styles.disabled]}>
+        style={({ pressed }) => [styles.actionButton, { backgroundColor: theme.accent }, pressed && styles.pressed, (loading || disabled) && styles.disabled]}>
         {loading ? <ActivityIndicator color={theme.onAccent} /> : <Text style={[styles.buttonText, { color: theme.onAccent }]}>{actionTitle}</Text>}
       </Pressable>
     </View>
