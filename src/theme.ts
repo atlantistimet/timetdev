@@ -1,6 +1,6 @@
 import { useColorScheme } from 'react-native';
 
-// Tema "C · Chiaro + lime" (ottobre 2026): fondo grigio chiarissimo, card bianche, testo inchiostro,
+// Stile E (1 novembre 2026, vedi claude/timeet-design-stile-E.md). Base: "C · Chiaro + lime" (ottobre 2026): fondo grigio chiarissimo, card bianche, testo inchiostro,
 // lime come accento. Regola: sui fondi chiari il lime è sempre un FONDO con testo scuro sopra (onAccent),
 // mai un colore di testo o di linee sottili. Su nero può colorare anche numeri e barre.
 const light = {
@@ -23,6 +23,20 @@ const light = {
   glass: 'rgba(255,255,255,0.96)',
   glassOn: '#E7FF67',
   danger: '#B42318',
+  // Errori nei riquadri (testo su fondo) e pulsante "chiudi chiamata".
+  errorText: '#9E1F24',
+  errorSoft: '#FBE3E3',
+  hangup: '#D93A3F',
+  // Superfici sul nero (barra in basso, barre d'azione, timer) e iniziali senza foto.
+  ink: '#151515',
+  inkOn: '#FFFFFF',
+  inkSurface: '#232321',
+  inkSurface2: '#2E2E2B',
+  inkMuted: '#B9B9B3',
+  inkSoft: '#D6D5CF',
+  initials: '#D6CBEA',
+  // Fondale delle finestre dal basso.
+  scrim: 'rgba(21,21,21,0.42)',
 };
 
 const dark: typeof light = {
@@ -42,7 +56,29 @@ const dark: typeof light = {
   glass: 'rgba(27,27,25,0.96)',
   glassOn: '#E7FF67',
   danger: '#F97066',
+  errorText: '#F97066',
+  errorSoft: '#3A1517',
+  hangup: '#D93A3F',
+  // Nel tema scuro le barre nere restano nere (leggermente più chiare dello sfondo) con testo chiaro.
+  ink: '#000000',
+  inkOn: '#FFFFFF',
+  inkSurface: '#232321',
+  inkSurface2: '#2E2E2B',
+  inkMuted: '#B9B9B3',
+  inkSoft: '#D6D5CF',
+  initials: '#D6CBEA',
+  scrim: 'rgba(0,0,0,0.6)',
 };
+
+/** Pastelli "persona": un colore per ogni venditore sul pannello grande del profilo e sulle tessere. */
+export const pastels = ['#F6C9AE', '#C9DCC2', '#C6D4E6', '#D6CBEA', '#EADFC8'] as const;
+
+/** Pastello stabile per una persona (stesso id → stesso colore). */
+export function pastelFor(key: string | null | undefined): string {
+  let h = 0;
+  for (const ch of key ?? '') h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return pastels[h % pastels.length];
+}
 
 export type Theme = typeof light;
 
@@ -59,5 +95,14 @@ export const fonts = {
   semibold: 'InterTight_600SemiBold',
 };
 
-// Forme: pillole per azioni e chip, card 24, campi 14.
-export const radius = { pill: 999, card: 24, sheet: 28, field: 14, tile: 16 };
+// Forme (stile E): pillole e bottoni 999 · pannelli grandi 40 · card 28 · tessere e caselle 22 · campi 20.
+export const radius = { pill: 999, panel: 40, sheet: 40, card: 28, tile: 22, field: 20 };
+
+/** Tipografia (stile E). Con Inter Tight il peso si sceglie dalla famiglia; letter-spacing in px = em × corpo. */
+export const type = {
+  display: { fontFamily: fonts.semibold, fontSize: 56, lineHeight: 52, letterSpacing: -3.4 },
+  title: { fontFamily: fonts.semibold, fontSize: 36, lineHeight: 38, letterSpacing: -1.6 },
+  section: { fontFamily: fonts.semibold, fontSize: 22, lineHeight: 26, letterSpacing: -0.45 },
+  body: { fontFamily: fonts.medium, fontSize: 16, lineHeight: 22, letterSpacing: 0 },
+  small: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 19, letterSpacing: 0 },
+} as const;

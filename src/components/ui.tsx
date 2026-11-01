@@ -12,7 +12,7 @@ import {
   type TextInputProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { fonts, useTheme } from '@/theme';
+import { fonts, radius, type as typo, useTheme } from '@/theme';
 
 /** Contenitore di schermata: area sicura, tastiera che non copre i campi, contenuto centrato e largo al massimo 440. */
 export function Screen({ children, tabs, wide }: { children: ReactNode; tabs?: boolean; wide?: boolean }) {
@@ -84,14 +84,14 @@ type ButtonProps = {
   title: string;
   onPress: () => void;
   loading?: boolean;
-  /** primary = lime (azione principale) · dark = nero (azione secondaria forte) · ghost = grigio pieno. */
-  variant?: 'primary' | 'dark' | 'ghost';
+  /** primary = nero (azione principale) · accent = lime (azione chiave) · dark = nero (alias di primary) · ghost = grigio pieno. */
+  variant?: 'primary' | 'accent' | 'dark' | 'ghost';
 };
 
 export function Button({ title, onPress, loading, variant = 'primary' }: ButtonProps) {
   const theme = useTheme();
-  const bg = variant === 'primary' ? theme.accent : variant === 'dark' ? theme.primary : theme.fill;
-  const fg = variant === 'primary' ? theme.onAccent : variant === 'dark' ? theme.onPrimary : theme.text;
+  const bg = variant === 'accent' ? theme.accent : variant === 'ghost' ? theme.fill : theme.primary;
+  const fg = variant === 'accent' ? theme.onAccent : variant === 'ghost' ? theme.text : theme.onPrimary;
   return (
     <Pressable
       accessibilityRole="button"
@@ -169,7 +169,7 @@ export function ChipRow({ children }: { children: ReactNode }) {
   return <View style={styles.chipRow}>{children}</View>;
 }
 
-/** Card bianca senza bordo (tema C). */
+/** Card bianca senza bordo (stile E: angoli 28). */
 export function Card({ children }: { children: ReactNode }) {
   const theme = useTheme();
   return <View style={[styles.card, { backgroundColor: theme.surface }]}>{children}</View>;
@@ -186,6 +186,68 @@ export function CardButton({ title, subtitle, onPress }: { title: string; subtit
       <Text style={[styles.cardTitle, { color: theme.text }]}>{title}</Text>
       {subtitle ? <Text style={[styles.body, { color: theme.muted }]}>{subtitle}</Text> : null}
     </Pressable>
+  );
+}
+
+/** Pillola informativa: lime per gli stati "live" (Disponibile ora), nera per i prezzi, grigia per il resto. */
+export function Pill({
+  label,
+  tone = 'neutral',
+  dot,
+}: {
+  label: string;
+  tone?: 'neutral' | 'accent' | 'dark' | 'price';
+  dot?: boolean;
+}) {
+  const theme = useTheme();
+  const bg = tone === 'accent' ? theme.accent : tone === 'neutral' ? theme.fill : theme.ink;
+  const fg = tone === 'accent' ? theme.onAccent : tone === 'neutral' ? theme.text : tone === 'price' ? theme.accent : theme.inkOn;
+  return (
+    <View style={[styles.pill, { backgroundColor: bg }]}>
+      {dot ? <View style={[styles.pillDot, { backgroundColor: fg }]} /> : null}
+      <Text style={[styles.pillText, { color: fg }]}>{label}</Text>
+    </View>
+  );
+}
+
+/** Pannello grande e morbido (angoli 40). Con `color` diventa un pannello pastello (persona). */
+export function Panel({ children, color, dark }: { children: ReactNode; color?: string; dark?: boolean }) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.panel, { backgroundColor: color ?? (dark ? theme.ink : theme.surface) }]}>{children}</View>
+  );
+}
+
+/** Barra d'azione nera in basso: prezzo (o testo) a sinistra, bottone lime a destra. */
+export function ActionBar({
+  label,
+  caption,
+  actionTitle,
+  onAction,
+  loading,
+}: {
+  label: string;
+  caption?: string;
+  actionTitle: string;
+  onAction: () => void;
+  loading?: boolean;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={[styles.actionBar, { backgroundColor: theme.ink }]}>
+      <View style={styles.actionText}>
+        <Text style={[styles.actionLabel, { color: theme.inkOn }]}>{label}</Text>
+        {caption ? <Text style={[styles.actionCaption, { color: theme.inkMuted }]}>{caption}</Text> : null}
+      </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !!loading, busy: !!loading }}
+        disabled={loading}
+        onPress={onAction}
+        style={({ pressed }) => [styles.actionButton, { backgroundColor: theme.accent }, pressed && styles.pressed, loading && styles.disabled]}>
+        {loading ? <ActivityIndicator color={theme.onAccent} /> : <Text style={[styles.buttonText, { color: theme.onAccent }]}>{actionTitle}</Text>}
+      </Pressable>
+    </View>
   );
 }
 
@@ -206,22 +268,22 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   screenContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 24 },
   screenTabs: { justifyContent: 'flex-start', paddingBottom: 40 },
-  chip: { minHeight: 36, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 999 },
-  chipText: { fontSize: 14, fontFamily: fonts.medium },
+  chip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 18, borderRadius: radius.pill },
+  chipText: { fontSize: 15, fontFamily: fonts.semibold },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  card: { borderRadius: 24, padding: 16, marginBottom: 10 },
-  cardTitle: { fontSize: 17, fontFamily: fonts.medium, marginBottom: 2 },
+  card: { borderRadius: radius.card, padding: 18, marginBottom: 8 },
+  cardTitle: { fontSize: 18, fontFamily: fonts.semibold, letterSpacing: -0.3, marginBottom: 2 },
   screenColumn: { width: '100%', maxWidth: 440, alignSelf: 'center' },
   screenColumnWide: { maxWidth: 960 },
-  title: { fontSize: 32, lineHeight: 36, fontFamily: fonts.regular, letterSpacing: -1, marginBottom: 8 },
-  body: { fontSize: 16, lineHeight: 22, fontFamily: fonts.regular },
+  title: { ...typo.title, marginBottom: 10 },
+  body: { ...typo.body },
   field: { marginBottom: 16 },
-  label: { fontSize: 14, fontFamily: fonts.medium, marginBottom: 6 },
-  input: { minHeight: 50, borderRadius: 14, paddingHorizontal: 14, fontSize: 16, fontFamily: fonts.regular },
+  label: { fontSize: 14, fontFamily: fonts.semibold, marginBottom: 6 },
+  input: { minHeight: 54, borderRadius: radius.field, paddingHorizontal: 16, fontSize: 16, fontFamily: fonts.medium },
   hint: { fontSize: 13, marginTop: 6, fontFamily: fonts.regular },
   error: { fontSize: 13, marginTop: 6, fontFamily: fonts.regular },
-  button: { minHeight: 52, borderRadius: 999, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
-  buttonText: { fontSize: 16, fontFamily: fonts.semibold },
+  button: { minHeight: 56, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 26 },
+  buttonText: { fontSize: 17, fontFamily: fonts.semibold },
   pressed: { opacity: 0.8 },
   disabled: { opacity: 0.7 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', minHeight: 48 },
@@ -229,4 +291,13 @@ const styles = StyleSheet.create({
   checkmark: { fontSize: 15, fontWeight: '700' },
   checkboxLabel: { flex: 1, fontSize: 15, lineHeight: 21, fontFamily: fonts.regular },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  pill: { minHeight: 34, paddingHorizontal: 14, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 8 },
+  pillDot: { width: 8, height: 8, borderRadius: 4 },
+  pillText: { fontSize: 14, fontFamily: fonts.semibold },
+  panel: { borderRadius: radius.panel, padding: 24, marginBottom: 8 },
+  actionBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.pill, paddingVertical: 8, paddingLeft: 24, paddingRight: 8, gap: 12 },
+  actionText: { flexShrink: 1 },
+  actionLabel: { fontSize: 20, fontFamily: fonts.semibold, letterSpacing: -0.5 },
+  actionCaption: { fontSize: 13, fontFamily: fonts.medium },
+  actionButton: { minHeight: 52, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
 });
