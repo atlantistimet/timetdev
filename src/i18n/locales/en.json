@@ -202,7 +202,20 @@
     "instantCaption": "Right now",
     "withSeller": "with {{name}}",
     "chooseWhen": "Pick a time",
-    "pickMore": "Pick {{count}} dates"
+    "pickMore": "Pick {{count}} dates",
+    "doneTitle": "Done!\nSee you {{day}}.",
+    "doneTitleInstant": "Done!\nLet's go.",
+    "doneAgenda": "Add to calendar",
+    "doneWrite": "Message {{name}}",
+    "doneWriteSub": "Tell them what you'd like to cover",
+    "doneNote": "Receipt sent to your email · Free cancellation per the service's rules.",
+    "doneExplore": "Back to Explore",
+    "doneSession": "View session",
+    "declinedTitle": "The payment didn't go through",
+    "declinedBody": "The bank declined the payment. You haven't been charged. Try another method or check your card details.",
+    "declinedHold": "We're holding the time for you for a few minutes.",
+    "declinedOther": "Use another method",
+    "declinedRetry": "Try the same card again"
   },
   "policy": {
     "title": "Cancellation policy",

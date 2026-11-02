@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -51,6 +51,7 @@ export default function BookScreen() {
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [payment, setPayment] = useState<PaymentIntentInfo | null>(null);
   const [paid, setPaid] = useState(false);
+  const [declined, setDeclined] = useState(false);
   const [day, setDay] = useState<string | null>(null);
   const theme = useTheme();
 
@@ -198,12 +199,57 @@ export default function BookScreen() {
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/services'));
 
   if (paid) {
+    const when = payment ? (isInstant ? null : isPackage ? (pickedMs[0] ?? null) : chosenSlot ? new Date(chosenSlot.starts_at).getTime() : null) : null;
+    const whenDate = when ? new Date(when) : null;
+    const firstName = (seller?.full_name ?? '').split(' ')[0];
+    const dayName = whenDate ? new Intl.DateTimeFormat(i18n.language, { weekday: 'long' }).format(whenDate) : null;
     return (
-      <Screen>
-        <Title>{t('book.paidTitle')}</Title>
-        <Body muted>{t(isInstant ? 'book.paidBodyInstant' : 'book.paidBody')}</Body>
-        <Spacer />
-        <Button title={t('common.back')} onPress={() => router.replace('/')} />
+      <Screen bare>
+        <View style={[styles.doneWrap]}>
+          <View style={[styles.donePanel, { backgroundColor: theme.accent }]}>
+            <View style={styles.doneFaces}>
+              <Emoji name="party_popper" size={72} />
+              <Avatar name={seller?.full_name ?? '?'} seed={service.seller_id} size={72} round={26} path={seller?.avatar_path} />
+            </View>
+            <Text style={[styles.doneTitle, { color: theme.onAccent }]}>
+              {dayName ? t('book.doneTitle', { day: dayName }) : t('book.doneTitleInstant')}
+            </Text>
+            <View style={styles.tiles}>
+              <View style={[styles.tileBox, { backgroundColor: theme.ink }]}>
+                <Text style={[styles.tileSmall, { color: theme.inkMuted }]}>{whenDate ? new Intl.DateTimeFormat(i18n.language, { weekday: 'short', day: 'numeric', month: 'long' }).format(whenDate) : t('book.instantCaption')}</Text>
+                <Text style={[styles.tileBig, { color: theme.accent }]}>{whenDate ? timeFmt.format(whenDate) : `${durationMin}'`}</Text>
+              </View>
+              <View style={[styles.tileBox, { backgroundColor: 'rgba(255,255,255,0.55)' }]}>
+                <Text style={[styles.tileSmall, { color: theme.onAccent }]}>{[chosen ? t(`places.${chosen}`) : null, `${durationMin} min`].filter(Boolean).join(' · ')}</Text>
+                <Text style={[styles.tileBig, { color: theme.onAccent }]}>{payment ? formatEuro(payment.amount_cents, i18n.language) : ''}</Text>
+              </View>
+            </View>
+          </View>
+          <View style={[styles.doneCard, { backgroundColor: theme.surface }]}>
+            <Pressable accessibilityRole="button" onPress={() => router.replace('/sessions')} style={styles.doneRow}>
+              <Emoji name="calendar" size={32} />
+              <Text style={[styles.doneRowText, { color: theme.text }]}>{t('book.doneAgenda')}</Text>
+              <Ionicons name="chevron-forward" size={18} color={theme.muted} />
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => router.replace(`/chat/${service.seller_id}`)} style={[styles.doneRow, { borderTopWidth: 1, borderTopColor: theme.fill }]}>
+              <Emoji name="speech_balloon" size={32} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.doneRowText, { color: theme.text }]}>{t('book.doneWrite', { name: firstName })}</Text>
+                <Text style={[styles.doneRowSub, { color: theme.muted }]}>{t('book.doneWriteSub')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={theme.muted} />
+            </Pressable>
+          </View>
+          <Text style={[styles.doneNote, { color: theme.muted }]}>{t('book.doneNote')}</Text>
+          <View style={styles.doneButtons}>
+            <Pressable accessibilityRole="button" onPress={() => router.replace('/services')} style={[styles.doneBtn, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.doneBtnText, { color: theme.text }]}>{t('book.doneExplore')}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" onPress={() => router.replace('/sessions')} style={[styles.doneBtn, { backgroundColor: theme.ink }]}>
+              <Text style={[styles.doneBtnText, { color: '#FFFFFF' }]}>{t('book.doneSession')}</Text>
+            </Pressable>
+          </View>
+        </View>
       </Screen>
     );
   }
@@ -249,13 +295,35 @@ export default function BookScreen() {
           </View>
         </View>
         <View style={[styles.panel, { backgroundColor: theme.surface, padding: 12 }]}>
-          <PaymentForm clientSecret={payment.client_secret} stripeAccount={payment.stripe_account} onPaid={() => setPaid(true)} />
+          <PaymentForm clientSecret={payment.client_secret} stripeAccount={payment.stripe_account} onPaid={() => setPaid(true)} onFailed={() => setDeclined(true)} />
         </View>
         <View style={styles.note}>
           <Emoji name="raising_hands" size={24} />
           <Text style={[styles.noteText, { color: theme.muted }]}>{t('book.noteCancel')}</Text>
         </View>
         <TierLines tiers={tiers} />
+        <Modal transparent animationType="slide" visible={declined} onRequestClose={() => setDeclined(false)}>
+          <View style={[styles.scrim, { backgroundColor: theme.scrim }]}>
+            <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
+              <View style={[styles.grabber, { backgroundColor: theme.fill }]} />
+              <View style={[styles.alertIcon, { backgroundColor: '#FEE4E2' }]}>
+                <Ionicons name="card-outline" size={30} color={theme.danger} />
+              </View>
+              <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('book.declinedTitle')}</Text>
+              <Text style={[styles.sheetBody, { color: theme.muted }]}>{t('book.declinedBody')}</Text>
+              <View style={[styles.holdNote, { backgroundColor: theme.bg }]}>
+                <Emoji name="stopwatch" size={22} />
+                <Text style={[styles.holdText, { color: theme.text }]}>{t('book.declinedHold')}</Text>
+              </View>
+              <Pressable accessibilityRole="button" onPress={() => setDeclined(false)} style={[styles.sheetBtn, { backgroundColor: theme.ink }]}>
+                <Text style={[styles.sheetBtnText, { color: '#FFFFFF' }]}>{t('book.declinedOther')}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" onPress={() => setDeclined(false)} style={[styles.sheetBtn, styles.sheetBtnSmall, { backgroundColor: theme.bg }]}>
+                <Text style={[styles.sheetBtnText, { color: theme.text, fontSize: 15 }]}>{t('book.declinedRetry')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </Screen>
     );
   }
@@ -385,6 +453,29 @@ export default function BookScreen() {
 }
 
 const styles = StyleSheet.create({
+  doneWrap: { flex: 1, padding: 8, paddingBottom: 16, gap: 12, maxWidth: 440, width: '100%', alignSelf: 'center' },
+  donePanel: { borderRadius: 40, padding: 22, paddingTop: 56, gap: 20 },
+  doneFaces: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  doneTitle: { fontFamily: fonts.semibold, fontSize: 44, lineHeight: 46, letterSpacing: -1.6 },
+  doneCard: { borderRadius: 32, overflow: 'hidden' },
+  doneRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 20, paddingVertical: 16 },
+  doneRowText: { flex: 1, fontFamily: fonts.semibold, fontSize: 17, letterSpacing: -0.2 },
+  doneRowSub: { fontFamily: fonts.medium, fontSize: 13, marginTop: 2 },
+  doneNote: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 19, textAlign: 'center', paddingHorizontal: 20 },
+  doneButtons: { flexDirection: 'row', gap: 10 },
+  doneBtn: { flex: 1, height: 58, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  doneBtnText: { fontFamily: fonts.semibold, fontSize: 16 },
+  scrim: { flex: 1, justifyContent: 'flex-end' },
+  sheet: { borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 24, paddingBottom: 32, gap: 14, alignItems: 'stretch', maxWidth: 480, width: '100%', alignSelf: 'center' },
+  grabber: { width: 44, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 6 },
+  alertIcon: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  sheetTitle: { fontFamily: fonts.semibold, fontSize: 28, lineHeight: 31, letterSpacing: -0.9 },
+  sheetBody: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 22 },
+  holdNote: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 20, padding: 14 },
+  holdText: { flex: 1, fontFamily: fonts.medium, fontSize: 14, lineHeight: 20 },
+  sheetBtn: { height: 58, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  sheetBtnSmall: { height: 52 },
+  sheetBtnText: { fontFamily: fonts.semibold, fontSize: 16 },
   body: { paddingHorizontal: 16, paddingTop: 6, gap: 12 },
   desc: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, paddingHorizontal: 4 },
   h2: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: -0.45, marginTop: 4 },

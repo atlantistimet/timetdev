@@ -7,7 +7,7 @@ import type { PaymentFormProps } from '@/components/payment-form.types';
 
 const publishableKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
 
-function Sheet({ clientSecret, onPaid }: Pick<PaymentFormProps, 'clientSecret' | 'onPaid'>) {
+function Sheet({ clientSecret, onPaid, onFailed }: Pick<PaymentFormProps, 'clientSecret' | 'onPaid' | 'onFailed'>) {
   const { t } = useTranslation();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [busy, setBusy] = useState(false);
@@ -24,7 +24,10 @@ function Sheet({ clientSecret, onPaid }: Pick<PaymentFormProps, 'clientSecret' |
     const res = await presentPaymentSheet();
     setBusy(false);
     if (res.error) {
-      if (res.error.code !== 'Canceled') setMessage(res.error.message);
+      if (res.error.code !== 'Canceled') {
+        if (onFailed) onFailed(res.error.message);
+        else setMessage(res.error.message);
+      }
     } else onPaid();
   };
 
@@ -37,12 +40,12 @@ function Sheet({ clientSecret, onPaid }: Pick<PaymentFormProps, 'clientSecret' |
   );
 }
 
-export function PaymentForm({ clientSecret, stripeAccount, onPaid }: PaymentFormProps) {
+export function PaymentForm({ clientSecret, stripeAccount, onPaid, onFailed }: PaymentFormProps) {
   const { t } = useTranslation();
   if (!publishableKey) return <ErrorText>{t('errors.generic')}</ErrorText>;
   return (
     <StripeProvider publishableKey={publishableKey} stripeAccountId={stripeAccount} urlScheme="timeet">
-      <Sheet clientSecret={clientSecret} onPaid={onPaid} />
+      <Sheet clientSecret={clientSecret} onPaid={onPaid} onFailed={onFailed} />
     </StripeProvider>
   );
 }

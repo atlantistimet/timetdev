@@ -7,7 +7,7 @@ import type { PaymentFormProps } from '@/components/payment-form.types';
 
 const publishableKey = process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '';
 
-function CardForm({ onPaid }: Pick<PaymentFormProps, 'onPaid'>) {
+function CardForm({ onPaid, onFailed }: Pick<PaymentFormProps, 'onPaid' | 'onFailed'>) {
   const { t } = useTranslation();
   const stripe = useStripe();
   const elements = useElements();
@@ -20,7 +20,10 @@ function CardForm({ onPaid }: Pick<PaymentFormProps, 'onPaid'>) {
     setMessage(null);
     const { error } = await stripe.confirmPayment({ elements, redirect: 'if_required' });
     setBusy(false);
-    if (error) setMessage(error.message ?? t('errors.generic'));
+    if (error) {
+      if (onFailed && error.type === 'card_error') onFailed(error.message ?? '');
+      else setMessage(error.message ?? t('errors.generic'));
+    }
     else onPaid();
   };
 
@@ -34,7 +37,7 @@ function CardForm({ onPaid }: Pick<PaymentFormProps, 'onPaid'>) {
   );
 }
 
-export function PaymentForm({ clientSecret, stripeAccount, onPaid }: PaymentFormProps) {
+export function PaymentForm({ clientSecret, stripeAccount, onPaid, onFailed }: PaymentFormProps) {
   const { t } = useTranslation();
   // Il pagamento esiste sull'account del venditore, quindi Stripe.js va inizializzato con quell'account.
   const stripePromise = useMemo(
@@ -44,7 +47,7 @@ export function PaymentForm({ clientSecret, stripeAccount, onPaid }: PaymentForm
   if (!stripePromise) return <ErrorText>{t('errors.generic')}</ErrorText>;
   return (
     <Elements stripe={stripePromise} options={{ clientSecret }}>
-      <CardForm onPaid={onPaid} />
+      <CardForm onPaid={onPaid} onFailed={onFailed} />
     </Elements>
   );
 }

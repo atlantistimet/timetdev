@@ -202,7 +202,20 @@
     "instantCaption": "Subito",
     "withSeller": "con {{name}}",
     "chooseWhen": "Scegli quando",
-    "pickMore": "Scegli {{count}} date"
+    "pickMore": "Scegli {{count}} date",
+    "doneTitle": "Fatto!\nCi vediamo {{day}}.",
+    "doneTitleInstant": "Fatto!\nSi parte.",
+    "doneAgenda": "Aggiungi al calendario",
+    "doneWrite": "Scrivi a {{name}}",
+    "doneWriteSub": "Racconta cosa vuoi vedere insieme",
+    "doneNote": "Ricevuta inviata alla tua email · Annulli gratis secondo le regole del servizio.",
+    "doneExplore": "Torna a Esplora",
+    "doneSession": "Vedi la sessione",
+    "declinedTitle": "Il pagamento non è andato a buon fine",
+    "declinedBody": "La banca ha rifiutato l'operazione. Non ti è stato addebitato nulla. Prova con un altro metodo o controlla i dati della carta.",
+    "declinedHold": "Teniamo l'orario per te per qualche minuto.",
+    "declinedOther": "Usa un altro metodo",
+    "declinedRetry": "Riprova con la stessa carta"
   },
   "policy": {
     "title": "Policy di cancellazione",
