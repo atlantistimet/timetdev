@@ -989,7 +989,17 @@
     "bookAgain": "Prenota di nuovo",
     "callAgain": "Richiama",
     "send": "Invia",
-    "sendTip": "Invia · {{amount}}"
+    "sendTip": "Invia · {{amount}}",
+    "tabChat": "Chat",
+    "tabFiles": "File",
+    "chatEmpty": "Scrivi qui durante la chiamata.",
+    "filesEmpty": "Nessun file condiviso.",
+    "chatPlaceholder": "Scrivi durante la chiamata",
+    "chat": "Chat",
+    "screenShare": "Condividi lo schermo",
+    "screenStop": "Smetti di condividere",
+    "sharing": "Stai condividendo lo schermo",
+    "theirScreen": "Schermo di {{name}}"
   },
   "delete": {
     "yes": "Sì, elimina",

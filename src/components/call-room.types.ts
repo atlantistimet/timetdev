@@ -11,5 +11,7 @@ export type CallRoomProps = {
   myName?: string;
   /** Se c'è, nella barra dei comandi compare «Aggiungi minuti» (solo per chi paga). */
   onAddMinutes?: () => void;
+  /** Pannello chat/file della chiamata: si apre dal tasto chat della barra. */
+  chat?: ReactNode;
   children?: ReactNode;
 };

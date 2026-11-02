@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
@@ -18,9 +19,10 @@ try {
   lk = null;
 }
 
-function Stage({ lib, onHangup, name, avatarPath, seed, myName, children, onAddMinutes }: { lib: LiveKitNative; onHangup: () => void } & Pick<CallRoomProps, 'name' | 'avatarPath' | 'seed' | 'myName' | 'children' | 'onAddMinutes'>) {
+function Stage({ lib, onHangup, name, avatarPath, seed, myName, children, chat, onAddMinutes }: { lib: LiveKitNative; onHangup: () => void } & Pick<CallRoomProps, 'name' | 'avatarPath' | 'seed' | 'myName' | 'children' | 'chat' | 'onAddMinutes'>) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const [chatOpen, setChatOpen] = useState(false);
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = lib.useLocalParticipant();
   const tracks = lib.useTracks(['camera' as never]);
   const refs = tracks.filter((x) => lib.isTrackReference(x));
@@ -33,7 +35,7 @@ function Stage({ lib, onHangup, name, avatarPath, seed, myName, children, onAddM
   );
   return (
     <View style={styles.stage}>
-      <View style={[styles.hero, { backgroundColor: pastelFor(seed ?? name) }]}>
+      <View style={[styles.hero, chatOpen && styles.heroSmall, { backgroundColor: pastelFor(seed ?? name) }]}>
         {remote ? <lib.VideoTrack trackRef={remote} style={StyleSheet.absoluteFill} objectFit="cover" /> : null}
         <View style={styles.heroTop}>
           <View style={[styles.tag, { backgroundColor: theme.accent }]}>
@@ -41,7 +43,7 @@ function Stage({ lib, onHangup, name, avatarPath, seed, myName, children, onAddM
             <Text style={[styles.tagText, { color: theme.ink }]}>{t('calls.inCall')}</Text>
           </View>
         </View>
-        {!remote ? <Avatar name={name ?? '?'} seed={seed} size={168} round={56} path={avatarPath} /> : <View />}
+        {!remote ? <Avatar name={name ?? '?'} seed={seed} size={chatOpen ? 96 : 168} round={chatOpen ? 34 : 56} path={avatarPath} /> : <View />}
         <View style={styles.heroBottom}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.heroName, { color: remote ? '#FFFFFF' : theme.ink }]}>{name}</Text>
@@ -52,10 +54,16 @@ function Stage({ lib, onHangup, name, avatarPath, seed, myName, children, onAddM
           </View>
         </View>
       </View>
-      {children}
+      {chat ? <View style={chatOpen ? styles.chatShown : styles.chatHidden}>{chat}</View> : null}
+      {chatOpen ? null : children}
       <View style={[styles.bar, { backgroundColor: theme.surface }]}>
         {round(isMicrophoneEnabled, isMicrophoneEnabled ? 'mic' : 'mic-off', isMicrophoneEnabled ? t('calls.micOff') : t('calls.micOn'), () => void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled))}
         {round(isCameraEnabled, isCameraEnabled ? 'videocam' : 'videocam-off', isCameraEnabled ? t('calls.camOff') : t('calls.camOn'), () => void localParticipant.setCameraEnabled(!isCameraEnabled), true)}
+        {chat ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={t('calls.chat')} onPress={() => setChatOpen((v) => !v)} style={[styles.round, { backgroundColor: chatOpen ? theme.ink : theme.bg }]}>
+            <Ionicons name="chatbubble" size={24} color={chatOpen ? '#FFFFFF' : theme.ink} />
+          </Pressable>
+        ) : null}
         {onAddMinutes ? (
           <Pressable accessibilityRole="button" accessibilityLabel={t('calls.addMinutes')} onPress={onAddMinutes} style={[styles.round, { backgroundColor: theme.accent }]}>
             <Ionicons name="add" size={30} color={theme.onAccent} />
@@ -70,7 +78,7 @@ function Stage({ lib, onHangup, name, avatarPath, seed, myName, children, onAddM
 }
 
 /** Telefono (build di sviluppo): stanza LiveKit nativa con video dell'altra persona, la tua anteprima e i comandi. */
-export function CallRoom({ serverUrl, token, onDisconnected, name, avatarPath, seed, myName, children, onAddMinutes }: CallRoomProps) {
+export function CallRoom({ serverUrl, token, onDisconnected, name, avatarPath, seed, myName, children, chat, onAddMinutes }: CallRoomProps) {
   const { t } = useTranslation();
   const [audioReady, setAudioReady] = useState(false);
 
@@ -89,19 +97,24 @@ export function CallRoom({ serverUrl, token, onDisconnected, name, avatarPath, s
   if (!lk) return <Body muted>{t('calls.nativeNotReady')}</Body>;
   if (!audioReady) return null;
   return (
-    <View style={{ flex: 1 }}>
+    <KeyboardProvider>
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
       <lk.LiveKitRoom serverUrl={serverUrl} token={token} connect audio video onDisconnected={onDisconnected} options={{ adaptiveStream: { pixelDensity: 'screen' } }}>
-        <Stage lib={lk} onHangup={onDisconnected} name={name} avatarPath={avatarPath} seed={seed} myName={myName} onAddMinutes={onAddMinutes}>
+        <Stage lib={lk} onHangup={onDisconnected} name={name} avatarPath={avatarPath} seed={seed} myName={myName} chat={chat} onAddMinutes={onAddMinutes}>
           {children}
         </Stage>
       </lk.LiveKitRoom>
-    </View>
+    </KeyboardAvoidingView>
+    </KeyboardProvider>
   );
 }
 
 const styles = StyleSheet.create({
   stage: { flex: 1, gap: 8 },
   hero: { height: 470, borderRadius: 38, padding: 18, paddingTop: 48, overflow: 'hidden', justifyContent: 'space-between', alignItems: 'center' },
+  heroSmall: { height: 250, paddingTop: 40 },
+  chatShown: { flex: 1 },
+  chatHidden: { display: 'none' },
   heroTop: { alignSelf: 'stretch', flexDirection: 'row', justifyContent: 'flex-end' },
   tag: { height: 32, paddingHorizontal: 12, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 8, height: 8, borderRadius: 4 },
@@ -112,6 +125,6 @@ const styles = StyleSheet.create({
   preview: { width: 74, height: 98, borderRadius: 24, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   previewText: { fontFamily: fonts.semibold, fontSize: 16 },
   bar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 6, borderRadius: 999, marginTop: 'auto' },
-  round: { width: 62, height: 62, borderRadius: 31, alignItems: 'center', justifyContent: 'center' },
-  hang: { width: 96, height: 62, borderRadius: 31, alignItems: 'center', justifyContent: 'center' },
+  round: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  hang: { width: 84, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
 });

@@ -989,7 +989,17 @@
     "bookAgain": "Book again",
     "callAgain": "Call again",
     "send": "Send",
-    "sendTip": "Send · {{amount}}"
+    "sendTip": "Send · {{amount}}",
+    "tabChat": "Chat",
+    "tabFiles": "Files",
+    "chatEmpty": "Write here during the call.",
+    "filesEmpty": "No files shared.",
+    "chatPlaceholder": "Write during the call",
+    "chat": "Chat",
+    "screenShare": "Share screen",
+    "screenStop": "Stop sharing",
+    "sharing": "You are sharing your screen",
+    "theirScreen": "{{name}}'s screen"
   },
   "delete": {
     "yes": "Yes, delete",

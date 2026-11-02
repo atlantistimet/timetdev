@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { PaymentForm } from '@/components/PaymentForm';
 import { Emoji } from '@/components/Emoji';
+import { CallChat } from '@/components/CallChat';
 import { CallRoom } from '@/components/CallRoom';
 import { Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { fonts, pastelFor, useTheme } from '@/theme';
@@ -295,7 +296,7 @@ export default function CallScreen() {
           {!callsSupported ? <ErrorText>{t('calls.nativeNotReady')}</ErrorText> : null}
           {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
           {room ? (
-            <CallRoom serverUrl={room.url} token={room.token} onDisconnected={() => void act(endCall)} name={otherName} avatarPath={other?.avatar} seed={seed} myName={myName} onAddMinutes={isClient && held < CALL_MAX_MIN ? () => setAddOpen(true) : undefined}>
+            <CallRoom serverUrl={room.url} token={room.token} onDisconnected={() => void act(endCall)} name={otherName} avatarPath={other?.avatar} seed={seed} myName={myName} chat={otherId ? <CallChat me={me} otherId={otherId} /> : undefined} onAddMinutes={isClient && held < CALL_MAX_MIN ? () => setAddOpen(true) : undefined}>
               {timerCard}
             </CallRoom>
           ) : callsSupported && !errorKey ? (
