@@ -603,7 +603,19 @@
     "customNamePlaceholder": "Es. Consulenza veloce",
     "customDescription": "Descrizione (facoltativa)",
     "customPriceHint": "Prezzo pieno: lo sconto, se lo scegli, si applica sopra e chi riceve lo slot lo vede.",
-    "customTitleError": "Dai un titolo allo slot."
+    "customTitleError": "Dai un titolo allo slot.",
+    "sendTitle": "Invia slot",
+    "sendIntro": "Crea un link di prenotazione da mandare a chi vuoi.",
+    "chooseAmong": "Il cliente sceglie tra",
+    "noDiscount": "Nessuno",
+    "readyTitle": "Il link è pronto",
+    "copy": "Copia",
+    "sendInChat": "Invia in chat",
+    "shareMore": "Condividi…",
+    "done": "Fatto",
+    "chooseChat": "Invia a…",
+    "noChats": "Non hai ancora conversazioni.",
+    "sentTo": "Inviato a {{name}}."
   },
   "newService": {
     "chip": "+ Nuovo servizio",

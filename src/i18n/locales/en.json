@@ -603,7 +603,19 @@
     "customNamePlaceholder": "E.g. Quick consultation",
     "customDescription": "Description (optional)",
     "customPriceHint": "Full price: the discount, if you choose one, applies on top and the recipient sees it.",
-    "customTitleError": "Give the slot a title."
+    "customTitleError": "Give the slot a title.",
+    "sendTitle": "Send slot",
+    "sendIntro": "Create a booking link to send to anyone.",
+    "chooseAmong": "The client picks from",
+    "noDiscount": "None",
+    "readyTitle": "Your link is ready",
+    "copy": "Copy",
+    "sendInChat": "Send in chat",
+    "shareMore": "Share…",
+    "done": "Done",
+    "chooseChat": "Send to…",
+    "noChats": "You have no conversations yet.",
+    "sentTo": "Sent to {{name}}."
   },
   "newService": {
     "chip": "+ New service",
