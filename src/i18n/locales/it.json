@@ -776,7 +776,10 @@
     "filterUnread": "Non letti",
     "filterClients": "Clienti",
     "yesterday": "ieri",
-    "emptyTitle": "Nessun messaggio\nper ora"
+    "emptyTitle": "Nessun messaggio\nper ora",
+    "bookedCard": "Sessione prenotata",
+    "readAt": "Letto {{time}}",
+    "reportMessage": "Segnala"
   },
   "sessions": {
     "title": "Le mie sessioni",

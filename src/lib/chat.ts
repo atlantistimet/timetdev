@@ -107,3 +107,39 @@ export async function reportMessage(me: string, messageId: string, reason: strin
   const { error } = await supabase.from('reports').insert({ reporter_id: me, entity_type: 'message', entity_id: messageId, reason });
   return error ? 'errors.generic' : null;
 }
+
+export type ReactionKey = 'fire' | 'raising_hands' | 'heart_hands' | 'thumbs_up' | 'smiling_eyes' | 'party_popper';
+export const REACTIONS: ReactionKey[] = ['fire', 'raising_hands', 'heart_hands', 'thumbs_up', 'smiling_eyes', 'party_popper'];
+/** messaggio → reazioni (una per persona) */
+export type ReactionMap = Record<string, { userId: string; emoji: ReactionKey }[]>;
+
+export async function loadReactions(conversationId: string): Promise<ReactionMap> {
+  const { data } = await supabase.from('message_reactions').select('message_id, user_id, emoji').eq('conversation_id', conversationId);
+  const map: ReactionMap = {};
+  for (const r of (data ?? []) as { message_id: string; user_id: string; emoji: ReactionKey }[]) (map[r.message_id] ??= []).push({ userId: r.user_id, emoji: r.emoji });
+  return map;
+}
+
+/** Imposta la propria reazione; la stessa emoji una seconda volta la toglie. */
+export async function toggleReaction(conversationId: string, messageId: string, me: string, emoji: ReactionKey, current: ReactionKey | null): Promise<string | null> {
+  if (current === emoji) {
+    const { error } = await supabase.from('message_reactions').delete().eq('message_id', messageId).eq('user_id', me);
+    return error ? 'errors.generic' : null;
+  }
+  const { error } = await supabase.from('message_reactions').upsert({ message_id: messageId, user_id: me, conversation_id: conversationId, emoji }, { onConflict: 'message_id,user_id' });
+  return error ? 'errors.generic' : null;
+}
+
+export type ChatBooking = { id: string; created_at: string; starts_at: string; ends_at: string; service_title: string; place: 'online' | 'sede' | 'domicilio'; price_cents: number; extra_cents: number; status: string };
+
+/** Prenotazioni fra le due persone (non annullate): compaiono nella conversazione come card. */
+export async function loadChatBookings(me: string, other: string): Promise<ChatBooking[]> {
+  const { data } = await supabase
+    .from('bookings')
+    .select('id, created_at, starts_at, ends_at, service_title, place, price_cents, extra_cents, status')
+    .or(`and(client_id.eq.${me},seller_id.eq.${other}),and(client_id.eq.${other},seller_id.eq.${me})`)
+    .in('status', ['confirmed', 'completed'])
+    .order('created_at', { ascending: false })
+    .limit(10);
+  return (data ?? []) as ChatBooking[];
+}

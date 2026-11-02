@@ -26,6 +26,7 @@ export function useChatPresence(convId: string | null, me: string, other: string
         setOtherTyping(false);
         onChangeRef.current();
       })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions', filter: `conversation_id=eq.${convId}` }, () => onChangeRef.current())
       .on('presence', { event: 'sync' }, () => setOtherOnline(Object.keys(channel.presenceState()).includes(other)))
       .on('broadcast', { event: 'typing' }, ({ payload }) => {
         if (payload?.user !== other) return;

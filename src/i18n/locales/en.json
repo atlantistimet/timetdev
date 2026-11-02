@@ -776,7 +776,10 @@
     "filterUnread": "Unread",
     "filterClients": "Clients",
     "yesterday": "yesterday",
-    "emptyTitle": "No messages\nyet"
+    "emptyTitle": "No messages\nyet",
+    "bookedCard": "Session booked",
+    "readAt": "Read {{time}}",
+    "reportMessage": "Report"
   },
   "sessions": {
     "title": "My sessions",

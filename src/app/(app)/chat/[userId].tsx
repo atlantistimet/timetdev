@@ -8,16 +8,18 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Bubble, Composer, GiftedChat, InputToolbar, Send, type IMessage } from 'react-native-gifted-chat';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { Emoji } from '@/components/Emoji';
+import { formatEuro } from '@/lib/booking';
 import { ChatVideo, ChatVideoFull } from '@/components/ChatVideo';
 import { LoadingView } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { isBlockedByMe, loadMessages, markRead, openConversation, reportMessage, sendAttachment, sendMessage, setBlocked, signedUrls, type Message } from '@/lib/chat';
+import { REACTIONS, isBlockedByMe, loadChatBookings, loadMessages, loadReactions, toggleReaction, type ChatBooking, type ReactionKey, type ReactionMap, markRead, openConversation, reportMessage, sendAttachment, sendMessage, setBlocked, signedUrls, type Message } from '@/lib/chat';
 import { useChatPresence } from '@/lib/chat-presence';
 import { loadProfileById } from '@/lib/public-profile';
 import { supabase } from '@/lib/supabase';
 import { fonts, pastelFor, useTheme } from '@/theme';
 
-type ChatItem = IMessage & { fileUrl?: string; fileName?: string };
+type ChatItem = IMessage & { fileUrl?: string; fileName?: string; booking?: ChatBooking; readAt?: string | null };
 type Panel = null | 'attach' | 'menu' | { report: string };
 
 export default function ChatScreen() {
@@ -37,6 +39,9 @@ export default function ChatScreen() {
   const [blocked, setBlockedState] = useState(false);
   const [lightbox, setLightbox] = useState<{ uri: string; video: boolean } | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [reactions, setReactions] = useState<ReactionMap>({});
+  const [bookings, setBookings] = useState<ChatBooking[]>([]);
+  const [reactFor, setReactFor] = useState<{ id: string; mine: boolean } | null>(null);
   const convRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -53,6 +58,8 @@ export default function ChatScreen() {
         convRef.current = conv.id;
         setConvId(conv.id);
         setMessages(await loadMessages(conv.id));
+        setReactions(await loadReactions(conv.id));
+        setBookings(await loadChatBookings(me, userId));
         void markRead(conv.id, me);
         setBlockedState(await isBlockedByMe(me, userId));
       } else {
@@ -69,6 +76,7 @@ export default function ChatScreen() {
     const id = convRef.current;
     if (!id) return;
     setMessages(await loadMessages(id));
+    setReactions(await loadReactions(id));
     void markRead(id, me);
   }, [me]);
 
@@ -94,23 +102,36 @@ export default function ChatScreen() {
     };
   }, [messages, urls]);
 
-  // GiftedChat vuole i messaggi dal più recente: ✓ = inviato, ✓✓ = letto.
-  const items: ChatItem[] = useMemo(
-    () =>
-      [...(messages ?? [])].reverse().map((m) => ({
-        _id: m.id,
-        text: m.body,
-        createdAt: new Date(m.created_at),
-        user: { _id: m.sender_id, name: m.sender_id === me ? '' : name },
-        sent: true,
-        received: !!m.read_at,
-        image: m.attachment?.type === 'image' ? urls[m.attachment.path] : undefined,
-        video: m.attachment?.type === 'video' ? urls[m.attachment.path] : undefined,
-        fileUrl: m.attachment?.type === 'file' ? urls[m.attachment.path] : undefined,
-        fileName: m.attachment?.type === 'file' ? m.attachment.name : undefined,
-      })),
-    [messages, me, name, urls],
-  );
+  // GiftedChat vuole i messaggi dal più recente. Le prenotazioni fra voi due compaiono come card nel punto in cui sono state fatte.
+  const items: ChatItem[] = useMemo(() => {
+    const list = [...(messages ?? [])];
+    const lastOwnRead = [...list].reverse().find((m) => m.sender_id === me && m.read_at)?.id;
+    const rows: ChatItem[] = list.map((m) => ({
+      _id: m.id,
+      text: m.body,
+      createdAt: new Date(m.created_at),
+      user: { _id: m.sender_id, name: m.sender_id === me ? '' : name },
+      sent: false,
+      received: false,
+      readAt: m.id === lastOwnRead ? m.read_at : null,
+      image: m.attachment?.type === 'image' ? urls[m.attachment.path] : undefined,
+      video: m.attachment?.type === 'video' ? urls[m.attachment.path] : undefined,
+      fileUrl: m.attachment?.type === 'file' ? urls[m.attachment.path] : undefined,
+      fileName: m.attachment?.type === 'file' ? m.attachment.name : undefined,
+    }));
+    const cards: ChatItem[] = bookings.map((b) => ({ _id: `booking-${b.id}`, text: '', createdAt: new Date(b.created_at), user: { _id: 'system' }, system: true, booking: b }));
+    return [...rows, ...cards].sort((x, y) => +new Date(y.createdAt) - +new Date(x.createdAt));
+  }, [messages, bookings, me, name, urls]);
+
+  const myReaction = (messageId: string): ReactionKey | null => reactions[messageId]?.find((r) => r.userId === me)?.emoji ?? null;
+  const react = async (emoji: ReactionKey) => {
+    const target = reactFor;
+    setReactFor(null);
+    if (!target || !convId) return;
+    const failure = await toggleReaction(convId, target.id, me, emoji, myReaction(target.id));
+    if (failure) setErrorKey(failure);
+    else setReactions(await loadReactions(convId));
+  };
 
   const onSend = useCallback(
     async (out: IMessage[]) => {
@@ -216,6 +237,21 @@ export default function ChatScreen() {
             {chip(t('chat.close'), () => setPanel(null), 'close')}
           </View>
         ) : null}
+        {reactFor ? (
+          <View style={reactStyles.panel}>
+            <View style={[reactStyles.pick, { backgroundColor: theme.surface }]}>
+              {REACTIONS.map((e) => (
+                <Pressable key={e} accessibilityRole="button" accessibilityLabel={e} onPress={() => void react(e)} style={[reactStyles.pickBtn, myReaction(reactFor.id) === e && { backgroundColor: theme.accent }]}>
+                  <Emoji name={e} size={28} />
+                </Pressable>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {!reactFor.mine ? chip(t('chat.reportMessage'), () => { setPanel({ report: reactFor.id }); setReactFor(null); }) : null}
+              {chip(t('chat.close'), () => setReactFor(null), 'closeReact')}
+            </View>
+          </View>
+        ) : null}
         {info ? <Text style={{ color: theme.accent, paddingHorizontal: 12 }}>{info}</Text> : null}
         {errorKey ? <Text style={{ color: theme.danger, paddingHorizontal: 12 }}>{t(errorKey)}</Text> : null}
         <GiftedChat<ChatItem>
@@ -225,20 +261,59 @@ export default function ChatScreen() {
           isTyping={otherTyping}
           locale={i18n.language.slice(0, 2)}
           onLongPressMessage={(_ctx, m) => {
-            if (m.user._id !== me) setPanel({ report: String(m._id) });
+            if (!m.system) setReactFor({ id: String(m._id), mine: m.user._id === me });
+          }}
+          renderSystemMessage={(p) => {
+            const b = (p.currentMessage as ChatItem).booking;
+            if (!b) return null;
+            const start = new Date(b.starts_at);
+            const mins = Math.round((new Date(b.ends_at).getTime() - start.getTime()) / 60_000);
+            return (
+              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/session/[id]', params: { id: b.id } })} style={cardStyles.card}>
+                <View style={[cardStyles.date, { backgroundColor: theme.accent }]}>
+                  <Text style={[cardStyles.dateSmall, { color: theme.onAccent }]}>{new Intl.DateTimeFormat(i18n.language, { weekday: 'short', day: 'numeric' }).format(start)}</Text>
+                  <Text style={[cardStyles.dateBig, { color: theme.onAccent }]}>{new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' }).format(start)}</Text>
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <View style={cardStyles.tagRow}>
+                    <Emoji name="party_popper" size={16} />
+                    <Text style={cardStyles.tag}>{t('chat.bookedCard')}</Text>
+                  </View>
+                  <Text numberOfLines={2} style={cardStyles.title}>{b.service_title}</Text>
+                  <Text style={cardStyles.meta}>{`${mins} min · ${t(`bookings.placeShort.${b.place}`)} · ${formatEuro(b.price_cents + b.extra_cents, i18n.language)}`}</Text>
+                </View>
+              </Pressable>
+            );
           }}
           isUserAvatarVisible={false}
           renderAvatar={null}
-          renderBubble={(p) => (
-            <Bubble
-              {...p}
-              wrapperStyle={{
-                left: { backgroundColor: theme.surface, borderRadius: 24, borderBottomLeftRadius: 8, paddingHorizontal: 4, paddingVertical: 2 },
-                right: { backgroundColor: theme.ink, borderRadius: 24, borderBottomRightRadius: 8, paddingHorizontal: 4, paddingVertical: 2 },
-              }}
-              textStyle={{ left: { color: theme.text, fontSize: 16, fontFamily: fonts.regular }, right: { color: '#FFFFFF', fontSize: 16, fontFamily: fonts.regular } }}
-            />
-          )}
+          renderBubble={(p) => {
+            const m = p.currentMessage as ChatItem;
+            const mine = m.user._id === me;
+            const rs = (reactions[String(m._id)] ?? []).slice(0, 2);
+            return (
+              <View style={{ alignItems: mine ? 'flex-end' : 'flex-start', marginBottom: rs.length ? 10 : 0, marginLeft: mine && rs.length ? 12 : 0, marginRight: !mine && rs.length ? 12 : 0 }}>
+                <View>
+                  <Bubble
+                    {...p}
+                    wrapperStyle={{
+                      left: { backgroundColor: theme.surface, borderRadius: 24, borderBottomLeftRadius: 8, paddingHorizontal: 4, paddingVertical: 2 },
+                      right: { backgroundColor: theme.ink, borderRadius: 24, borderBottomRightRadius: 8, paddingHorizontal: 4, paddingVertical: 2 },
+                    }}
+                    textStyle={{ left: { color: theme.text, fontSize: 16, fontFamily: fonts.regular }, right: { color: '#FFFFFF', fontSize: 16, fontFamily: fonts.regular } }}
+                  />
+                  {rs.length ? (
+                    <View style={[reactStyles.badge, mine ? { left: -12 } : { right: -12 }, { backgroundColor: theme.surface }]}>
+                      {rs.map((r) => (
+                        <Emoji key={r.userId} name={r.emoji} size={rs.length > 1 ? 16 : 20} />
+                      ))}
+                    </View>
+                  ) : null}
+                </View>
+                {m.readAt ? <Text style={[reactStyles.read, { color: theme.muted }]}>{t('chat.readAt', { time: new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' }).format(new Date(m.readAt)) })}</Text> : null}
+              </View>
+            );
+          }}
           renderInputToolbar={
             blocked
               ? () => <Text style={{ color: theme.muted, padding: 12 }}>{t('chat.blockedByMe')}</Text>
@@ -306,4 +381,23 @@ const headerStyles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4, borderWidth: 1.5 },
   statusText: { fontFamily: fonts.medium, fontSize: 13 },
   call: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+});
+
+const cardStyles = StyleSheet.create({
+  card: { alignSelf: 'stretch', marginVertical: 10, backgroundColor: '#151515', borderRadius: 30, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  date: { width: 78, height: 70, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  dateSmall: { fontFamily: fonts.semibold, fontSize: 12 },
+  dateBig: { fontFamily: fonts.semibold, fontSize: 24, letterSpacing: -1 },
+  tagRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  tag: { color: '#B9B9B3', fontFamily: fonts.regular, fontSize: 12 },
+  title: { color: '#FFFFFF', fontFamily: fonts.semibold, fontSize: 16 },
+  meta: { color: '#B9B9B3', fontFamily: fonts.regular, fontSize: 13 },
+});
+
+const reactStyles = StyleSheet.create({
+  badge: { position: 'absolute', bottom: -10, minWidth: 32, height: 32, paddingHorizontal: 6, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, shadowColor: '#151515', shadowOpacity: 0.12, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  read: { fontFamily: fonts.regular, fontSize: 12, marginTop: 3 },
+  panel: { paddingHorizontal: 12, paddingBottom: 8, gap: 8 },
+  pick: { flexDirection: 'row', justifyContent: 'space-between', padding: 6, borderRadius: 999 },
+  pickBtn: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
 });
