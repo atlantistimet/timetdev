@@ -769,7 +769,14 @@
     "errors": {
       "type": "File type not allowed (photo, video or PDF).",
       "size": "File too large (max 25 MB)."
-    }
+    },
+    "callName": "Call {{name}}",
+    "search": "Search conversations",
+    "filterAll": "All",
+    "filterUnread": "Unread",
+    "filterClients": "Clients",
+    "yesterday": "yesterday",
+    "emptyTitle": "No messages\nyet"
   },
   "sessions": {
     "title": "My sessions",

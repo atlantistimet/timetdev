@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase';
 
 export type ChatAttachment = { kind: 'media'; type: 'image' | 'video' | 'file'; path: string; name: string; size: number; mime: string };
 export type Message = { id: string; sender_id: string; body: string; created_at: string; read_at: string | null; attachment: ChatAttachment | null };
-export type ConversationItem = { id: string; otherId: string; otherName: string; otherHandle: string | null; lastAt: string | null; lastBody: string; unread: number };
+export type ConversationItem = { id: string; otherId: string; otherName: string; otherHandle: string | null; lastAt: string | null; lastBody: string; unread: number; otherAvatar: string | null; availableNow: boolean };
 
 const pair = (a: string, b: string) => (a < b ? { user_a: a, user_b: b } : { user_a: b, user_b: a });
 
@@ -43,10 +43,10 @@ export async function listConversations(me: string): Promise<ConversationItem[]>
   if (rows.length === 0) return [];
   const otherIds = rows.map((r) => (r.user_a === me ? r.user_b : r.user_a));
   const [profiles, messages] = await Promise.all([
-    supabase.from('profiles').select('id, full_name, handle').in('id', otherIds),
+    supabase.from('profiles').select('id, full_name, handle, avatar_path, available_until').in('id', otherIds),
     supabase.from('messages').select('conversation_id, sender_id, body, read_at, created_at, attachment').in('conversation_id', rows.map((r) => r.id)).order('created_at', { ascending: false }).limit(500),
   ]);
-  const names = new Map(((profiles.data ?? []) as { id: string; full_name: string; handle: string | null }[]).map((p) => [p.id, p]));
+  const names = new Map(((profiles.data ?? []) as { id: string; full_name: string; handle: string | null; avatar_path: string | null; available_until: string | null }[]).map((p) => [p.id, p]));
   const msgs = (messages.data ?? []) as { conversation_id: string; sender_id: string; body: string; read_at: string | null; attachment: ChatAttachment | null }[];
   return rows.map((r) => {
     const otherId = r.user_a === me ? r.user_b : r.user_a;
@@ -56,6 +56,8 @@ export async function listConversations(me: string): Promise<ConversationItem[]>
       otherId,
       otherName: names.get(otherId)?.full_name ?? '',
       otherHandle: names.get(otherId)?.handle ?? null,
+      otherAvatar: names.get(otherId)?.avatar_path ?? null,
+      availableNow: !!names.get(otherId)?.available_until && Date.parse(names.get(otherId)?.available_until ?? '') > Date.now(),
       lastAt: r.last_message_at,
       lastBody: mine[0]?.body || (mine[0]?.attachment ? (mine[0].attachment.type === 'image' ? '📷' : mine[0].attachment.type === 'video' ? '🎬' : '📄') : ''),
       unread: mine.filter((m) => m.sender_id !== me && !m.read_at).length,

@@ -1,18 +1,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Linking, Modal, Pressable, Text, View } from 'react-native';
+import { Image, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { GiftedChat, type IMessage } from 'react-native-gifted-chat';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Bubble, Composer, GiftedChat, InputToolbar, Send, type IMessage } from 'react-native-gifted-chat';
 import { useTranslation } from 'react-i18next';
+import { Avatar } from '@/components/Avatar';
 import { ChatVideo, ChatVideoFull } from '@/components/ChatVideo';
 import { LoadingView } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { isBlockedByMe, loadMessages, markRead, openConversation, reportMessage, sendAttachment, sendMessage, setBlocked, signedUrls, type Message } from '@/lib/chat';
 import { useChatPresence } from '@/lib/chat-presence';
 import { loadProfileById } from '@/lib/public-profile';
-import { useTheme } from '@/theme';
+import { supabase } from '@/lib/supabase';
+import { fonts, pastelFor, useTheme } from '@/theme';
 
 type ChatItem = IMessage & { fileUrl?: string; fileName?: string };
 type Panel = null | 'attach' | 'menu' | { report: string };
@@ -25,6 +28,8 @@ export default function ChatScreen() {
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const [convId, setConvId] = useState<string | null>(null);
   const [name, setName] = useState('');
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [callServiceId, setCallServiceId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[] | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [urls, setUrls] = useState<Record<string, string>>({});
@@ -41,6 +46,9 @@ export default function ChatScreen() {
       const [profile, conv] = await Promise.all([loadProfileById(userId), userId === me ? Promise.resolve({ id: null, errorKey: 'errors.generic' }) : openConversation(me, userId)]);
       if (!alive) return;
       setName(profile?.full_name ?? '');
+      setAvatar(profile?.avatar_path ?? null);
+      const { data: svc } = await supabase.from('services').select('id').eq('seller_id', userId).eq('kind', 'per_minute').eq('active', true).is('deleted_at', null).limit(1);
+      if (alive) setCallServiceId((svc?.[0]?.id as string | undefined) ?? null);
       if (conv.id) {
         convRef.current = conv.id;
         setConvId(conv.id);
@@ -155,8 +163,8 @@ export default function ChatScreen() {
   };
 
   const chip = (label: string, onPress: () => void, key?: string) => (
-    <Pressable key={key ?? label} accessibilityRole="button" onPress={onPress} style={{ backgroundColor: theme.fill, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8 }}>
-      <Text style={{ color: theme.text }}>{label}</Text>
+    <Pressable key={key ?? label} accessibilityRole="button" onPress={onPress} style={{ backgroundColor: theme.surface, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10 }}>
+      <Text style={{ color: theme.text, fontFamily: fonts.medium }}>{label}</Text>
     </Pressable>
   );
 
@@ -165,18 +173,27 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
       <View style={{ flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, gap: 12 }}>
-          <Pressable accessibilityRole="button" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}>
-            <Text style={{ color: theme.text, fontSize: 22 }}>‹</Text>
+        <View style={[headerStyles.head, { backgroundColor: pastelFor(userId) }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={headerStyles.back}>
+            <Ionicons name="chevron-back" size={22} color={theme.ink} />
           </Pressable>
+          <Avatar name={name || '?'} seed={userId} size={46} path={avatar} />
           <View style={{ flex: 1 }}>
-            <Text style={{ color: theme.text, fontSize: 17, fontWeight: '600' }}>{name}</Text>
-            <Text style={{ color: otherTyping || otherOnline ? theme.accent : theme.muted, fontSize: 12 }}>
-              {otherTyping ? t('chat.typing') : otherOnline ? t('chat.online') : ''}
-            </Text>
+            <Text numberOfLines={1} style={[headerStyles.name, { color: theme.ink }]}>{name}</Text>
+            {otherTyping || otherOnline ? (
+              <View style={headerStyles.status}>
+                <View style={[headerStyles.dot, { backgroundColor: theme.accent, borderColor: theme.ink }]} />
+                <Text style={[headerStyles.statusText, { color: theme.ink }]}>{otherTyping ? t('chat.typing') : t('chat.online')}</Text>
+              </View>
+            ) : null}
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.menu')} onPress={() => setPanel(panel === 'menu' ? null : 'menu')}>
-            <Text style={{ color: theme.text, fontSize: 22 }}>⋯</Text>
+          {callServiceId ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={t('chat.callName', { name })} onPress={() => router.push({ pathname: '/call-start', params: { serviceId: callServiceId } })} style={[headerStyles.call, { backgroundColor: theme.ink }]}>
+              <Ionicons name="call" size={20} color="#FFFFFF" />
+            </Pressable>
+          ) : null}
+          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.menu')} onPress={() => setPanel(panel === 'menu' ? null : 'menu')} style={headerStyles.back}>
+            <Ionicons name="ellipsis-horizontal" size={20} color={theme.ink} />
           </Pressable>
         </View>
         {panel !== null ? (
@@ -210,9 +227,38 @@ export default function ChatScreen() {
           onLongPressMessage={(_ctx, m) => {
             if (m.user._id !== me) setPanel({ report: String(m._id) });
           }}
+          isUserAvatarVisible={false}
+          renderAvatar={null}
+          renderBubble={(p) => (
+            <Bubble
+              {...p}
+              wrapperStyle={{
+                left: { backgroundColor: theme.surface, borderRadius: 24, borderBottomLeftRadius: 8, paddingHorizontal: 4, paddingVertical: 2 },
+                right: { backgroundColor: theme.ink, borderRadius: 24, borderBottomRightRadius: 8, paddingHorizontal: 4, paddingVertical: 2 },
+              }}
+              textStyle={{ left: { color: theme.text, fontSize: 16, fontFamily: fonts.regular }, right: { color: '#FFFFFF', fontSize: 16, fontFamily: fonts.regular } }}
+            />
+          )}
+          renderInputToolbar={
+            blocked
+              ? () => <Text style={{ color: theme.muted, padding: 12 }}>{t('chat.blockedByMe')}</Text>
+              : (p) => (
+                  <InputToolbar
+                    {...p}
+                    containerStyle={{ backgroundColor: theme.surface, borderRadius: 999, marginHorizontal: 12, marginBottom: 12, padding: 6, borderTopWidth: 0 }}
+                    primaryStyle={{ alignItems: 'center', gap: 6 }}
+                  />
+                )
+          }
+          renderComposer={(p) => <Composer {...p} textInputProps={{ ...p.textInputProps, style: { flex: 1, fontSize: 16, color: theme.text, backgroundColor: 'transparent', paddingHorizontal: 6, fontFamily: fonts.regular } }} />}
+          renderSend={(p) => (
+            <Send {...p} containerStyle={{ width: 50, height: 50, borderRadius: 25, backgroundColor: theme.accent, alignItems: 'center', justifyContent: 'center', margin: 0, padding: 0 }}>
+              <Ionicons name="arrow-up" size={24} color={theme.onAccent} />
+            </Send>
+          )}
           renderActions={() => (
-            <Pressable accessibilityRole="button" accessibilityLabel={t('chat.attach')} onPress={() => setPanel(panel === 'attach' ? null : 'attach')} style={{ paddingHorizontal: 12, justifyContent: 'center' }}>
-              <Text style={{ color: theme.text, fontSize: 26 }}>＋</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('chat.attach')} onPress={() => setPanel(panel === 'attach' ? null : 'attach')} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="add" size={26} color={theme.ink} />
             </Pressable>
           )}
           renderMessageImage={(p) =>
@@ -231,7 +277,6 @@ export default function ChatScreen() {
               </Pressable>
             ) : null;
           }}
-          renderInputToolbar={blocked ? () => <Text style={{ color: theme.muted, padding: 12 }}>{t('chat.blockedByMe')}</Text> : undefined}
           textInputProps={{ placeholder: t('chat.write'), maxLength: 2000, onChangeText: () => notifyTyping() }}
         />
       </View>
@@ -252,3 +297,13 @@ export default function ChatScreen() {
     </SafeAreaView>
   );
 }
+
+const headerStyles = StyleSheet.create({
+  head: { marginHorizontal: 8, marginTop: 8, paddingTop: 14, paddingBottom: 12, paddingHorizontal: 10, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, borderTopLeftRadius: 8, borderTopRightRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  back: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center' },
+  name: { fontFamily: fonts.semibold, fontSize: 17 },
+  status: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dot: { width: 8, height: 8, borderRadius: 4, borderWidth: 1.5 },
+  statusText: { fontFamily: fonts.medium, fontSize: 13 },
+  call: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+});

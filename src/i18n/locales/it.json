@@ -769,7 +769,14 @@
     "errors": {
       "type": "Tipo di file non consentito (foto, video o PDF).",
       "size": "File troppo grande (massimo 25 MB)."
-    }
+    },
+    "callName": "Chiama {{name}}",
+    "search": "Cerca nelle conversazioni",
+    "filterAll": "Tutti",
+    "filterUnread": "Non letti",
+    "filterClients": "Clienti",
+    "yesterday": "ieri",
+    "emptyTitle": "Nessun messaggio\nper ora"
   },
   "sessions": {
     "title": "Le mie sessioni",
