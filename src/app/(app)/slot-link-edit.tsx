@@ -297,10 +297,16 @@ export default function SlotLinkEditScreen() {
         </View>
         <Text style={[styles.intro, { color: theme.muted }]}>{t('slotLinks.sendIntro')}</Text>
 
-        {services.length > 0 ? seg([{ key: 'catalog', label: t('slotLinks.kindCatalog') }, { key: 'custom', label: t('slotLinks.kindCustom') }], custom ? 'custom' : 'catalog', (k) => (k === 'custom' ? chooseCustom() : chooseCatalog())) : null}
+        {seg([{ key: 'catalog', label: t('slotLinks.kindCatalog') }, { key: 'custom', label: t('slotLinks.kindCustom') }], custom ? 'custom' : 'catalog', (k) => (k === 'custom' ? chooseCustom() : chooseCatalog()))}
 
         {!custom ? (
           <View style={sectionStyle}>
+            {services.length === 0 ? (
+              <>
+                <Text style={[styles.hint, { color: theme.muted }]}>{t('slotLinks.noServices')}</Text>
+                <Button title={t('slotLinks.createService')} variant="ghost" onPress={() => router.push('/my-services')} />
+              </>
+            ) : null}
             {services.map((s) => (
               <Pressable key={s.id} accessibilityRole="button" accessibilityState={{ selected: s.id === serviceId }} onPress={() => pickService(s)} style={[styles.svc, s.id === serviceId && { backgroundColor: theme.bg }]}>
                 <View style={[styles.svcTile, { backgroundColor: pastelFor(s.id) }]}>

@@ -615,7 +615,9 @@
     "done": "Done",
     "chooseChat": "Send to…",
     "noChats": "You have no conversations yet.",
-    "sentTo": "Sent to {{name}}."
+    "sentTo": "Sent to {{name}}.",
+    "noServices": "You have no services in your catalog yet. Create one, or pick “Custom” to make a slot just for this link.",
+    "createService": "Go to my services"
   },
   "newService": {
     "chip": "+ New service",

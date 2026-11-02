@@ -615,7 +615,9 @@
     "done": "Fatto",
     "chooseChat": "Invia a…",
     "noChats": "Non hai ancora conversazioni.",
-    "sentTo": "Inviato a {{name}}."
+    "sentTo": "Inviato a {{name}}.",
+    "noServices": "Non hai ancora servizi nel catalogo. Creane uno, oppure scegli «Creato apposta» per fare uno slot solo per questo link.",
+    "createService": "Vai ai miei servizi"
   },
   "newService": {
     "chip": "+ Nuovo servizio",
