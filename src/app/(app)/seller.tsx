@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase';
 import { fonts, useTheme } from '@/theme';
 
 const MENU: { key: string; icon: keyof typeof Ionicons.glyphMap; labelKey: string; href: string }[] = [
+  { key: 'earnings', icon: 'wallet-outline', labelKey: 'earnings.menu', href: '/earnings' },
   { key: 'services', icon: 'briefcase-outline', labelKey: 'myServices.title', href: '/my-services' },
   { key: 'offers', icon: 'pricetags-outline', labelKey: 'offers.title', href: '/my-offers' },
   { key: 'links', icon: 'paper-plane-outline', labelKey: 'slotLinks.title', href: '/slot-links' },
@@ -168,10 +169,10 @@ export default function SellerScreen() {
       </View>
 
       <View style={styles.tiles}>
-        <View style={[styles.tile, { backgroundColor: theme.accent }]}>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/earnings')} style={[styles.tile, { backgroundColor: theme.accent }]}>
           <Text style={[styles.tileBig, { color: theme.onAccent }]}>{formatEuro(summary.cents, i18n.language).replace(/[,.]00(?=\D|$)/, '')}</Text>
           <Text style={[styles.tileSmall, { color: theme.onAccent }]}>{t('seller.panel.week')}</Text>
-        </View>
+        </Pressable>
         <View style={[styles.tile, { backgroundColor: theme.surface }]}>
           <Text style={[styles.tileBig, { color: theme.text }]}>{hours} h</Text>
           <Text style={[styles.tileSmall, { color: theme.muted }]}>{t('seller.panel.sold')}</Text>

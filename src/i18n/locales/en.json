@@ -1006,5 +1006,21 @@
     "offerHint": "A public discount on one of your services, shown on your profile.",
     "slot": "New custom slot",
     "slotHint": "A private invitation for one person, sent as a link: it never shows on your profile or in the feed."
+  },
+  "earnings": {
+    "year": "Year",
+    "netIn": "net earned · {{period}}",
+    "payments": "payments",
+    "fees": "fees",
+    "latest": "Latest movements",
+    "on": "of {{gross}} · fee {{fee}}",
+    "call": "Call {{minutes}} min",
+    "package": "Package",
+    "tip": "Tip",
+    "session": "Session",
+    "empty": "No movements in this period.",
+    "payouts": "Payouts on Stripe",
+    "tax": "Tax details",
+    "menu": "Earnings"
   }
 }

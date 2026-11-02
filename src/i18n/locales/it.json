@@ -1006,5 +1006,21 @@
     "offerHint": "Uno sconto pubblico su un tuo servizio, visibile nel tuo profilo.",
     "slot": "Nuovo slot personalizzato",
     "slotHint": "Un invito privato per una persona, con un link: non compare in profilo né nel feed."
+  },
+  "earnings": {
+    "year": "Anno",
+    "netIn": "netto incassato · {{period}}",
+    "payments": "pagamenti",
+    "fees": "commissioni",
+    "latest": "Ultimi movimenti",
+    "on": "su {{gross}} · comm. {{fee}}",
+    "call": "Chiamata {{minutes}} min",
+    "package": "Pacchetto",
+    "tip": "Mancia",
+    "session": "Sessione",
+    "empty": "Nessun movimento in questo periodo.",
+    "payouts": "Bonifici su Stripe",
+    "tax": "Dati fiscali",
+    "menu": "Incassi"
   }
 }
