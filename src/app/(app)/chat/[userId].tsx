@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -8,19 +10,22 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Bubble, Composer, GiftedChat, InputToolbar, Send, type IMessage } from 'react-native-gifted-chat';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { AttachSheet } from '@/components/AttachSheet';
 import { Emoji } from '@/components/Emoji';
+import { VoiceBubble, clock } from '@/components/VoiceBubble';
 import { formatEuro } from '@/lib/booking';
 import { ChatVideo, ChatVideoFull } from '@/components/ChatVideo';
 import { LoadingView } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { REACTIONS, isBlockedByMe, loadChatBookings, loadMessages, loadReactions, toggleReaction, type ChatBooking, type ReactionKey, type ReactionMap, markRead, openConversation, reportMessage, sendAttachment, sendMessage, setBlocked, signedUrls, type Message } from '@/lib/chat';
+import { REACTIONS, isBlockedByMe, loadChatBookings, loadMessages, loadReactions, toggleReaction, type ChatBooking, type ReactionKey, type ReactionMap, markRead, openConversation, reportMessage, sendAttachment, sendCard, sendMessage, type ProfileCard, type SlotCard, setBlocked, signedUrls, type Message } from '@/lib/chat';
 import { useChatPresence } from '@/lib/chat-presence';
 import { loadProfileById } from '@/lib/public-profile';
 import { supabase } from '@/lib/supabase';
 import { fonts, pastelFor, useTheme } from '@/theme';
 
-type ChatItem = IMessage & { fileUrl?: string; fileName?: string; booking?: ChatBooking; readAt?: string | null };
-type Panel = null | 'attach' | 'menu' | { report: string };
+type ChatItem = IMessage & { fileUrl?: string; fileName?: string; audioUrl?: string; durationMs?: number; card?: ProfileCard | SlotCard; booking?: ChatBooking; readAt?: string | null };
+type Panel = null | 'menu' | { report: string };
+const DOC_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/plain', 'text/csv'];
 
 export default function ChatScreen() {
   const { t, i18n } = useTranslation();
@@ -42,6 +47,10 @@ export default function ChatScreen() {
   const [reactions, setReactions] = useState<ReactionMap>({});
   const [bookings, setBookings] = useState<ChatBooking[]>([]);
   const [reactFor, setReactFor] = useState<{ id: string; mine: boolean } | null>(null);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recMs, setRecMs] = useState(0);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const convRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -91,7 +100,7 @@ export default function ChatScreen() {
 
   // Gli allegati sono privati: servono indirizzi temporanei.
   useEffect(() => {
-    const missing = (messages ?? []).flatMap((m) => (m.attachment && !urls[m.attachment.path] ? [m.attachment.path] : []));
+    const missing = (messages ?? []).flatMap((m) => (m.attachment?.kind === 'media' && !urls[m.attachment.path] ? [m.attachment.path] : []));
     if (missing.length === 0) return;
     let alive = true;
     void signedUrls(missing).then((got) => {
@@ -114,10 +123,13 @@ export default function ChatScreen() {
       sent: false,
       received: false,
       readAt: m.id === lastOwnRead ? m.read_at : null,
-      image: m.attachment?.type === 'image' ? urls[m.attachment.path] : undefined,
-      video: m.attachment?.type === 'video' ? urls[m.attachment.path] : undefined,
-      fileUrl: m.attachment?.type === 'file' ? urls[m.attachment.path] : undefined,
-      fileName: m.attachment?.type === 'file' ? m.attachment.name : undefined,
+      image: m.attachment?.kind === 'media' && m.attachment.type === 'image' ? urls[m.attachment.path] : undefined,
+      video: m.attachment?.kind === 'media' && m.attachment.type === 'video' ? urls[m.attachment.path] : undefined,
+      fileUrl: m.attachment?.kind === 'media' && m.attachment.type === 'file' ? urls[m.attachment.path] : undefined,
+      fileName: m.attachment?.kind === 'media' && m.attachment.type === 'file' ? m.attachment.name : undefined,
+      audioUrl: m.attachment?.kind === 'media' && m.attachment.type === 'audio' ? urls[m.attachment.path] : undefined,
+      durationMs: m.attachment?.kind === 'media' ? m.attachment.durationMs : undefined,
+      card: m.attachment && m.attachment.kind !== 'media' ? m.attachment : undefined,
     }));
     const cards: ChatItem[] = bookings.map((b) => ({ _id: `booking-${b.id}`, text: '', createdAt: new Date(b.created_at), user: { _id: 'system' }, system: true, booking: b }));
     return [...rows, ...cards].sort((x, y) => +new Date(y.createdAt) - +new Date(x.createdAt));
@@ -158,13 +170,66 @@ export default function ChatScreen() {
     else await reload(convId);
   };
 
-  const pickPdf = async () => {
+  const pickDocument = async () => {
     setPanel(null);
     if (!convId) return;
-    const res = await DocumentPicker.getDocumentAsync({ type: 'application/pdf', copyToCacheDirectory: true });
+    const res = await DocumentPicker.getDocumentAsync({ type: DOC_TYPES, copyToCacheDirectory: true });
     const a = res.canceled ? null : res.assets[0];
     if (!a) return;
-    const failure = await sendAttachment(convId, me, { uri: a.uri, name: a.name, mime: 'application/pdf' }, i18n.language.slice(0, 2));
+    const failure = await sendAttachment(convId, me, { uri: a.uri, name: a.name, mime: a.mimeType ?? 'application/pdf' }, i18n.language.slice(0, 2));
+    if (failure) setErrorKey(failure);
+    else await reload(convId);
+  };
+
+  const shareCard = async (card: ProfileCard | SlotCard) => {
+    if (!convId) return;
+    const failure = await sendCard(convId, me, card, i18n.language.slice(0, 2));
+    if (failure) setErrorKey(failure);
+    else await reload(convId);
+  };
+
+  // Messaggio vocale: tocca il microfono per registrare, poi invia o cestina.
+  useEffect(() => {
+    if (!recording) return;
+    const startedAt = Date.now();
+    const timer = setInterval(() => setRecMs(Date.now() - startedAt), 250);
+    return () => clearInterval(timer);
+  }, [recording]);
+
+  const startRecording = async () => {
+    setErrorKey(null);
+    try {
+      const perm = await requestRecordingPermissionsAsync();
+      if (!perm.granted) {
+        setErrorKey('chat.voice.denied');
+        return;
+      }
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
+      setRecMs(0);
+      setRecording(true);
+    } catch {
+      setErrorKey('chat.voice.failed');
+    }
+  };
+
+  const stopRecording = async (send: boolean) => {
+    const ms = recMs;
+    setRecording(false);
+    try {
+      await recorder.stop();
+      await setAudioModeAsync({ allowsRecording: false });
+    } catch {
+      return;
+    }
+    const uri = recorder.uri;
+    if (!send || !uri || !convId) return;
+    if (ms < 800) {
+      setErrorKey('chat.voice.short');
+      return;
+    }
+    const failure = await sendAttachment(convId, me, { uri, name: 'voice', mime: Platform.OS === 'web' ? 'audio/webm' : 'audio/mp4', durationMs: ms }, i18n.language.slice(0, 2));
     if (failure) setErrorKey(failure);
     else await reload(convId);
   };
@@ -193,7 +258,7 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
-      <View style={{ flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center' }}>
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center' }}>
         <View style={[headerStyles.head, { backgroundColor: pastelFor(userId) }]}>
           <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={headerStyles.back}>
             <Ionicons name="chevron-back" size={22} color={theme.ink} />
@@ -219,12 +284,7 @@ export default function ChatScreen() {
         </View>
         {panel !== null ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 12, paddingBottom: 8 }}>
-            {panel === 'attach' ? (
-              <>
-                {chip(t('chat.photoVideo'), () => void pickMedia())}
-                {chip(t('chat.pdf'), () => void pickPdf())}
-              </>
-            ) : panel === 'menu' ? (
+            {panel === 'menu' ? (
               chip(blocked ? t('chat.unblock') : t('chat.block'), () => void toggleBlock())
             ) : (
               <>
@@ -255,6 +315,7 @@ export default function ChatScreen() {
         {info ? <Text style={{ color: theme.accent, paddingHorizontal: 12 }}>{info}</Text> : null}
         {errorKey ? <Text style={{ color: theme.danger, paddingHorizontal: 12 }}>{t(errorKey)}</Text> : null}
         <GiftedChat<ChatItem>
+          keyboardAvoidingViewProps={{ enabled: false }}
           messages={items}
           onSend={(out) => void onSend(out)}
           user={{ _id: me }}
@@ -317,7 +378,23 @@ export default function ChatScreen() {
           renderInputToolbar={
             blocked
               ? () => <Text style={{ color: theme.muted, padding: 12 }}>{t('chat.blockedByMe')}</Text>
-              : (p) => (
+              : recording
+                ? () => (
+                    <View style={[recStyles.bar, { backgroundColor: theme.surface }]}>
+                      <Pressable accessibilityRole="button" accessibilityLabel={t('chat.voice.cancel')} onPress={() => void stopRecording(false)} style={[recStyles.round, { backgroundColor: theme.bg }]}>
+                        <Ionicons name="trash-outline" size={22} color={theme.danger} />
+                      </Pressable>
+                      <View style={recStyles.live}>
+                        <View style={[recStyles.dot, { backgroundColor: theme.danger }]} />
+                        <Text style={[recStyles.time, { color: theme.text }]}>{clock(recMs / 1000)}</Text>
+                        <Text style={{ color: theme.muted, fontFamily: fonts.regular }}>{t('chat.voice.recording')}</Text>
+                      </View>
+                      <Pressable accessibilityRole="button" accessibilityLabel={t('chat.send')} onPress={() => void stopRecording(true)} style={[recStyles.round, { backgroundColor: theme.accent }]}>
+                        <Ionicons name="arrow-up" size={24} color={theme.onAccent} />
+                      </Pressable>
+                    </View>
+                  )
+                : (p) => (
                   <InputToolbar
                     {...p}
                     containerStyle={{ backgroundColor: theme.surface, borderRadius: 999, marginHorizontal: 12, marginBottom: 12, padding: 6, borderTopWidth: 0 }}
@@ -325,14 +402,42 @@ export default function ChatScreen() {
                   />
                 )
           }
-          renderComposer={(p) => <Composer {...p} textInputProps={{ ...p.textInputProps, style: { flex: 1, fontSize: 16, color: theme.text, backgroundColor: 'transparent', paddingHorizontal: 6, fontFamily: fonts.regular } }} />}
-          renderSend={(p) => (
-            <Send {...p} containerStyle={{ width: 50, height: 50, borderRadius: 25, backgroundColor: theme.accent, alignItems: 'center', justifyContent: 'center', margin: 0, padding: 0 }}>
-              <Ionicons name="arrow-up" size={24} color={theme.onAccent} />
-            </Send>
+          renderComposer={(p) => (
+            <Composer
+              {...p}
+              textInputProps={{
+                ...p.textInputProps,
+                style: {
+                  flex: 1,
+                  minHeight: 46,
+                  fontSize: 16,
+                  lineHeight: 22,
+                  color: theme.text,
+                  backgroundColor: 'transparent',
+                  paddingHorizontal: 8,
+                  paddingTop: Platform.OS === 'ios' ? 12 : 0,
+                  paddingBottom: Platform.OS === 'ios' ? 12 : 0,
+                  marginTop: 0,
+                  marginBottom: 0,
+                  textAlignVertical: 'center',
+                  fontFamily: fonts.regular,
+                },
+              }}
+            />
           )}
+          renderSend={(p) =>
+            p.text?.trim() ? (
+              <Send {...p} containerStyle={{ width: 50, height: 50, borderRadius: 25, backgroundColor: theme.accent, alignItems: 'center', justifyContent: 'center', margin: 0, padding: 0 }}>
+                <Ionicons name="arrow-up" size={24} color={theme.onAccent} />
+              </Send>
+            ) : (
+              <Pressable accessibilityRole="button" accessibilityLabel={t('chat.voice.record')} onPress={() => void startRecording()} style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: theme.accent, alignItems: 'center', justifyContent: 'center' }}>
+                <Ionicons name="mic" size={24} color={theme.onAccent} />
+              </Pressable>
+            )
+          }
           renderActions={() => (
-            <Pressable accessibilityRole="button" accessibilityLabel={t('chat.attach')} onPress={() => setPanel(panel === 'attach' ? null : 'attach')} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('chat.attach')} onPress={() => setAttachOpen(true)} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="add" size={26} color={theme.ink} />
             </Pressable>
           )}
@@ -346,15 +451,46 @@ export default function ChatScreen() {
           renderMessageVideo={(p) => (p.currentMessage.video ? <ChatVideo uri={p.currentMessage.video} onOpen={() => setLightbox({ uri: p.currentMessage.video ?? '', video: true })} /> : null)}
           renderCustomView={(p) => {
             const m = p.currentMessage as ChatItem;
+            const mine = m.user._id === me;
+            if (m.audioUrl) return <VoiceBubble uri={m.audioUrl} durationMs={m.durationMs} mine={mine} />;
+            if (m.card?.kind === 'profile') {
+              const c = m.card;
+              return (
+                <Pressable accessibilityRole="button" onPress={() => c.handle && router.push({ pathname: '/u/[handle]', params: { handle: c.handle } })} style={cardStyles.mini}>
+                  <Avatar name={c.name} seed={c.id} size={44} path={c.avatar} />
+                  <View style={{ flex: 1 }}>
+                    <Text numberOfLines={1} style={{ color: mine ? '#FFFFFF' : theme.text, fontFamily: fonts.semibold, fontSize: 15 }}>{c.name}</Text>
+                    <Text style={{ color: mine ? theme.inkMuted : theme.muted, fontFamily: fonts.regular, fontSize: 13 }}>{t('chat.contactCard')}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={mine ? '#FFFFFF' : theme.muted} />
+                </Pressable>
+              );
+            }
+            if (m.card?.kind === 'slot') {
+              const c = m.card;
+              return (
+                <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/s/[code]', params: { code: c.code } })} style={cardStyles.mini}>
+                  <View style={[cardStyles.slotIcon, { backgroundColor: theme.accent }]}>
+                    <Ionicons name="calendar" size={22} color={theme.onAccent} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text numberOfLines={1} style={{ color: mine ? '#FFFFFF' : theme.text, fontFamily: fonts.semibold, fontSize: 15 }}>{c.title}</Text>
+                    <Text style={{ color: mine ? theme.inkMuted : theme.muted, fontFamily: fonts.regular, fontSize: 13 }}>{`${c.duration_min} min · ${formatEuro(c.price_cents, i18n.language)} · ${t('chat.slotCard')}`}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={mine ? '#FFFFFF' : theme.muted} />
+                </Pressable>
+              );
+            }
             return m.fileName ? (
               <Pressable onPress={() => m.fileUrl && void Linking.openURL(m.fileUrl)} style={{ padding: 10 }}>
-                <Text style={{ color: theme.text, textDecorationLine: 'underline' }}>{`📄 ${m.fileName}`}</Text>
+                <Text style={{ color: mine ? '#FFFFFF' : theme.text, textDecorationLine: 'underline' }}>{`📄 ${m.fileName}`}</Text>
               </Pressable>
             ) : null;
           }}
           textInputProps={{ placeholder: t('chat.write'), maxLength: 2000, onChangeText: () => notifyTyping() }}
         />
-      </View>
+      </KeyboardAvoidingView>
+      <AttachSheet visible={attachOpen} me={me} otherId={userId ?? ''} onClose={() => setAttachOpen(false)} onMedia={() => void pickMedia()} onDocument={() => void pickDocument()} onProfile={(c) => void shareCard(c)} onSlot={(c) => void shareCard(c)} />
       <Modal visible={!!lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(null)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
           {lightbox?.video ? (
@@ -383,7 +519,17 @@ const headerStyles = StyleSheet.create({
   call: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
 });
 
+const recStyles = StyleSheet.create({
+  bar: { borderRadius: 999, marginHorizontal: 12, marginBottom: 12, padding: 6, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  round: { width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
+  live: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
+  time: { fontFamily: fonts.semibold, fontSize: 17 },
+});
+
 const cardStyles = StyleSheet.create({
+  mini: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, minWidth: 240 },
+  slotIcon: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   card: { alignSelf: 'stretch', marginVertical: 10, backgroundColor: '#151515', borderRadius: 30, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
   date: { width: 78, height: 70, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   dateSmall: { fontFamily: fonts.semibold, fontSize: 12 },

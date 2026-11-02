@@ -782,7 +782,7 @@
     "close": "Close",
     "openFile": "Open",
     "errors": {
-      "type": "File type not allowed (photo, video or PDF).",
+      "type": "File type not allowed.",
       "size": "File too large (max 25 MB)."
     },
     "callName": "Call {{name}}",
@@ -794,7 +794,28 @@
     "emptyTitle": "No messages\nyet",
     "bookedCard": "Session booked",
     "readAt": "Read {{time}}",
-    "reportMessage": "Report"
+    "reportMessage": "Report",
+    "attachSheet": {
+      "media": "Photo & video",
+      "document": "Document",
+      "contact": "Contact",
+      "slot": "Slot",
+      "contactTitle": "Share a contact",
+      "slotTitle": "Custom slot",
+      "noContacts": "You have no other conversations to share yet.",
+      "noSlots": "You have no active slot links yet.",
+      "newSlot": "Create a new slot"
+    },
+    "voice": {
+      "record": "Record a voice message",
+      "recording": "Recording…",
+      "cancel": "Delete",
+      "denied": "Microphone permission is needed to record.",
+      "failed": "Couldn't record.",
+      "short": "Message too short."
+    },
+    "contactCard": "Timeet contact",
+    "slotCard": "pick a time"
   },
   "sessions": {
     "title": "My sessions",

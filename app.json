@@ -63,6 +63,12 @@
             "enableSceneSupport": true
           }
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Timeet usa il microfono per i messaggi vocali e le chiamate."
+        }
       ]
     ],
     "scheme": "timeet",

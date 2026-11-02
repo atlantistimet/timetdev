@@ -782,7 +782,7 @@
     "close": "Chiudi",
     "openFile": "Apri",
     "errors": {
-      "type": "Tipo di file non consentito (foto, video o PDF).",
+      "type": "Tipo di file non consentito.",
       "size": "File troppo grande (massimo 25 MB)."
     },
     "callName": "Chiama {{name}}",
@@ -794,7 +794,28 @@
     "emptyTitle": "Nessun messaggio\nper ora",
     "bookedCard": "Sessione prenotata",
     "readAt": "Letto {{time}}",
-    "reportMessage": "Segnala"
+    "reportMessage": "Segnala",
+    "attachSheet": {
+      "media": "Foto e video",
+      "document": "Documento",
+      "contact": "Contatto",
+      "slot": "Slot",
+      "contactTitle": "Condividi un contatto",
+      "slotTitle": "Slot personalizzato",
+      "noContacts": "Non hai ancora altre conversazioni da condividere.",
+      "noSlots": "Non hai ancora link slot attivi.",
+      "newSlot": "Crea un nuovo slot"
+    },
+    "voice": {
+      "record": "Registra un messaggio vocale",
+      "recording": "Registrazione…",
+      "cancel": "Elimina",
+      "denied": "Per registrare serve il permesso del microfono.",
+      "failed": "Non riesco a registrare.",
+      "short": "Messaggio troppo breve."
+    },
+    "contactCard": "Contatto Timeet",
+    "slotCard": "slot da scegliere"
   },
   "sessions": {
     "title": "Le mie sessioni",
