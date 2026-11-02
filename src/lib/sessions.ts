@@ -21,15 +21,15 @@ export type SessionDetail = {
   refund_cents: number;
   package_id: string | null;
   packagePosition: { index: number; total: number } | null;
-  client: { full_name: string; handle: string | null };
-  seller: { full_name: string; handle: string | null };
+  client: { full_name: string; handle: string | null; avatar_path: string | null };
+  seller: { full_name: string; handle: string | null; avatar_path: string | null };
   paid: boolean; // pagamento incassato
   tipsCents: number; // mance incassate
   review: { rating: number; body: string | null } | null;
   requests: { kind: 'receipt' | 'invoice'; status: 'open' | 'done' }[];
 };
 
-type Person = { full_name: string; handle: string | null };
+type Person = { full_name: string; handle: string | null; avatar_path: string | null };
 type Row = Omit<SessionDetail, 'description' | 'packagePosition' | 'client' | 'seller' | 'paid' | 'tipsCents' | 'review' | 'requests'> & {
   clientp: Person | Person[] | null;
   sellerp: Person | Person[] | null;
@@ -40,7 +40,7 @@ export async function loadSession(id: string): Promise<SessionDetail | null> {
   const { data } = await supabase
     .from('bookings')
     .select(
-      'id, client_id, seller_id, service_id, service_title, starts_at, ends_at, place, client_address, price_cents, extra_cents, client_fee_cents, seller_fee_cents, status, refund_cents, package_id, clientp:profiles!bookings_client_id_fkey(full_name, handle), sellerp:profiles!bookings_seller_id_fkey(full_name, handle)',
+      'id, client_id, seller_id, service_id, service_title, starts_at, ends_at, place, client_address, price_cents, extra_cents, client_fee_cents, seller_fee_cents, status, refund_cents, package_id, clientp:profiles!bookings_client_id_fkey(full_name, handle, avatar_path), sellerp:profiles!bookings_seller_id_fkey(full_name, handle, avatar_path)',
     )
     .eq('id', id)
     .maybeSingle();
@@ -60,8 +60,8 @@ export async function loadSession(id: string): Promise<SessionDetail | null> {
     ...rest,
     description: (service.data as { description: string | null } | null)?.description ?? null,
     packagePosition: packIds.length > 0 ? { index: packIds.indexOf(row.id) + 1, total: packIds.length } : null,
-    client: one(clientp) ?? { full_name: '', handle: null },
-    seller: one(sellerp) ?? { full_name: '', handle: null },
+    client: one(clientp) ?? { full_name: '', handle: null, avatar_path: null },
+    seller: one(sellerp) ?? { full_name: '', handle: null, avatar_path: null },
     paid: ((payments.data ?? []) as { status: string }[]).some((p) => p.status === 'captured' || p.status === 'refunded'),
     tipsCents: ((tips.data ?? []) as { captured_cents: number; status: string }[]).reduce((s, p) => s + (p.status === 'captured' ? p.captured_cents : 0), 0),
     review: (review.data as { rating: number; body: string | null } | null) ?? null,

@@ -182,6 +182,8 @@ export type MyBooking = {
   client_name: string | null;
   seller_name: string | null;
   package_id: string | null;
+  client_avatar: string | null;
+  seller_avatar: string | null;
 };
 
 /** Prenotazioni dell'utente, fatte o ricevute (la policy di lettura mostra solo quelle in cui è coinvolto). */
@@ -189,14 +191,14 @@ export async function listMyBookings(): Promise<{ bookings: MyBooking[]; errorKe
   const { data, error } = await supabase
     .from('bookings')
     .select(
-      'id, client_id, seller_id, service_title, starts_at, ends_at, status, price_cents, refund_cents, place, client_address, extra_cents, package_id, client:profiles!bookings_client_id_fkey(full_name), seller:profiles!bookings_seller_id_fkey(full_name)',
+      'id, client_id, seller_id, service_title, starts_at, ends_at, status, price_cents, refund_cents, place, client_address, extra_cents, package_id, client:profiles!bookings_client_id_fkey(full_name, avatar_path), seller:profiles!bookings_seller_id_fkey(full_name, avatar_path)',
     )
     .order('starts_at', { ascending: false })
     .limit(100);
   if (error) return { bookings: [], errorKey: 'errors.generic' };
-  const rows = (data ?? []) as unknown as (Omit<MyBooking, 'client_name' | 'seller_name'> & { client: { full_name: string } | null; seller: { full_name: string } | null })[];
+  const rows = (data ?? []) as unknown as (Omit<MyBooking, 'client_name' | 'seller_name' | 'client_avatar' | 'seller_avatar'> & { client: { full_name: string; avatar_path: string | null } | null; seller: { full_name: string; avatar_path: string | null } | null })[];
   return {
-    bookings: rows.map(({ client, seller, ...b }) => ({ ...b, client_name: client?.full_name ?? null, seller_name: seller?.full_name ?? null })),
+    bookings: rows.map(({ client, seller, ...b }) => ({ ...b, client_name: client?.full_name ?? null, seller_name: seller?.full_name ?? null, client_avatar: client?.avatar_path ?? null, seller_avatar: seller?.avatar_path ?? null })),
     errorKey: null,
   };
 }
