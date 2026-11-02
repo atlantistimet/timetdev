@@ -40,7 +40,7 @@ export default function MessagesScreen() {
       if (alive) setClients(new Set(((data ?? []) as { client_id: string }[]).map((b) => b.client_id)));
     });
     const channel = supabase
-      .channel(`inbox-${me}`)
+      .channel(`inbox-${me}-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, () => void load())
       .subscribe();
     return () => {
