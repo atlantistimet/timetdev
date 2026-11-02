@@ -47,7 +47,7 @@ export default function NewPostScreen() {
   };
 
   return (
-    <Screen>
+    <Screen back>
       <Title>{t('feed.newTitle')}</Title>
       <Body muted>{t('feed.newHint')}</Body>
       <Spacer />
@@ -82,8 +82,6 @@ export default function NewPostScreen() {
       <Spacer />
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
       <Button title={t('feed.publish')} onPress={() => void publish()} loading={saving} />
-      <Spacer size={12} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
     </Screen>
   );
 }

@@ -11,14 +11,27 @@ import {
   View,
   type TextInputProps,
 } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { fonts, radius, type as typo, useTheme } from '@/theme';
 
 /** Contenitore di schermata: area sicura, tastiera che non copre i campi, contenuto centrato e largo al massimo 440. */
-export function Screen({ children, tabs, wide, bare, footer }: { children: ReactNode; tabs?: boolean; wide?: boolean; bare?: boolean; footer?: ReactNode }) {
+export function Screen({ children, tabs, wide, bare, footer, back }: { children: ReactNode; tabs?: boolean; wide?: boolean; bare?: boolean; footer?: ReactNode; back?: boolean }) {
   const theme = useTheme();
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: theme.bg }]}>
+      {back ? (
+        <View style={[styles.screenColumn, wide && styles.screenColumnWide, styles.backBar]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Indietro"
+            onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+            style={[styles.backBtn, { backgroundColor: theme.surface }]}>
+            <Ionicons name="chevron-back" size={22} color={theme.ink} />
+          </Pressable>
+        </View>
+      ) : null}
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           contentContainerStyle={[styles.screenContent, tabs && styles.screenTabs, bare && styles.screenBare, footer ? styles.screenFooter : null]}
@@ -285,11 +298,14 @@ export function Spacer({ size = 16 }: { size?: number }) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  screenContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 24 },
+  // La barra in basso è sempre visibile (tranne nelle chat e in chiamata): il contenuto lascia spazio sotto.
+  screenContent: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingTop: 24, paddingBottom: 130 },
   screenTabs: { justifyContent: 'flex-start', paddingBottom: 130 },
-  screenBare: { justifyContent: 'flex-start', paddingHorizontal: 0, paddingTop: 0, paddingBottom: 24 },
-  screenFooter: { paddingBottom: 130 },
-  footerWrap: { position: 'absolute', left: 12, right: 12, bottom: 16, alignItems: 'center' },
+  screenBare: { justifyContent: 'flex-start', paddingHorizontal: 0, paddingTop: 0, paddingBottom: 130 },
+  screenFooter: { paddingBottom: 210 },
+  backBar: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
+  backBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  footerWrap: { position: 'absolute', left: 12, right: 12, bottom: 108, alignItems: 'center' },
   footerColumn: { width: '100%', maxWidth: 440 },
   chip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 18, borderRadius: radius.pill },
   chipText: { fontSize: 15, fontFamily: fonts.semibold },

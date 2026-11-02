@@ -27,7 +27,7 @@ export default function PoliciesScreen() {
   if (!result) return <LoadingView />;
 
   return (
-    <Screen>
+    <Screen back>
       <Title>{t('policy.title')}</Title>
       <Body muted>{t('policy.intro')}</Body>
       <Spacer />
@@ -53,8 +53,6 @@ export default function PoliciesScreen() {
       ))}
       <Spacer size={24} />
       <Button title={t('policy.new')} onPress={() => router.push('/policy-edit')} />
-      <Spacer size={12} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/seller')} />
     </Screen>
   );
 }

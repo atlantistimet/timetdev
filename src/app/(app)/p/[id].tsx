@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Body, Button, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { Body, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { PostCard } from '@/components/PostCard';
 import { useAuth } from '@/lib/auth';
 import { loadPostById, type Post } from '@/lib/feed';
@@ -25,7 +25,7 @@ export default function PostScreen() {
 
   if (!state) return <LoadingView />;
   return (
-    <Screen>
+    <Screen back>
       {state.post ? (
         <PostCard post={state.post} userId={session?.user.id ?? ''} nowMs={state.nowMs} onDeleted={() => router.replace('/')} openComments />
       ) : (
@@ -35,7 +35,6 @@ export default function PostScreen() {
         </>
       )}
       <Spacer />
-      <Button title={t('common.back')} variant="ghost" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
     </Screen>
   );
 }

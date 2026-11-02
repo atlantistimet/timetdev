@@ -31,7 +31,7 @@ export default function MyOffersScreen() {
   if (!loaded) return <LoadingView />;
 
   return (
-    <Screen>
+    <Screen back>
       <Title>{t('offers.title')}</Title>
       <Body muted>{t('offers.intro')}</Body>
       <Spacer />
@@ -83,8 +83,6 @@ export default function MyOffersScreen() {
       ) : null}
       <Spacer size={16} />
       <Button title={t('offers.new')} onPress={() => router.push('/offer-edit')} />
-      <Spacer size={12} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/seller')} />
     </Screen>
   );
 }

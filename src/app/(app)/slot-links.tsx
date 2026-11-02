@@ -47,7 +47,7 @@ export default function SlotLinksScreen() {
   };
 
   return (
-    <Screen>
+    <Screen back>
       <Title>{t('slotLinks.title')}</Title>
       <Body muted>{t('slotLinks.intro')}</Body>
       <Spacer />
@@ -98,8 +98,6 @@ export default function SlotLinksScreen() {
       ) : null}
       <Spacer size={16} />
       <Button title={t('slotLinks.new')} onPress={() => router.push('/slot-link-edit')} />
-      <Spacer size={12} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/seller')} />
     </Screen>
   );
 }

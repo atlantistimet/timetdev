@@ -68,7 +68,7 @@ export default function PolicyEditScreen() {
   };
 
   return (
-    <Screen>
+    <Screen back>
       <Title>{t(id ? 'policy.editTitle' : 'policy.newTitle')}</Title>
       <Body muted>{t('policy.editHelp')}</Body>
       <Spacer />
@@ -85,8 +85,6 @@ export default function PolicyEditScreen() {
           <Button title={t('policy.delete')} variant="ghost" onPress={() => void remove()} loading={saving} />
         </>
       ) : null}
-      <Spacer size={12} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/policies')} />
     </Screen>
   );
 }

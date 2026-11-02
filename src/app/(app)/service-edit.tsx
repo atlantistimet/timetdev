@@ -123,7 +123,7 @@ export default function ServiceEditScreen() {
   };
 
   return (
-    <Screen>
+    <Screen back>
       <Title>{t(id ? 'myServices.editTitle' : 'myServices.newTitle')}</Title>
       <Spacer />
       {!id ? (
@@ -144,8 +144,6 @@ export default function ServiceEditScreen() {
           <Spacer />
           {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
           <Button title={t('policy.save')} onPress={() => void save()} loading={saving} />
-          <Spacer size={12} />
-          <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/my-services')} />
         </>
       ) : (
         <>
@@ -194,8 +192,6 @@ export default function ServiceEditScreen() {
       <Spacer />
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
       <Button title={t('policy.save')} onPress={() => void save()} loading={saving} />
-      <Spacer size={12} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/my-services')} />
         </>
       )}
     </Screen>

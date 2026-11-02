@@ -76,7 +76,7 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <Screen>
+    <Screen back>
       <Title>{t('notifications.title')}</Title>
       <Spacer />
       {loaded.errorKey ? <ErrorText>{t(loaded.errorKey)}</ErrorText> : null}
@@ -105,8 +105,6 @@ export default function NotificationsScreen() {
           <Button title={t('notifications.open')} variant="ghost" onPress={() => void open(n)} />
         </Card>
       ))}
-      <Spacer size={12} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />
     </Screen>
   );
 }

@@ -168,7 +168,7 @@ export default function OfferEditScreen() {
   };
 
   return (
-    <Screen>
+    <Screen back>
       <Title>{t(id ? 'offers.editTitle' : 'offers.newTitle')}</Title>
       <Spacer />
 
@@ -234,8 +234,6 @@ export default function OfferEditScreen() {
       <Spacer />
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
       <Button title={t('policy.save')} onPress={() => void save()} loading={saving} />
-      <Spacer size={12} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/my-offers')} />
     </Screen>
   );
 }

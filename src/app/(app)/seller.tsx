@@ -127,7 +127,7 @@ export default function SellerScreen() {
   const timeOf = (iso: string) => new Date(iso).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <Screen>
+    <Screen back>
       <View style={styles.head}>
         <Text style={[styles.title, { color: theme.text }]}>{t('seller.panel.title')}</Text>
         <Pressable accessibilityRole="switch" accessibilityState={{ checked: available }} accessibilityLabel={t('explore.availability')} onPress={() => void toggle()} style={styles.switchWrap}>
@@ -223,7 +223,6 @@ export default function SellerScreen() {
       </View>
 
       <AvailableNowCard key={String(until)} userId={userId} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/profile')} />
     </Screen>
   );
 }

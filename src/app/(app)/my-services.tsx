@@ -34,7 +34,7 @@ export default function MyServicesScreen() {
   const policyLabel = (service: MyService) => t(service.cancel_tiers ? 'myServices.policyCustom' : 'myServices.policyDefault');
 
   return (
-    <Screen>
+    <Screen back>
       <Title>{t('myServices.title')}</Title>
       <Body muted>{t('myServices.intro')}</Body>
       <Spacer />
@@ -88,8 +88,6 @@ export default function MyServicesScreen() {
       ) : null}
       <Spacer size={24} />
       <Button title={t('myServices.new')} onPress={() => router.push('/service-edit')} />
-      <Spacer size={12} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/seller')} />
     </Screen>
   );
 }

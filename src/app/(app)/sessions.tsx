@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Body, Button, CardButton, Chip, ChipRow, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { Body, CardButton, Chip, ChipRow, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro, listMyBookings, type MyBooking } from '@/lib/booking';
 import { listMyLinks, type SlotLink } from '@/lib/slot-links';
@@ -36,7 +36,7 @@ export default function SessionsScreen() {
 
   const fmtDate = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' });
   return (
-    <Screen>
+    <Screen back>
       <Title>{t('sessions.title')}</Title>
       <Spacer size={8} />
       <ChipRow>
@@ -71,7 +71,6 @@ export default function SessionsScreen() {
         </>
       )}
       <Spacer />
-      <Button title={t('common.back')} variant="ghost" onPress={() => (router.canGoBack() ? router.back() : router.replace('/profile'))} />
     </Screen>
   );
 }

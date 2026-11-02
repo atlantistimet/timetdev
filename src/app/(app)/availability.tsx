@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { AvailabilityPanel } from '@/components/AvailabilityPanel';
 import { AvailableNowCard } from '@/components/AvailableNowCard';
@@ -108,7 +107,7 @@ export default function AvailabilityScreen() {
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
 
   return (
-    <Screen>
+    <Screen back>
       <Title>{t('availability.title')}</Title>
       <Body muted>{t('availability.intro')}</Body>
       <Spacer />
@@ -153,8 +152,6 @@ export default function AvailabilityScreen() {
         ))}
       </Card>
 
-      <Spacer size={16} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/seller')} />
     </Screen>
   );
 }

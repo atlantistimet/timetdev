@@ -103,7 +103,7 @@ export default function ProfileEditScreen() {
   };
 
   return (
-    <Screen>
+    <Screen back>
       <Title>{t('profileEdit.title')}</Title>
       <Spacer />
       <View style={{ alignItems: 'center', gap: 12 }}>
@@ -140,8 +140,6 @@ export default function ProfileEditScreen() {
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
       <Spacer />
       <Button title={t('policy.save')} onPress={() => void save()} loading={saving} />
-      <Spacer size={12} />
-      <Button title={t('common.back')} variant="ghost" onPress={() => router.replace('/seller')} />
     </Screen>
   );
 }
