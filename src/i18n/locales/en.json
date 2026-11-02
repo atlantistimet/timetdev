@@ -470,7 +470,9 @@
     "delete": "Delete",
     "deleteWarning": "Delete this offer? It will no longer be visible or bookable. You can find it in \"Past offers\".",
     "pastTitle": "Past offers",
-    "pastHelp": "Deleted offers: existing bookings stay valid."
+    "pastHelp": "Deleted offers: existing bookings stay valid.",
+    "publishCta": "Publish the offer",
+    "messagePlaceholder": "Only for the first 5 of November"
   },
   "availability": {
     "title": "Availability",

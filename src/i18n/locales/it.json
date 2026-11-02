@@ -470,7 +470,9 @@
     "delete": "Elimina",
     "deleteWarning": "Eliminare questa offerta? Non sarà più visibile né prenotabile. La ritrovi in «Offerte passate».",
     "pastTitle": "Offerte passate",
-    "pastHelp": "Offerte eliminate: le prenotazioni già fatte restano valide."
+    "pastHelp": "Offerte eliminate: le prenotazioni già fatte restano valide.",
+    "publishCta": "Pubblica l'offerta",
+    "messagePlaceholder": "Solo per i primi 5 di novembre"
   },
   "availability": {
     "title": "Disponibilità",
