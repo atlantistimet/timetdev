@@ -12,6 +12,7 @@ export function useChatPresence(convId: string | null, me: string, other: string
   const [otherTyping, setOtherTyping] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const lastSent = useRef(0);
+  const joined = useRef(false);
   const clearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const onChangeRef = useRef(onChange);
   useEffect(() => {
@@ -35,12 +36,14 @@ export function useChatPresence(convId: string | null, me: string, other: string
         clearTimer.current = setTimeout(() => setOtherTyping(false), 3500);
       })
       .subscribe((status) => {
+        joined.current = status === 'SUBSCRIBED';
         if (status === 'SUBSCRIBED') void channel.track({ at: Date.now() });
       });
     channelRef.current = channel;
     return () => {
       if (clearTimer.current) clearTimeout(clearTimer.current);
       channelRef.current = null;
+      joined.current = false;
       void supabase.removeChannel(channel);
     };
   }, [convId, me, other]);
@@ -48,7 +51,7 @@ export function useChatPresence(convId: string | null, me: string, other: string
   /** Da chiamare a ogni modifica del testo: invia al massimo un segnale ogni 2 secondi. */
   const notifyTyping = () => {
     const now = Date.now();
-    if (now - lastSent.current < 2000) return;
+    if (!joined.current || now - lastSent.current < 2000) return; // se il canale non è ancora collegato, niente: così non scatta l'invio via REST
     lastSent.current = now;
     void channelRef.current?.send({ type: 'broadcast', event: 'typing', payload: { user: me } });
   };
