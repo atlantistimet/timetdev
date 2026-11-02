@@ -11,6 +11,8 @@ export const CALL_BLOCK_MIN = 15;
 export const CALL_MIN_BILLED_MIN = 5;
 export const CALL_MAX_MIN = 60;
 export const CALL_MIN_RATE_CENTS = 50;
+/** Minuti che il cliente può aggiungere durante la chiamata. */
+export const CALL_EXTRA_MINUTES = [5, 10, 15, 30];
 const CALL_FIXED_FEE_CENTS = 50;
 
 /** Importo che il cliente paga per `minutes` minuti: tariffa × minuti + 5% + 0,50 € fisso. */
@@ -26,6 +28,7 @@ export type CallState = {
   started_at: string | null;
   ended_at: string | null;
   covered_until: string | null;
+  held_minutes: number;
   blocks_held: number;
   extend_failed: boolean;
   ring_expires_at: string | null;
@@ -45,14 +48,17 @@ export type CallRow = {
   client_fee_cents: number;
   seller_fee_cents: number;
   blocks_held: number;
+  authorized_minutes: number | null;
+  block_minutes: number;
+  service_id: string | null;
   extend_failed: boolean;
   end_reason: 'normal' | 'balance' | 'no_show' | 'error' | null;
 };
-const ROW_COLUMNS = 'id, client_id, seller_id, service_title, rate_cents_per_min, status, started_at, ended_at, ring_expires_at, billed_minutes, amount_cents, client_fee_cents, seller_fee_cents, blocks_held, extend_failed, end_reason';
+const ROW_COLUMNS = 'id, client_id, seller_id, service_title, rate_cents_per_min, status, started_at, ended_at, ring_expires_at, billed_minutes, amount_cents, client_fee_cents, seller_fee_cents, blocks_held, authorized_minutes, block_minutes, service_id, extend_failed, end_reason';
 
 const KNOWN_ERRORS = [
   'adult_required', 'service_not_found', 'own_service', 'rate_too_low', 'seller_not_ready', 'seller_unavailable', 'seller_busy',
-  'call_in_progress', 'not_authorized', 'not_ringing', 'not_active', 'livekit_not_configured', 'stripe_error',
+  'call_in_progress', 'bad_minutes', 'limit_reached', 'extend_failed', 'busy', 'not_authorized', 'not_ringing', 'not_active', 'livekit_not_configured', 'stripe_error',
 ];
 
 async function invoke<T>(body: Record<string, unknown>): Promise<{ data: T | null; errorKey: string | null }> {
@@ -67,7 +73,8 @@ async function invoke<T>(body: Record<string, unknown>): Promise<{ data: T | nul
 
 export type StartedCall = { call_id: string; client_secret: string; stripe_account: string; amount_cents: number; ring_seconds: number };
 
-export const startCall = (serviceId: string) => invoke<StartedCall>({ action: 'start', service_id: serviceId });
+export const startCall = (serviceId: string, minutes: number) => invoke<StartedCall>({ action: 'start', service_id: serviceId, minutes });
+export const extendCall = (callId: string, minutes: number) => invoke<CallState>({ action: 'extend', call_id: callId, minutes });
 export const confirmHold = (callId: string) => invoke<CallState>({ action: 'confirm_hold', call_id: callId });
 export const acceptCall = (callId: string) => invoke<CallState>({ action: 'accept', call_id: callId });
 export const declineCall = (callId: string) => invoke<CallState>({ action: 'decline', call_id: callId });
@@ -114,3 +121,6 @@ export async function loadCallService(id: string): Promise<CallService | null> {
   const { data } = await supabase.from('services').select('id, seller_id, title, description, rate_cents_per_min, active').eq('id', id).eq('kind', 'per_minute').maybeSingle();
   return (data as CallService | null) ?? null;
 }
+
+/** Minuti bloccati in tutto (i vecchi blocchi erano da 15). */
+export const heldMinutes = (c: Pick<CallRow, 'authorized_minutes' | 'blocks_held' | 'block_minutes'>): number => c.authorized_minutes ?? Math.max(c.blocks_held, 1) * (c.block_minutes || CALL_BLOCK_MIN);

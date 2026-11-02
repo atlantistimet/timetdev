@@ -24,6 +24,7 @@ export default function CallStartScreen() {
   const [started, setStarted] = useState<StartedCall | null>(null);
   const [busy, setBusy] = useState(false);
   const theme = useTheme();
+  const [minutes, setMinutes] = useState(CALL_BLOCK_MIN);
   const [errorKey, setErrorKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,7 +55,7 @@ export default function CallStartScreen() {
   const begin = async () => {
     setBusy(true);
     setErrorKey(null);
-    const result = await startCall(service.id);
+    const result = await startCall(service.id, minutes);
     setBusy(false);
     if (result.data) setStarted(result.data);
     else setErrorKey(result.errorKey);
@@ -72,7 +73,8 @@ export default function CallStartScreen() {
     }
   };
 
-  const total = clientCallTotal(service.rate_cents_per_min, CALL_BLOCK_MIN);
+  const total = clientCallTotal(service.rate_cents_per_min, minutes);
+  const steps = Array.from({ length: CALL_MAX_MIN / 5 }, (_, i) => (i + 1) * 5);
   return (
     <Screen bare>
       <View style={styles.wrap}>
@@ -94,7 +96,7 @@ export default function CallStartScreen() {
         <View style={[styles.panel, { backgroundColor: theme.surface }]}>
           <View style={styles.bigRow}>
             <View style={styles.minRow}>
-              <Text style={[styles.minBig, { color: theme.text }]}>{CALL_BLOCK_MIN}</Text>
+              <Text style={[styles.minBig, { color: theme.text }]}>{minutes}</Text>
               <Text style={[styles.minUnit, { color: theme.muted }]}>min</Text>
             </View>
             <View style={{ alignItems: 'flex-end', gap: 4 }}>
@@ -104,7 +106,25 @@ export default function CallStartScreen() {
               <Text style={[styles.rate, { color: theme.muted }]}>{t('calls.rateShort', { price: fmt(service.rate_cents_per_min) })}</Text>
             </View>
           </View>
-          <Text style={[styles.info, { color: theme.muted }]}>{t('calls.hold', { minutes: CALL_BLOCK_MIN, amount: fmt(total) })}</Text>
+          {started ? null : (
+            <>
+              <View style={styles.ruler}>
+                {steps.map((m) => (
+                  <Pressable key={m} accessibilityRole="button" accessibilityLabel={`${m} min`} onPress={() => setMinutes(m)} style={styles.tickHit}>
+                    <View style={[styles.tick, { height: m % 15 === 0 ? 40 : 18, width: m === minutes ? 5 : 2, backgroundColor: m <= minutes ? theme.ink : theme.fill }]} />
+                  </Pressable>
+                ))}
+              </View>
+              <View style={styles.chips}>
+                {[5, 10, 15, 30, 60].map((m) => (
+                  <Pressable key={m} accessibilityRole="button" onPress={() => setMinutes(m)} style={[styles.chip, { backgroundColor: m === minutes ? theme.ink : theme.bg }]}>
+                    <Text style={[styles.chipText, { color: m === minutes ? '#FFFFFF' : theme.text }]}>{`${m}'`}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          )}
+          <Text style={[styles.info, { color: theme.muted }]}>{t('calls.hold', { minutes, amount: fmt(total) })}</Text>
           <Text style={[styles.info, { color: theme.muted }]}>{t('calls.limits', { min: CALL_MIN_BILLED_MIN, max: CALL_MAX_MIN, minAmount: fmt(clientCallTotal(service.rate_cents_per_min, CALL_MIN_BILLED_MIN)) })}</Text>
           <Text style={[styles.info, { color: theme.muted }]}>{t('calls.howItWorks')}</Text>
         </View>
@@ -144,6 +164,12 @@ const styles = StyleSheet.create({
   price: { height: 36, paddingHorizontal: 14, borderRadius: 18, justifyContent: 'center' },
   priceText: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: -0.7 },
   rate: { fontFamily: fonts.regular, fontSize: 13 },
+  ruler: { height: 52, flexDirection: 'row', alignItems: 'flex-end' },
+  tickHit: { flex: 1, height: 52, alignItems: 'center', justifyContent: 'flex-end' },
+  tick: { borderRadius: 3 },
+  chips: { flexDirection: 'row', gap: 6 },
+  chip: { flex: 1, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  chipText: { fontFamily: fonts.semibold, fontSize: 14 },
   info: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 19 },
   cta: { height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center' },
   ctaText: { color: '#FFFFFF', fontFamily: fonts.semibold, fontSize: 16 },

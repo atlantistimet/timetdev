@@ -1,19 +1,22 @@
 // Chiamate al minuto: tutte le azioni dell'utente in un'unica funzione.
 // Corpo: { action, ... }
-//  - start        { service_id }  il cliente avvia la chiamata: crea il blocco sulla carta (15 min × tariffa) → { call_id, client_secret, stripe_account, amount_cents }
+//  - start        { service_id, minutes }  il cliente avvia la chiamata: crea il blocco sulla carta (minuti scelti, 5–60, × tariffa) → { call_id, client_secret, stripe_account, amount_cents }
 //  - confirm_hold { call_id }     il cliente ha confermato la carta: la chiamata squilla per 60 secondi
 //  - accept       { call_id }     il venditore risponde: parte il conteggio dei minuti
 //  - decline      { call_id }     il venditore rifiuta (nessun addebito)
 //  - cancel       { call_id }     il cliente annulla prima della risposta (nessun addebito)
-//  - heartbeat    { call_id }     ogni 10 s da entrambi: presenza, scadenze, prolungamento → stato aggiornato
+//  - extend       { call_id, minutes }  il cliente aggiunge minuti (5, 10, 15 o 30, fino a 60 in tutto) sulla stessa carta
+//  - heartbeat    { call_id }     ogni 10 s da entrambi: presenza e scadenze → stato aggiornato
 //  - end          { call_id }     uno dei due chiude: si incassano i minuti usati
 //  - token        { call_id }     token LiveKit per entrare nella stanza (solo chiamata attiva)
 // Il prezzo, i tempi e le commissioni si leggono sempre dal database: dall'app si fidano solo gli identificativi.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/http.ts';
 import { stripeRequest, StripeError } from '../_shared/stripe.ts';
-import { callBlockFees, CALL_BLOCK_MIN, CALL_MIN_RATE_CENTS, CALL_RING_SECONDS } from '../_shared/fees.ts';
-import { CALL_COLUMNS, cancelHolds, closeWithoutCharge, finishCall, tickCall, type CallRow } from '../_shared/calls.ts';
+import { callBlockFees, CALL_BLOCK_MIN, CALL_MAX_MIN, CALL_MIN_RATE_CENTS, CALL_RING_SECONDS } from '../_shared/fees.ts';
+import { CALL_COLUMNS, cancelHolds, closeWithoutCharge, extendCall, finishCall, heldMinutes, tickCall, type CallRow } from '../_shared/calls.ts';
+
+const EXTRA_MINUTES = [5, 10, 15, 30];
 import { livekitConfigured, livekitToken } from '../_shared/livekit.ts';
 
 type PI = { id: string; client_secret: string; status: string };
@@ -22,8 +25,8 @@ function publicState(call: CallRow) {
   const started = call.started_at ? Date.parse(call.started_at) : null;
   return {
     call_id: call.id, status: call.status, started_at: call.started_at, ended_at: call.ended_at,
-    covered_until: started ? new Date(started + call.blocks_held * CALL_BLOCK_MIN * 60_000).toISOString() : null,
-    blocks_held: call.blocks_held, extend_failed: call.extend_failed, ring_expires_at: call.ring_expires_at,
+    covered_until: started ? new Date(started + heldMinutes(call) * 60_000).toISOString() : null,
+    blocks_held: call.blocks_held, held_minutes: heldMinutes(call), extend_failed: call.extend_failed, ring_expires_at: call.ring_expires_at,
   };
 }
 
@@ -40,10 +43,10 @@ Deno.serve(async (req) => {
   const user = userData.user;
   const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
-  const body = (await req.json().catch(() => ({}))) as { action?: string; service_id?: string; call_id?: string };
+  const body = (await req.json().catch(() => ({}))) as { action?: string; service_id?: string; call_id?: string; minutes?: number };
 
   try {
-    if (body.action === 'start') return await start(admin, user.id, user.email ?? undefined, body.service_id);
+    if (body.action === 'start') return await start(admin, user.id, user.email ?? undefined, body.service_id, body.minutes);
 
     if (!body.call_id) return json({ error: 'bad_request' }, 400);
     const { data: found } = await admin.from('calls').select(CALL_COLUMNS).eq('id', body.call_id).maybeSingle();
@@ -62,7 +65,7 @@ Deno.serve(async (req) => {
         if (pi.status !== 'requires_capture') return json({ error: 'not_authorized' }, 409);
         await admin.from('payments').update({ status: 'authorized' }).eq('id', pay.id);
         const { data: up, error } = await admin.from('calls').update({
-          status: 'ringing', blocks_held: 1, authorized_minutes: CALL_BLOCK_MIN, ring_expires_at: new Date(Date.now() + CALL_RING_SECONDS * 1000).toISOString(), last_seen_client: now,
+          status: 'ringing', blocks_held: 1, authorized_minutes: call.block_minutes, ring_expires_at: new Date(Date.now() + CALL_RING_SECONDS * 1000).toISOString(), last_seen_client: now,
         }).eq('id', call.id).eq('status', 'awaiting_payment').select(CALL_COLUMNS).maybeSingle();
         if (error) { // indice unico: il venditore ha già una chiamata in corso
           await closeWithoutCharge(admin, call, 'cancelled');
@@ -77,6 +80,17 @@ Deno.serve(async (req) => {
           .eq('id', call.id).eq('status', 'ringing').select(CALL_COLUMNS).maybeSingle();
         if (!up) return json({ error: 'not_ringing' }, 409);
         return json(publicState(up as CallRow));
+      }
+      case 'extend': {
+        if (!isClient) return json({ error: 'forbidden' }, 403);
+        if (call.status !== 'active') return json({ error: 'not_active' }, 409);
+        const add = Number(body.minutes);
+        if (!EXTRA_MINUTES.includes(add)) return json({ error: 'bad_minutes' }, 400);
+        const result = await extendCall(admin, call, add);
+        if (result === 'limit') return json({ error: 'limit_reached' }, 409);
+        if (result === 'failed') return json({ error: 'extend_failed' }, 402);
+        if (result === 'busy') return json({ error: 'busy' }, 409);
+        break;
       }
       case 'decline': {
         if (isClient) return json({ error: 'forbidden' }, 403);
@@ -124,8 +138,10 @@ Deno.serve(async (req) => {
   }
 });
 
-async function start(admin: ReturnType<typeof createClient>, userId: string, email: string | undefined, serviceId: string | undefined): Promise<Response> {
+async function start(admin: ReturnType<typeof createClient>, userId: string, email: string | undefined, serviceId: string | undefined, minutesIn: number | undefined): Promise<Response> {
   if (!serviceId) return json({ error: 'bad_request' }, 400);
+  const minutes = minutesIn === undefined ? CALL_BLOCK_MIN : Number(minutesIn);
+  if (!Number.isInteger(minutes) || minutes < 5 || minutes > CALL_MAX_MIN || minutes % 5 !== 0) return json({ error: 'bad_minutes' }, 400);
   const { data: me } = await admin.from('profiles').select('adult_confirmed_at, full_name').eq('id', userId).maybeSingle();
   if (!me?.adult_confirmed_at) return json({ error: 'adult_required' }, 403);
 
@@ -147,12 +163,12 @@ async function start(admin: ReturnType<typeof createClient>, userId: string, ema
   if (live?.length || busyBooking?.length) return json({ error: 'seller_busy' }, 409);
   if (myLive?.length) return json({ error: 'call_in_progress' }, 409);
 
-  const base = CALL_BLOCK_MIN * service.rate_cents_per_min;
+  const base = minutes * service.rate_cents_per_min;
   const fees = callBlockFees(base, true, !!seller.is_pro);
 
   const { data: call, error: callError } = await admin.from('calls').insert({
     client_id: userId, seller_id: service.seller_id, service_id: service.id, service_title: service.title,
-    rate_cents_per_min: service.rate_cents_per_min, authorized_cents: fees.totalChargeCents, status: 'awaiting_payment',
+    rate_cents_per_min: service.rate_cents_per_min, authorized_cents: fees.totalChargeCents, status: 'awaiting_payment', block_minutes: minutes,
   }).select('id').single();
   if (callError) return json({ error: callError.code === '23505' ? 'call_in_progress' : 'server_error' }, callError.code === '23505' ? 409 : 500);
 
@@ -169,11 +185,11 @@ async function start(admin: ReturnType<typeof createClient>, userId: string, ema
     const pi = await stripeRequest<PI>('POST', '/v1/payment_intents', {
       amount: fees.totalChargeCents, currency: 'eur', customer: customerId, capture_method: 'manual', setup_future_usage: 'off_session',
       application_fee_amount: fees.applicationFeeCents, automatic_payment_methods: { enabled: true },
-      description: `Chiamata: ${service.title}`, metadata: { call_id: call.id, call_block: '0', payer_id: userId, seller_id: service.seller_id },
+      description: `Chiamata: ${service.title}`, metadata: { call_id: call.id, call_block: '0', call_minutes: String(minutes), payer_id: userId, seller_id: service.seller_id },
     }, { idempotencyKey: `timeet-call-${call.id}`, stripeAccount: account.stripe_account_id });
     const { error: payError } = await admin.from('payments').insert({
       payer_id: userId, seller_id: service.seller_id, stripe_account_id: account.stripe_account_id, stripe_payment_intent_id: pi.id,
-      status: 'pending', amount_cents: fees.totalChargeCents, application_fee_cents: fees.applicationFeeCents, call_id: call.id, call_block: 0,
+      status: 'pending', amount_cents: fees.totalChargeCents, application_fee_cents: fees.applicationFeeCents, call_id: call.id, call_block: 0, call_minutes: minutes,
     });
     if (payError) throw payError;
     return json({ call_id: call.id, client_secret: pi.client_secret, stripe_account: account.stripe_account_id, amount_cents: fees.totalChargeCents, ring_seconds: CALL_RING_SECONDS });

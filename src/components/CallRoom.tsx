@@ -18,7 +18,7 @@ try {
   lk = null;
 }
 
-function Stage({ lib, onHangup, name, avatarPath, seed, myName, children }: { lib: LiveKitNative; onHangup: () => void } & Pick<CallRoomProps, 'name' | 'avatarPath' | 'seed' | 'myName' | 'children'>) {
+function Stage({ lib, onHangup, name, avatarPath, seed, myName, children, onAddMinutes }: { lib: LiveKitNative; onHangup: () => void } & Pick<CallRoomProps, 'name' | 'avatarPath' | 'seed' | 'myName' | 'children' | 'onAddMinutes'>) {
   const { t } = useTranslation();
   const theme = useTheme();
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = lib.useLocalParticipant();
@@ -56,6 +56,11 @@ function Stage({ lib, onHangup, name, avatarPath, seed, myName, children }: { li
       <View style={[styles.bar, { backgroundColor: theme.surface }]}>
         {round(isMicrophoneEnabled, isMicrophoneEnabled ? 'mic' : 'mic-off', isMicrophoneEnabled ? t('calls.micOff') : t('calls.micOn'), () => void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled))}
         {round(isCameraEnabled, isCameraEnabled ? 'videocam' : 'videocam-off', isCameraEnabled ? t('calls.camOff') : t('calls.camOn'), () => void localParticipant.setCameraEnabled(!isCameraEnabled), true)}
+        {onAddMinutes ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={t('calls.addMinutes')} onPress={onAddMinutes} style={[styles.round, { backgroundColor: theme.accent }]}>
+            <Ionicons name="add" size={30} color={theme.onAccent} />
+          </Pressable>
+        ) : null}
         <Pressable accessibilityRole="button" accessibilityLabel={t('calls.hangup')} onPress={onHangup} style={[styles.hang, { backgroundColor: '#D93A3F' }]}>
           <Ionicons name="call" size={28} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
         </Pressable>
@@ -65,7 +70,7 @@ function Stage({ lib, onHangup, name, avatarPath, seed, myName, children }: { li
 }
 
 /** Telefono (build di sviluppo): stanza LiveKit nativa con video dell'altra persona, la tua anteprima e i comandi. */
-export function CallRoom({ serverUrl, token, onDisconnected, name, avatarPath, seed, myName, children }: CallRoomProps) {
+export function CallRoom({ serverUrl, token, onDisconnected, name, avatarPath, seed, myName, children, onAddMinutes }: CallRoomProps) {
   const { t } = useTranslation();
   const [audioReady, setAudioReady] = useState(false);
 
@@ -86,7 +91,7 @@ export function CallRoom({ serverUrl, token, onDisconnected, name, avatarPath, s
   return (
     <View style={{ flex: 1 }}>
       <lk.LiveKitRoom serverUrl={serverUrl} token={token} connect audio video onDisconnected={onDisconnected} options={{ adaptiveStream: { pixelDensity: 'screen' } }}>
-        <Stage lib={lk} onHangup={onDisconnected} name={name} avatarPath={avatarPath} seed={seed} myName={myName}>
+        <Stage lib={lk} onHangup={onDisconnected} name={name} avatarPath={avatarPath} seed={seed} myName={myName} onAddMinutes={onAddMinutes}>
           {children}
         </Stage>
       </lk.LiveKitRoom>

@@ -23,7 +23,7 @@ export async function loadReviews(sellerId: string): Promise<{ reviews: Review[]
 /** Prenotazioni che l'utente ha già recensito. */
 export async function reviewedBookingIds(authorId: string): Promise<Set<string>> {
   const { data } = await supabase.from('reviews').select('booking_id').eq('author_id', authorId);
-  return new Set(((data ?? []) as { booking_id: string }[]).map((r) => r.booking_id));
+  return new Set(((data ?? []) as { booking_id: string | null }[]).flatMap((r) => (r.booking_id ? [r.booking_id] : [])));
 }
 
 export async function createReview(input: { bookingId: string; authorId: string; sellerId: string; rating: number; body: string; lang: string }): Promise<string | null> {
@@ -45,4 +45,25 @@ export const stars = (n: number) => '★'.repeat(Math.round(n)) + '☆'.repeat(5
 export async function replyToReview(reviewId: string, body: string): Promise<string | null> {
   const { error } = await supabase.rpc('reply_to_review', { p_id: reviewId, p_body: body });
   return error ? 'errors.generic' : null;
+}
+
+export type CallMood = 'top' | 'idee' | 'bello' | 'carica';
+
+/** Recensione di una chiamata conclusa: stelle e, se vuoi, l'umore. */
+export async function createCallReview(input: { callId: string; authorId: string; sellerId: string; rating: number; mood: CallMood | null; lang: string }): Promise<string | null> {
+  const { error } = await supabase.from('reviews').insert({
+    call_id: input.callId,
+    author_id: input.authorId,
+    seller_id: input.sellerId,
+    rating: input.rating,
+    mood: input.mood,
+    lang: input.lang,
+  });
+  if (!error) return null;
+  return error.code === '23505' ? 'reviews.already' : 'errors.generic';
+}
+
+export async function callReviewExists(callId: string): Promise<boolean> {
+  const { data } = await supabase.from('reviews').select('id').eq('call_id', callId).maybeSingle();
+  return !!data;
 }

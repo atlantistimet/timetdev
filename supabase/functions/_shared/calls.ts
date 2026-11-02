@@ -1,6 +1,6 @@
 // Ciclo di vita e denaro delle chiamate al minuto. Usato da `call-action` (azioni dell'utente) e `sweep-calls` (ogni minuto).
 // Regole (decise con Nicolò):
-//  - blocco iniziale = 15 minuti × tariffa, autorizzato sulla carta (cattura manuale); altri blocchi da 15 minuti fino a 60 totali
+//  - blocco iniziale = minuti scelti dal cliente (5–60) × tariffa, autorizzato sulla carta (cattura manuale); altri minuti solo se il cliente li aggiunge (fino a 60 totali)
 //  - si pagano i minuti collegati, arrotondati per eccesso, minimo 5 e massimo 60; il conteggio parte quando il venditore risponde
 //  - nessun addebito se il venditore non risponde entro 60 s o rifiuta; se la linea cade si paga fino all'ultimo battito di presenza
 //  - commissioni: 5% + 0,50 € a testa (fisso una volta sola per chiamata)
@@ -10,18 +10,22 @@ import {
   callBlockFees, CALL_AWAITING_PAYMENT_MINUTES, CALL_BLOCK_MIN, CALL_MAX_MIN, CALL_MIN_BILLED_MIN, CALL_STALE_SECONDS,
 } from './fees.ts';
 
+/** Minuti bloccati in tutto: la somma dei blocchi autorizzati (i vecchi blocchi erano sempre da 15). */
+export const heldMinutes = (call: Pick<CallRow, 'authorized_minutes' | 'blocks_held' | 'block_minutes'>): number =>
+  call.authorized_minutes ?? Math.max(call.blocks_held, 1) * (call.block_minutes || CALL_BLOCK_MIN);
+
 export type CallRow = {
   id: string; client_id: string; seller_id: string; service_id: string | null; service_title: string | null;
   rate_cents_per_min: number; status: 'awaiting_payment' | 'ringing' | 'active' | 'ended' | 'missed' | 'declined' | 'cancelled';
   started_at: string | null; ended_at: string | null; created_at: string; ring_expires_at: string | null;
-  last_seen_client: string | null; last_seen_seller: string | null; blocks_held: number; extend_failed: boolean;
+  last_seen_client: string | null; last_seen_seller: string | null; blocks_held: number; authorized_minutes: number | null; block_minutes: number; extend_failed: boolean;
   extending_since: string | null; settled_at: string | null; livekit_room: string | null;
 };
 export const CALL_COLUMNS =
-  'id, client_id, seller_id, service_id, service_title, rate_cents_per_min, status, started_at, ended_at, created_at, ring_expires_at, last_seen_client, last_seen_seller, blocks_held, extend_failed, extending_since, settled_at, livekit_room';
+  'id, client_id, seller_id, service_id, service_title, rate_cents_per_min, status, started_at, ended_at, created_at, ring_expires_at, last_seen_client, last_seen_seller, blocks_held, authorized_minutes, block_minutes, extend_failed, extending_since, settled_at, livekit_room';
 
 type Admin = SupabaseClient;
-type PayRow = { id: string; stripe_payment_intent_id: string; stripe_account_id: string; status: string; call_block: number | null; payer_id: string; seller_id: string };
+type PayRow = { id: string; stripe_payment_intent_id: string; stripe_account_id: string; status: string; call_block: number | null; call_minutes: number | null; payer_id: string; seller_id: string };
 
 const ms = (v: string | null) => (v ? Date.parse(v) : NaN);
 
@@ -70,17 +74,19 @@ export async function settleCall(admin: Admin, call: CallRow): Promise<void> {
     return;
   }
   const seconds = Math.max(0, (ms(call.ended_at) - ms(call.started_at)) / 1000);
-  const heldMin = Math.max(call.blocks_held, 1) * CALL_BLOCK_MIN;
-  const billed = Math.min(Math.max(Math.ceil(seconds / 60), CALL_MIN_BILLED_MIN), heldMin, CALL_MAX_MIN);
+  const heldMin = heldMinutes(call);
+  const billed = Math.min(Math.max(Math.ceil(seconds / 60), Math.min(CALL_MIN_BILLED_MIN, heldMin)), heldMin, CALL_MAX_MIN);
 
   const [{ data: seller }, { data: pays }] = await Promise.all([
     admin.from('profiles').select('is_pro').eq('id', call.seller_id).single(),
-    admin.from('payments').select('id, stripe_payment_intent_id, stripe_account_id, status, call_block, payer_id, seller_id').eq('call_id', call.id).order('call_block'),
+    admin.from('payments').select('id, stripe_payment_intent_id, stripe_account_id, status, call_block, call_minutes, payer_id, seller_id').eq('call_id', call.id).order('call_block'),
   ]);
-  let base = 0, clientFee = 0, sellerFee = 0, ok = true;
+  let base = 0, clientFee = 0, sellerFee = 0, ok = true, offset = 0; // offset = minuti dei blocchi precedenti
   for (const p of (pays ?? []) as PayRow[]) {
     const block = p.call_block ?? 0;
-    const used = Math.min(Math.max(billed - block * CALL_BLOCK_MIN, 0), CALL_BLOCK_MIN);
+    const blockMin = p.call_minutes ?? CALL_BLOCK_MIN;
+    const used = Math.min(Math.max(billed - offset, 0), blockMin);
+    offset += blockMin;
     if (used === 0) {
       if (p.status !== 'canceled') {
         const done = await stripeSafe(() => stripeRequest('POST', `/v1/payment_intents/${p.stripe_payment_intent_id}/cancel`, {}, { stripeAccount: p.stripe_account_id }));
@@ -104,38 +110,40 @@ export async function settleCall(admin: Admin, call: CallRow): Promise<void> {
   }).eq('id', call.id);
 }
 
-/** Autorizza un blocco in più sulla carta già usata (senza che il cliente debba fare nulla). */
-async function extendCall(admin: Admin, call: CallRow): Promise<void> {
+/** Autorizza minuti in più sulla carta già usata (richiesto dal cliente con «Aggiungi minuti»). Ritorna l'esito. */
+export async function extendCall(admin: Admin, call: CallRow, minutes: number): Promise<'ok' | 'busy' | 'failed' | 'limit'> {
+  if (heldMinutes(call) + minutes > CALL_MAX_MIN) return 'limit';
   const staleBefore = new Date(Date.now() - 60_000).toISOString();
   const { data: claim } = await admin.from('calls').update({ extending_since: new Date().toISOString() })
     .eq('id', call.id).eq('status', 'active').eq('blocks_held', call.blocks_held).or(`extending_since.is.null,extending_since.lt.${staleBefore}`).select('id').maybeSingle();
-  if (!claim) return;
-  const fail = async () => { await admin.from('calls').update({ extend_failed: true, extending_since: null }).eq('id', call.id); };
+  if (!claim) return 'busy';
+  const fail = async () => { await admin.from('calls').update({ extending_since: null }).eq('id', call.id); return 'failed' as const; };
   try {
     const { data: first } = await admin.from('payments').select('stripe_payment_intent_id, stripe_account_id').eq('call_id', call.id).eq('call_block', 0).single();
-    const [{ data: seller }] = await Promise.all([admin.from('profiles').select('is_pro').eq('id', call.seller_id).single()]);
-    if (!first) return fail();
+    const { data: seller } = await admin.from('profiles').select('is_pro').eq('id', call.seller_id).single();
+    if (!first) return await fail();
     const prev = await stripeRequest<{ payment_method: string | null; customer: string | null }>('GET', `/v1/payment_intents/${first.stripe_payment_intent_id}`, undefined, { stripeAccount: first.stripe_account_id });
-    if (!prev.payment_method || !prev.customer) return fail();
+    if (!prev.payment_method || !prev.customer) return await fail();
     const block = call.blocks_held; // indice del nuovo blocco (0 = primo)
-    const fees = callBlockFees(CALL_BLOCK_MIN * call.rate_cents_per_min, false, !!seller?.is_pro);
+    const fees = callBlockFees(minutes * call.rate_cents_per_min, false, !!seller?.is_pro);
     const pi = await stripeRequest<{ id: string; status: string }>('POST', '/v1/payment_intents', {
       amount: fees.totalChargeCents, currency: 'eur', customer: prev.customer, payment_method: prev.payment_method,
       off_session: true, confirm: true, capture_method: 'manual', application_fee_amount: fees.applicationFeeCents,
-      description: call.service_title ?? 'Chiamata', metadata: { call_id: call.id, call_block: String(block), payer_id: call.client_id, seller_id: call.seller_id },
+      description: call.service_title ?? 'Chiamata', metadata: { call_id: call.id, call_block: String(block), call_minutes: String(minutes), payer_id: call.client_id, seller_id: call.seller_id },
     }, { idempotencyKey: `timeet-call-ext-${call.id}-${block}`, stripeAccount: first.stripe_account_id });
     if (pi.status !== 'requires_capture') { // serve un'autenticazione del cliente: non si può fare in automatico
       await stripeSafe(() => stripeRequest('POST', `/v1/payment_intents/${pi.id}/cancel`, {}, { stripeAccount: first.stripe_account_id }));
-      return fail();
+      return await fail();
     }
     await admin.from('payments').insert({
       payer_id: call.client_id, seller_id: call.seller_id, stripe_account_id: first.stripe_account_id, stripe_payment_intent_id: pi.id,
-      status: 'authorized', amount_cents: fees.totalChargeCents, application_fee_cents: fees.applicationFeeCents, call_id: call.id, call_block: block,
+      status: 'authorized', amount_cents: fees.totalChargeCents, application_fee_cents: fees.applicationFeeCents, call_id: call.id, call_block: block, call_minutes: minutes,
     });
-    await admin.from('calls').update({ blocks_held: call.blocks_held + 1, authorized_minutes: (call.blocks_held + 1) * CALL_BLOCK_MIN, extending_since: null }).eq('id', call.id);
+    await admin.from('calls').update({ blocks_held: call.blocks_held + 1, authorized_minutes: heldMinutes(call) + minutes, extending_since: null, extend_failed: false }).eq('id', call.id);
+    return 'ok';
   } catch (error) {
-    console.error('Prolungamento chiamata fallito', call.id, error instanceof StripeError ? JSON.stringify(error.body) : error);
-    await fail();
+    console.error('Minuti aggiunti: errore', call.id, error instanceof StripeError ? JSON.stringify(error.body) : error);
+    return await fail();
   }
 }
 
@@ -152,13 +160,11 @@ export async function tickCall(admin: Admin, call: CallRow): Promise<CallRow> {
     const started = ms(call.started_at);
     const cs = ms(call.last_seen_client) || started;
     const ss = ms(call.last_seen_seller) || started;
-    const covered = started + call.blocks_held * CALL_BLOCK_MIN * 60_000;
+    const covered = started + heldMinutes(call) * 60_000;
     if (now - cs > CALL_STALE_SECONDS * 1000 || now - ss > CALL_STALE_SECONDS * 1000) {
       await finishCall(admin, call, Math.min(cs, ss), 'error');
     } else if (now >= covered) {
-      await finishCall(admin, call, covered, call.blocks_held * CALL_BLOCK_MIN >= CALL_MAX_MIN ? 'normal' : 'balance');
-    } else if (covered - now < 3 * 60_000 && call.blocks_held < CALL_MAX_MIN / CALL_BLOCK_MIN && !call.extend_failed) {
-      await extendCall(admin, call);
+      await finishCall(admin, call, covered, heldMinutes(call) >= CALL_MAX_MIN ? 'normal' : 'balance');
     }
   }
   const { data } = await admin.from('calls').select(CALL_COLUMNS).eq('id', call.id).single();

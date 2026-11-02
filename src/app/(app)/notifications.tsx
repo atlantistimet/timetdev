@@ -50,7 +50,7 @@ export default function NotificationsScreen() {
       case 'booking_cancelled':
       case 'tip':
       case 'review':
-        if (n.ref_id) router.push({ pathname: '/session/[id]', params: { id: n.ref_id } });
+        if (n.ref_id) router.push(n.ref_table === 'calls' ? { pathname: '/call/[id]', params: { id: n.ref_id } } : { pathname: '/session/[id]', params: { id: n.ref_id } });
         break;
       case 'package_new':
         router.push('/bookings');

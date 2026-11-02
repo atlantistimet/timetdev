@@ -9,5 +9,7 @@ export type CallRoomProps = {
   avatarPath?: string | null;
   seed?: string;
   myName?: string;
+  /** Se c'è, nella barra dei comandi compare «Aggiungi minuti» (solo per chi paga). */
+  onAddMinutes?: () => void;
   children?: ReactNode;
 };

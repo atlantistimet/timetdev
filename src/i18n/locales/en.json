@@ -842,7 +842,7 @@
     "howItWorksTitle": "How it works",
     "howItWorks": "You only pay for the minutes you are connected. The seller has 60 seconds to answer: if they don't answer or decline, you pay nothing. If the line drops, you pay up to the last moment you were connected.",
     "hold": "When you start we hold {{amount}} on your card (the first {{minutes}} minutes); at the end we only charge the minutes used and the rest is released.",
-    "limits": "At least {{min}} minutes are charged ({{minAmount}} with the fee) and at most {{max}} minutes per call. Each extra quarter of an hour is held automatically on the same card.",
+    "limits": "You pay for at least {{min}} minutes ({{minAmount}} including the fee) and at most {{max}} minutes per call. When the held minutes run out the call ends, unless you add more.",
     "startButton": "Start the call",
     "calling": "Calling…",
     "incoming": "Incoming call",
@@ -884,7 +884,11 @@
       "not_ringing": "The call is no longer waiting for an answer.",
       "not_active": "The call is not in progress.",
       "livekit_not_configured": "The video service is not active yet.",
-      "stripe_error": "The payment didn't start. Try again."
+      "stripe_error": "The payment didn't start. Try again.",
+      "bad_minutes": "Invalid duration.",
+      "limit_reached": "You've reached the 60-minute maximum.",
+      "extend_failed": "Your bank didn't authorise the extra minutes. Try again or end the call.",
+      "busy": "One moment, try again."
     },
     "ringLeftSeller": "{{name}} has {{seconds}} more seconds to answer.",
     "micOn": "Unmute",
@@ -920,7 +924,26 @@
     "close": "Close",
     "blockTitle": "How much time\nto hold?",
     "rateShort": "{{price}}/min",
-    "startWith": "Start · hold {{amount}}"
+    "startWith": "Start · hold {{amount}}",
+    "addMinutes": "Add minutes",
+    "addTitle": "Add minutes",
+    "addBody": "Held on the same card, charged only if you use them. You can add up to {{max}}.",
+    "endingSoon": "The call ends in {{time}}.",
+    "endingSoonAdd": "Ends in {{time}}: add minutes to keep going.",
+    "howWasIt": "How was it with {{name}}?",
+    "mood": {
+      "top": "Top",
+      "idee": "Ideas",
+      "bello": "Lovely",
+      "carica": "Fired up"
+    },
+    "tipTitle": "Leave a tip",
+    "tipNone": "No",
+    "tipPay": "Tip · {{amount}}",
+    "bookAgain": "Book again",
+    "callAgain": "Call again",
+    "send": "Send",
+    "sendTip": "Send · {{amount}}"
   },
   "delete": {
     "yes": "Yes, delete",

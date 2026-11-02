@@ -842,7 +842,7 @@
     "howItWorksTitle": "Come funziona",
     "howItWorks": "Paghi solo i minuti in cui sei collegato. Il venditore ha 60 secondi per rispondere: se non risponde o rifiuta non paghi nulla. Se la linea cade, paghi fino all'ultimo momento in cui eri collegato.",
     "hold": "All'avvio blocchiamo sulla carta {{amount}} (i primi {{minutes}} minuti); a fine chiamata ti addebitiamo solo i minuti usati e il resto torna libero.",
-    "limits": "Si pagano almeno {{min}} minuti ({{minAmount}} con la commissione) e al massimo {{max}} minuti per chiamata. Ogni quarto d'ora in più viene bloccato in automatico sulla stessa carta.",
+    "limits": "Si pagano almeno {{min}} minuti ({{minAmount}} con la commissione) e al massimo {{max}} minuti per chiamata. Allo scadere dei minuti bloccati la chiamata si chiude, a meno che tu non ne aggiunga altri.",
     "startButton": "Avvia la chiamata",
     "calling": "Sto chiamando…",
     "incoming": "Chiamata in arrivo",
@@ -884,7 +884,11 @@
       "not_ringing": "La chiamata non è più in attesa di risposta.",
       "not_active": "La chiamata non è in corso.",
       "livekit_not_configured": "Il servizio video non è ancora attivo.",
-      "stripe_error": "Il pagamento non è partito. Riprova."
+      "stripe_error": "Il pagamento non è partito. Riprova.",
+      "bad_minutes": "Durata non valida.",
+      "limit_reached": "Hai raggiunto il massimo di 60 minuti.",
+      "extend_failed": "La banca non ha autorizzato i minuti in più. Riprova o termina la chiamata.",
+      "busy": "Un attimo: riprova."
     },
     "ringLeftSeller": "{{name}} ha ancora {{seconds}} secondi per rispondere.",
     "micOn": "Attiva microfono",
@@ -920,7 +924,26 @@
     "close": "Chiudi",
     "blockTitle": "Quanto tempo\nvuoi bloccare?",
     "rateShort": "{{price}}/min",
-    "startWith": "Avvia · blocca {{amount}}"
+    "startWith": "Avvia · blocca {{amount}}",
+    "addMinutes": "Aggiungi minuti",
+    "addTitle": "Aggiungi minuti",
+    "addBody": "Bloccati sulla stessa carta, pagati solo se li usi. Puoi aggiungerne fino a {{max}}.",
+    "endingSoon": "La chiamata si chiude tra {{time}}.",
+    "endingSoonAdd": "Si chiude tra {{time}}: aggiungi minuti per continuare.",
+    "howWasIt": "Com'è andata con {{name}}?",
+    "mood": {
+      "top": "Top",
+      "idee": "Idee",
+      "bello": "Bello",
+      "carica": "Carica"
+    },
+    "tipTitle": "Lascia una mancia",
+    "tipNone": "No",
+    "tipPay": "Mancia · {{amount}}",
+    "bookAgain": "Prenota di nuovo",
+    "callAgain": "Richiama",
+    "send": "Invia",
+    "sendTip": "Invia · {{amount}}"
   },
   "delete": {
     "yes": "Sì, elimina",

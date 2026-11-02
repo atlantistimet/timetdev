@@ -75,9 +75,9 @@ export async function requestInvoice(bookingId: string, requesterId: string, kin
   return error.code === '23505' ? 'session.requestExists' : 'errors.generic';
 }
 
-export async function createTipPayment(bookingId: string, amountCents: number): Promise<{ payment: { client_secret: string; stripe_account: string; amount_cents: number } | null; errorKey: string | null }> {
+export async function createTipPayment(target: string | { callId: string }, amountCents: number): Promise<{ payment: { client_secret: string; stripe_account: string; amount_cents: number } | null; errorKey: string | null }> {
   const { data, error } = await supabase.functions.invoke<{ client_secret: string; stripe_account: string; amount_cents: number }>('create-tip-payment', {
-    body: { booking_id: bookingId, amount_cents: amountCents },
+    body: typeof target === 'string' ? { booking_id: target, amount_cents: amountCents } : { call_id: target.callId, amount_cents: amountCents },
   });
   if (!error && data) return { payment: data, errorKey: null };
   if (error instanceof FunctionsHttpError) {

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { PaymentForm } from '@/components/PaymentForm';
 import { Emoji } from '@/components/Emoji';
 import { CallRoom } from '@/components/CallRoom';
 import { Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
@@ -12,11 +13,19 @@ import { fonts, pastelFor, useTheme } from '@/theme';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { formatEuro } from '@/lib/booking';
+import { callReviewExists, createCallReview, type CallMood } from '@/lib/reviews';
+import { createTipPayment } from '@/lib/sessions';
 import {
-  acceptCall, callsSupported, callToken, cancelCall, clientCallTotal, declineCall, endCall, heartbeat, loadCall, type CallRow,
+  acceptCall, CALL_EXTRA_MINUTES, CALL_MAX_MIN, callsSupported, callToken, cancelCall, clientCallTotal, declineCall, endCall, extendCall, heartbeat, heldMinutes, loadCall, type CallRow,
 } from '@/lib/calls';
 
 const nowMs = () => Date.now();
+const MOODS: { key: CallMood; emoji: string }[] = [
+  { key: 'top', emoji: 'raising_hands' },
+  { key: 'idee', emoji: 'light_bulb' },
+  { key: 'bello', emoji: 'smiling_eyes' },
+  { key: 'carica', emoji: 'fire' },
+];
 const mmss = (seconds: number) => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
 
 /** Una chiamata: squillo, conversazione e riepilogo. Lo stato vero sta sul server: qui si legge ogni 2 secondi e si manda un battito ogni 8. */
@@ -55,6 +64,16 @@ export default function CallScreen() {
   const [other, setOther] = useState<{ name: string; avatar: string | null; handle: string | null } | null>(null);
   const [myName, setMyName] = useState('');
   const theme = useTheme();
+  const [addOpen, setAddOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [rating, setRating] = useState(0);
+  const [mood, setMood] = useState<CallMood | null>(null);
+  const [tip, setTip] = useState(0);
+  const [reviewed, setReviewed] = useState<boolean | null>(null);
+  const [tipPay, setTipPay] = useState<{ client_secret: string; stripe_account: string; amount_cents: number } | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   useEffect(() => {
     if (!otherId) return;
     let alive = true;
@@ -68,6 +87,14 @@ export default function CallScreen() {
       alive = false;
     };
   }, [otherId, me]);
+
+  useEffect(() => {
+    let alive = true;
+    if (id) void callReviewExists(id).then((x) => alive && setReviewed(x));
+    return () => {
+      alive = false;
+    };
+  }, [id]);
 
   // battito di presenza finché la chiamata è viva
   const live = call && call !== 'missing' && ['ringing', 'active'].includes(call.status);
@@ -108,9 +135,20 @@ export default function CallScreen() {
   const startedMs = call.started_at ? Date.parse(call.started_at) : null;
   const elapsed = startedMs ? Math.max(0, Math.floor((now - startedMs) / 1000)) : 0;
   const billedNow = Math.min(Math.max(Math.ceil(elapsed / 60), 5), 60);
-  const coveredUntil = startedMs ? startedMs + call.blocks_held * 15 * 60_000 : null;
+  const held = heldMinutes(call);
+  const coveredUntil = startedMs ? startedMs + held * 60_000 : null;
   const secondsLeft = coveredUntil ? Math.max(0, Math.floor((coveredUntil - now) / 1000)) : null;
   const ringLeft = call.ring_expires_at ? Math.max(0, Math.floor((Date.parse(call.ring_expires_at) - now) / 1000)) : 0;
+
+  const add = async (minutes: number) => {
+    setAdding(true);
+    setAddError(null);
+    const res = await extendCall(call.id, minutes);
+    setAdding(false);
+    if (res.errorKey) return setAddError(res.errorKey);
+    setAddOpen(false);
+    await refresh();
+  };
 
   const act = async (fn: (callId: string) => Promise<{ errorKey: string | null }>) => {
     setErrorKey(null);
@@ -123,6 +161,28 @@ export default function CallScreen() {
   const first = otherName.split(' ')[0];
   const seed = otherId ?? '';
   const total15 = clientCallTotal(call.rate_cents_per_min, 15);
+
+  const send = async () => {
+    setSending(true);
+    setSendError(null);
+    if (reviewed === false && rating > 0) {
+      const failure = await createCallReview({ callId: call.id, authorId: me, sellerId: call.seller_id, rating, mood, lang: i18n.language.slice(0, 2) });
+      if (failure && failure !== 'reviews.already') {
+        setSending(false);
+        return setSendError(failure);
+      }
+      setReviewed(true);
+    }
+    if (tip > 0) {
+      const r = await createTipPayment({ callId: call.id }, tip);
+      setSending(false);
+      if (r.payment) setTipPay(r.payment);
+      else setSendError(r.errorKey);
+      return;
+    }
+    setSending(false);
+    leave();
+  };
 
   if (call.status === 'ringing') {
     if (isClient) {
@@ -209,7 +269,7 @@ export default function CallScreen() {
   }
 
   if (call.status === 'active') {
-    const blockedMin = call.blocks_held * 15;
+    const blockedMin = held;
     const progress = coveredUntil && startedMs ? Math.min(1, Math.max(0, (now - startedMs) / (coveredUntil - startedMs))) : 0;
     const timerCard = (
       <View style={[styles.minutes, { backgroundColor: theme.ink }]}>
@@ -226,7 +286,7 @@ export default function CallScreen() {
         <View style={[styles.track, { backgroundColor: theme.inkSurface2 }]}>
           <View style={[styles.fillBar, { width: `${Math.round((1 - progress) * 100)}%`, backgroundColor: theme.accent }]} />
         </View>
-        {secondsLeft !== null && secondsLeft < 180 && call.extend_failed ? <Text style={[styles.timerNote, { color: '#F97066' }]}>{t('calls.extendFailed', { time: mmss(secondsLeft) })}</Text> : null}
+        {secondsLeft !== null && secondsLeft < 180 ? <Text style={[styles.timerNote, { color: '#F97066', maxWidth: undefined }]}>{t(isClient && held < CALL_MAX_MIN ? 'calls.endingSoonAdd' : 'calls.endingSoon', { time: mmss(secondsLeft) })}</Text> : null}
       </View>
     );
     return (
@@ -235,13 +295,34 @@ export default function CallScreen() {
           {!callsSupported ? <ErrorText>{t('calls.nativeNotReady')}</ErrorText> : null}
           {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
           {room ? (
-            <CallRoom serverUrl={room.url} token={room.token} onDisconnected={() => void act(endCall)} name={otherName} avatarPath={other?.avatar} seed={seed} myName={myName}>
+            <CallRoom serverUrl={room.url} token={room.token} onDisconnected={() => void act(endCall)} name={otherName} avatarPath={other?.avatar} seed={seed} myName={myName} onAddMinutes={isClient && held < CALL_MAX_MIN ? () => setAddOpen(true) : undefined}>
               {timerCard}
             </CallRoom>
           ) : callsSupported && !errorKey ? (
             <LoadingView />
           ) : null}
         </View>
+        <Modal transparent animationType="slide" visible={addOpen} onRequestClose={() => setAddOpen(false)}>
+          <View style={[styles.scrim, { backgroundColor: theme.scrim }]}>
+            <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
+              <View style={[styles.grabber, { backgroundColor: theme.fill }]} />
+              <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('calls.addTitle')}</Text>
+              <Text style={[styles.holdSub, { color: theme.muted, fontSize: 14 }]}>{t('calls.addBody', { max: CALL_MAX_MIN - held })}</Text>
+              <View style={styles.addRow}>
+                {CALL_EXTRA_MINUTES.filter((m) => held + m <= CALL_MAX_MIN).map((m) => (
+                  <Pressable key={m} accessibilityRole="button" disabled={adding} onPress={() => void add(m)} style={[styles.addChip, { backgroundColor: theme.bg, opacity: adding ? 0.5 : 1 }]}>
+                    <Text style={[styles.addMin, { color: theme.text }]}>{`+${m}'`}</Text>
+                    <Text style={[styles.holdSub, { color: theme.muted }]}>{fmt(clientCallTotal(call.rate_cents_per_min, m) - 50)}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              {addError ? <ErrorText>{t(addError)}</ErrorText> : null}
+              <Pressable accessibilityRole="button" onPress={() => setAddOpen(false)} style={[styles.answerBtn, { backgroundColor: theme.bg, height: 52 }]}>
+                <Text style={[styles.answerText, { color: theme.text, fontSize: 15 }]}>{t('common.close')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     );
   }
@@ -273,17 +354,63 @@ export default function CallScreen() {
               </View>
             </View>
           </View>
+          {isClient && tipPay ? (
+            <View style={[styles.rateCard, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.rateTitle, { color: theme.text }]}>{t('calls.tipPay', { amount: fmt(tipPay.amount_cents) })}</Text>
+              <PaymentForm clientSecret={tipPay.client_secret} stripeAccount={tipPay.stripe_account} onPaid={leave} />
+            </View>
+          ) : isClient ? (
+            <>
+              {reviewed === false ? (
+                <View style={[styles.rateCard, { backgroundColor: theme.surface }]}>
+                  <Text style={[styles.rateTitle, { color: theme.text }]}>{t('calls.howWasIt', { name: first })}</Text>
+                  <View style={styles.moods}>
+                    {MOODS.map((m) => (
+                      <Pressable key={m.key} accessibilityRole="button" accessibilityState={{ selected: mood === m.key }} onPress={() => setMood(mood === m.key ? null : m.key)} style={[styles.mood, { backgroundColor: mood === m.key ? theme.accent : theme.bg, borderColor: mood === m.key ? theme.ink : 'transparent' }]}>
+                        <Emoji name={m.emoji} size={34} />
+                        <Text style={[styles.moodText, { color: theme.text }]}>{t(`calls.mood.${m.key}`)}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <View style={styles.stars}>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <Pressable key={n} accessibilityRole="button" accessibilityLabel={`${n}`} onPress={() => setRating(n)} style={styles.starHit}>
+                        <Ionicons name={n <= rating ? 'star' : 'star-outline'} size={30} color={n <= rating ? theme.ink : theme.muted} />
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+              <View style={[styles.rateCard, { backgroundColor: theme.surface }]}>
+                <Text style={[styles.rateTitle, { color: theme.text }]}>{t('calls.tipTitle')}</Text>
+                <View style={styles.tipRow}>
+                  {[0, 200, 500, 1000].map((c) => (
+                    <Pressable key={c} accessibilityRole="button" onPress={() => setTip(c)} style={[styles.tipBtn, { backgroundColor: tip === c ? theme.ink : theme.bg }]}>
+                      <Text style={[styles.tipText, { color: tip === c ? '#FFFFFF' : theme.text }]}>{c === 0 ? t('calls.tipNone') : fmt(c).replace(',00', '')}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              {sendError ? <ErrorText>{t(sendError)}</ErrorText> : null}
+            </>
+          ) : null}
           {dropped ? <Text style={[styles.holdSub, { color: theme.muted, paddingHorizontal: 12 }]}>{t('calls.droppedNote')}</Text> : null}
           {call.end_reason === 'balance' ? <Text style={[styles.holdSub, { color: theme.muted, paddingHorizontal: 12 }]}>{t('calls.limitNote')}</Text> : null}
           <View style={styles.doneButtons}>
-            {isClient && other?.handle ? (
-              <Pressable accessibilityRole="button" onPress={() => router.replace({ pathname: '/u/[handle]', params: { handle: other.handle ?? '' } })} style={[styles.answerBtn, { flex: 1, backgroundColor: theme.surface }]}>
-                <Text style={[styles.answerText, { color: theme.text, fontSize: 16 }]}>{t('calls.viewProfile')}</Text>
+            {isClient && call.service_id ? (
+              <Pressable accessibilityRole="button" onPress={() => router.replace({ pathname: '/call-start', params: { serviceId: call.service_id ?? '' } })} style={[styles.answerBtn, { flex: 1, backgroundColor: theme.surface }]}>
+                <Text style={[styles.answerText, { color: theme.text, fontSize: 16 }]}>{t('calls.bookAgain')}</Text>
               </Pressable>
             ) : null}
-            <Pressable accessibilityRole="button" onPress={leave} style={[styles.answerBtn, { flex: 1, backgroundColor: theme.ink }]}>
-              <Text style={[styles.answerText, { color: '#FFFFFF', fontSize: 16 }]}>{t('calls.done')}</Text>
-            </Pressable>
+            {isClient && !tipPay ? (
+              <Pressable accessibilityRole="button" disabled={sending} onPress={() => void send()} style={[styles.answerBtn, { flex: 1, backgroundColor: theme.ink, opacity: sending ? 0.6 : 1 }]}>
+                <Text style={[styles.answerText, { color: '#FFFFFF', fontSize: 16 }]}>{tip > 0 ? t('calls.sendTip', { amount: fmt(tip).replace(',00', '') }) : reviewed === false && rating > 0 ? t('calls.send') : t('calls.done')}</Text>
+              </Pressable>
+            ) : !isClient ? (
+              <Pressable accessibilityRole="button" onPress={leave} style={[styles.answerBtn, { flex: 1, backgroundColor: theme.ink }]}>
+                <Text style={[styles.answerText, { color: '#FFFFFF', fontSize: 16 }]}>{t('calls.done')}</Text>
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </Screen>
@@ -315,9 +442,14 @@ export default function CallScreen() {
           </View>
         </Pressable>
         <View style={styles.doneButtons}>
-          <Pressable accessibilityRole="button" onPress={leave} style={[styles.answerBtn, { flex: 1, backgroundColor: theme.ink }]}>
-            <Text style={[styles.answerText, { color: '#FFFFFF', fontSize: 16 }]}>{t('calls.close')}</Text>
+          <Pressable accessibilityRole="button" onPress={leave} style={[styles.answerBtn, { flex: 1, backgroundColor: theme.surface }]}>
+            <Text style={[styles.answerText, { color: theme.text, fontSize: 16 }]}>{t('calls.close')}</Text>
           </Pressable>
+          {isClient && call.service_id ? (
+            <Pressable accessibilityRole="button" onPress={() => router.replace({ pathname: '/call-start', params: { serviceId: call.service_id ?? '' } })} style={[styles.answerBtn, { flex: 1.3, backgroundColor: theme.ink }]}>
+              <Text style={[styles.answerText, { color: '#FFFFFF', fontSize: 16 }]}>{t('calls.callAgain')}</Text>
+            </Pressable>
+          ) : null}
         </View>
       </View>
     </Screen>
@@ -325,6 +457,23 @@ export default function CallScreen() {
 }
 
 const styles = StyleSheet.create({
+  rateCard: { borderRadius: 32, padding: 18, gap: 12 },
+  rateTitle: { fontFamily: fonts.semibold, fontSize: 18, letterSpacing: -0.4 },
+  moods: { flexDirection: 'row', gap: 6 },
+  mood: { flex: 1, height: 78, borderRadius: 22, alignItems: 'center', justifyContent: 'center', gap: 4, borderWidth: 2 },
+  moodText: { fontFamily: fonts.semibold, fontSize: 12 },
+  stars: { flexDirection: 'row', gap: 2 },
+  starHit: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  tipRow: { flexDirection: 'row', gap: 6 },
+  tipBtn: { flex: 1, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  tipText: { fontFamily: fonts.semibold, fontSize: 16 },
+  scrim: { flex: 1, justifyContent: 'flex-end' },
+  sheet: { borderTopLeftRadius: 40, borderTopRightRadius: 40, padding: 22, paddingBottom: 32, gap: 14, maxWidth: 480, width: '100%', alignSelf: 'center' },
+  grabber: { width: 44, height: 5, borderRadius: 3, alignSelf: 'center' },
+  sheetTitle: { fontFamily: fonts.semibold, fontSize: 28, letterSpacing: -1 },
+  addRow: { flexDirection: 'row', gap: 8 },
+  addChip: { flex: 1, borderRadius: 22, paddingVertical: 14, alignItems: 'center', gap: 2 },
+  addMin: { fontFamily: fonts.semibold, fontSize: 20 },
   fill: { flex: 1 },
   frame: { flex: 1, padding: 8, gap: 10, maxWidth: 440, width: '100%', alignSelf: 'center' },
   panel: { flex: 1, borderRadius: 40, padding: 22, paddingTop: 56, gap: 16 },
