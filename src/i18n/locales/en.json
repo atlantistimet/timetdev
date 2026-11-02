@@ -593,7 +593,7 @@
     }
   },
   "feed": {
-    "title": "Home",
+    "title": "Feed",
     "all": "Everyone",
     "following": "Following",
     "empty": "No posts yet. Publish the first with the “New” button.",
@@ -632,7 +632,8 @@
     "tagErrors": {
       "max": "You can tag at most 5 people.",
       "declined": "This person already declined or removed the tag."
-    }
+    },
+    "like": "Like"
   },
   "explore": {
     "search": "Search people or services",

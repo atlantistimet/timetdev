@@ -1,12 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { PostCard } from '@/components/PostCard';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Avatar } from '@/components/Avatar';
 import { CreateSheet } from '@/components/CreateSheet';
-import { Body, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { PostCard } from '@/components/PostCard';
+import { Body, ErrorText, LoadingView, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { loadPosts, type Post } from '@/lib/feed';
-import { fonts, useTheme } from '@/theme';
+import { useUnreadCount } from '@/lib/notifications';
+import { fonts, radius, type, useTheme } from '@/theme';
 
 export default function Home() {
   const { t } = useTranslation();
@@ -14,6 +18,7 @@ export default function Home() {
   const { session } = useAuth();
   const [creating, setCreating] = useState(false);
   const userId = session?.user.id ?? null;
+  const unread = useUnreadCount(userId);
   const [scope, setScope] = useState<'all' | 'following'>('all');
   const [loaded, setLoaded] = useState<{ posts: Post[]; errorKey: string | null; nowMs: number; scope: string } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -30,27 +35,64 @@ export default function Home() {
     };
   }, [userId, scope, reloadKey]);
 
+  // Persone dei post recenti: prima chi è disponibile ora (anello nero), poi gli altri.
+  const people = useMemo(() => {
+    if (!loaded) return [];
+    const seen = new Map<string, { id: string; name: string; handle: string | null; path: string | null; live: boolean }>();
+    for (const p of loaded.posts) {
+      if (p.author_id === userId || seen.has(p.author_id)) continue;
+      seen.set(p.author_id, {
+        id: p.author_id,
+        name: p.author.full_name,
+        handle: p.author.handle,
+        path: p.author.avatar_path,
+        live: !!p.author.available_until && new Date(p.author.available_until).getTime() > loaded.nowMs,
+      });
+    }
+    return [...seen.values()].sort((a, b) => Number(b.live) - Number(a.live)).slice(0, 12);
+  }, [loaded, userId]);
+
   if (!userId) return <LoadingView />;
 
   return (
     <Screen tabs>
       <View style={styles.header}>
-        <View style={styles.headerTitle}>
-          <Title>{t('feed.title')}</Title>
+        <Text accessibilityRole="header" style={[type.title, { color: theme.text }]}>
+          {t('feed.title')}
+        </Text>
+        <View style={styles.headerBtns}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('notifications.title')} onPress={() => router.push('/notifications')} style={[styles.round, { backgroundColor: theme.surface }]}>
+            <Ionicons name="notifications-outline" size={22} color={theme.text} />
+            {unread > 0 ? <View style={[styles.dot, { backgroundColor: theme.accent, borderColor: theme.ink }]} /> : null}
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('create.title')} onPress={() => setCreating(true)} style={[styles.round, { backgroundColor: theme.ink }]}>
+            <Ionicons name="add" size={28} color={theme.inkOn} />
+          </Pressable>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t('create.title')}
-          onPress={() => setCreating(true)}
-          style={[styles.plus, { backgroundColor: theme.primary }]}>
-          <Text style={[styles.plusText, { color: theme.onPrimary }]}>+</Text>
-        </Pressable>
       </View>
       <CreateSheet visible={creating} onClose={() => setCreating(false)} />
-      <ChipRow>
-        <Chip label={t('feed.all')} selected={scope === 'all'} onPress={() => setScope('all')} />
-        <Chip label={t('feed.following')} selected={scope === 'following'} onPress={() => setScope('following')} />
-      </ChipRow>
+
+      {people.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.people}>
+          {people.map((p) => (
+            <Pressable key={p.id} accessibilityRole="button" onPress={() => p.handle && router.push({ pathname: '/u/[handle]', params: { handle: p.handle } })} style={styles.person}>
+              <View style={[styles.ring, p.live && { borderColor: theme.ink }]}>
+                <Avatar name={p.name} seed={p.id} size={58} path={p.path} />
+              </View>
+              <Text numberOfLines={1} style={[styles.personName, { color: theme.text }]}>{p.name.split(/\s+/)[0]}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : null}
+
+      <View style={[styles.scope, { backgroundColor: theme.surface }]}>
+        {(['all', 'following'] as const).map((s) => (
+          <Pressable key={s} accessibilityRole="tab" accessibilityState={{ selected: scope === s }} onPress={() => setScope(s)} style={[styles.scopeBtn, scope === s && { backgroundColor: theme.ink }]}>
+            <Text style={[styles.scopeText, { color: scope === s ? theme.inkOn : theme.text, fontFamily: scope === s ? fonts.semibold : fonts.medium }]}>{t(s === 'all' ? 'feed.all' : 'feed.following')}</Text>
+          </Pressable>
+        ))}
+      </View>
+
       {!loaded || loaded.scope !== scope ? (
         <Body muted>{t('common.loading')}</Body>
       ) : (
@@ -62,14 +104,20 @@ export default function Home() {
           ))}
         </>
       )}
-      <Spacer size={8} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerTitle: { flex: 1 },
-  plus: { width: 48, height: 48, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  plusText: { fontSize: 30, lineHeight: 34, fontFamily: fonts.light },
+  headerBtns: { flexDirection: 'row', gap: 8 },
+  round: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  dot: { position: 'absolute', top: 10, right: 11, width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },
+  people: { gap: 12, paddingVertical: 16, paddingHorizontal: 4 },
+  person: { width: 64, alignItems: 'center', gap: 5 },
+  ring: { padding: 3, borderRadius: 40, borderWidth: 2.5, borderColor: 'transparent' },
+  personName: { fontFamily: fonts.medium, fontSize: 12 },
+  scope: { flexDirection: 'row', padding: 4, borderRadius: radius.pill, marginBottom: 14 },
+  scopeBtn: { flex: 1, height: 38, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  scopeText: { fontSize: 14 },
 });

@@ -30,6 +30,33 @@ export function MediaGallery({ items, bucket, size = 'large' }: { items: MediaIt
   );
 }
 
+/** Foto o video del post a tutta larghezza (angoli 24), scorrevoli a pagine. */
+export function MediaCover({ items, bucket, height = 210 }: { items: MediaItem[]; bucket: Bucket; height?: number }) {
+  const theme = useTheme();
+  const [width, setWidth] = useState(0);
+  if (items.length === 0) return null;
+  return (
+    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ height, borderRadius: 24, overflow: 'hidden', backgroundColor: theme.fill }}>
+      {width > 0 ? (
+        <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
+          {items.map((m) =>
+            m.type === 'video' ? (
+              <CoverVideo key={m.path} uri={mediaUrl(bucket, m.path)} width={width} height={height} />
+            ) : (
+              <Image key={m.path} source={{ uri: mediaUrl(bucket, m.path) }} style={{ width, height }} resizeMode="cover" />
+            ),
+          )}
+        </ScrollView>
+      ) : null}
+    </View>
+  );
+}
+
+function CoverVideo({ uri, width, height }: { uri: string; width: number; height: number }) {
+  const player = useVideoPlayer(uri);
+  return <VideoView player={player} style={{ width, height }} contentFit="cover" nativeControls />;
+}
+
 /** Foto o video già caricati e da allegare a un contenuto non ancora salvato (post, anteprima del link). */
 export function MediaPicker({
   items,

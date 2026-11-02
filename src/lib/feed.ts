@@ -13,7 +13,7 @@ export type Post = {
   offer_id: string | null;
   service_id: string | null;
   slot_link_id: string | null;
-  author: { full_name: string; handle: string | null; role_title: string | null; available_until: string | null };
+  author: { full_name: string; handle: string | null; role_title: string | null; available_until: string | null; avatar_path: string | null };
   media: MediaItem[];
   tags: PostTag[];
   likes: number;
@@ -47,7 +47,7 @@ type Row = {
 const first = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
 
 const SELECT = `id, author_id, kind, body, created_at, offer_id, service_id, slot_link_id,
-  profiles!posts_author_id_fkey(full_name, handle, role_title, available_until),
+  profiles!posts_author_id_fkey(full_name, handle, role_title, available_until, avatar_path),
   post_media(path, type, position),
   post_tags(tagged_id, status, profiles!post_tags_tagged_id_fkey(full_name, handle)),
   post_likes(count),
@@ -71,7 +71,7 @@ async function hydrate(rows: Row[], userId: string): Promise<Post[]> {
     offer_id: r.offer_id,
     service_id: r.service_id,
     slot_link_id: r.slot_link_id,
-    author: first(r.profiles) ?? { full_name: '', handle: null, role_title: null, available_until: null },
+    author: first(r.profiles) ?? { full_name: '', handle: null, role_title: null, available_until: null, avatar_path: null },
     media: [...(r.post_media ?? [])].sort((a, b) => a.position - b.position).map((m) => ({ path: m.path, type: m.type })),
     tags: (r.post_tags ?? [])
       .filter((x) => x.status === 'accepted' || x.status === 'pending')

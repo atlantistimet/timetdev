@@ -593,7 +593,7 @@
     }
   },
   "feed": {
-    "title": "Home",
+    "title": "Feed",
     "all": "Tutti",
     "following": "Seguiti",
     "empty": "Ancora nessun post. Pubblica il primo con il pulsante “Nuovo”.",
@@ -632,7 +632,8 @@
     "tagErrors": {
       "max": "Puoi taggare al massimo 5 persone.",
       "declined": "Questa persona ha già rifiutato o tolto il tag."
-    }
+    },
+    "like": "Mi piace"
   },
   "explore": {
     "search": "Cerca persone o servizi",
