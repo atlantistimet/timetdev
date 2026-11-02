@@ -56,9 +56,15 @@ export function AttachSheet({
     onClose();
   };
 
+  // Su iPhone un selettore non si apre finché la finestra sta ancora chiudendosi: si aspetta che sia sparita.
+  const later = (fn: () => void) => {
+    close();
+    setTimeout(fn, 600);
+  };
+
   const bubbles: { key: string; icon: keyof typeof Ionicons.glyphMap; label: string; bg: string; onPress: () => void }[] = [
-    { key: 'media', icon: 'image', label: t('chat.attachSheet.media'), bg: '#F6C9AE', onPress: () => { close(); onMedia(); } },
-    { key: 'doc', icon: 'document-text', label: t('chat.attachSheet.document'), bg: '#CFE3F6', onPress: () => { close(); onDocument(); } },
+    { key: 'media', icon: 'image', label: t('chat.attachSheet.media'), bg: '#F6C9AE', onPress: () => later(onMedia) },
+    { key: 'doc', icon: 'document-text', label: t('chat.attachSheet.document'), bg: '#CFE3F6', onPress: () => later(onDocument) },
     { key: 'contact', icon: 'person', label: t('chat.attachSheet.contact'), bg: '#D6CBEA', onPress: () => setView('contacts') },
     { key: 'slot', icon: 'calendar', label: t('chat.attachSheet.slot'), bg: theme.accent, onPress: () => setView('slots') },
   ];
