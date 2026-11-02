@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { KeyboardAvoidingView, KeyboardProvider } from 'react-native-keyboard-controller';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { Body } from '@/components/ui';
+import { useKeyboardPadding } from '@/lib/keyboard';
 import { fonts, pastelFor, useTheme } from '@/theme';
 import type { CallRoomProps } from '@/components/call-room.types';
 
@@ -81,6 +81,7 @@ function Stage({ lib, onHangup, name, avatarPath, seed, myName, children, chat, 
 export function CallRoom({ serverUrl, token, onDisconnected, name, avatarPath, seed, myName, children, chat, onAddMinutes }: CallRoomProps) {
   const { t } = useTranslation();
   const [audioReady, setAudioReady] = useState(false);
+  const keyboardPadding = useKeyboardPadding();
 
   useEffect(() => {
     if (!lk) return;
@@ -97,15 +98,13 @@ export function CallRoom({ serverUrl, token, onDisconnected, name, avatarPath, s
   if (!lk) return <Body muted>{t('calls.nativeNotReady')}</Body>;
   if (!audioReady) return null;
   return (
-    <KeyboardProvider>
-    <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
+    <View style={{ flex: 1, paddingBottom: keyboardPadding }}>
       <lk.LiveKitRoom serverUrl={serverUrl} token={token} connect audio video onDisconnected={onDisconnected} options={{ adaptiveStream: { pixelDensity: 'screen' } }}>
         <Stage lib={lk} onHangup={onDisconnected} name={name} avatarPath={avatarPath} seed={seed} myName={myName} chat={chat} onAddMinutes={onAddMinutes}>
           {children}
         </Stage>
       </lk.LiveKitRoom>
-    </KeyboardAvoidingView>
-    </KeyboardProvider>
+    </View>
   );
 }
 
