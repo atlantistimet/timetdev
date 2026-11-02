@@ -1081,5 +1081,17 @@
     "payouts": "Payouts on Stripe",
     "tax": "Tax details",
     "menu": "Earnings"
+  },
+  "profile": {
+    "edit": "Edit",
+    "preview": "See how it looks",
+    "share": "Share",
+    "withPeople_one": "with {{count}} person",
+    "withPeople_other": "with {{count}} people",
+    "moments": "moments",
+    "availability": "Availability",
+    "availableNow": "now",
+    "availableOff": "not set",
+    "payments": "Payments"
   }
 }

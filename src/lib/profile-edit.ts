@@ -57,3 +57,17 @@ export async function saveMyProfile(userId: string, input: ProfileInput): Promis
   if (error) return error.code === '23505' ? 'profileEdit.errors.handleTaken' : 'errors.generic';
   return null;
 }
+
+export type MyStats = { hours: number; people: number; moments: number; services: number };
+
+/** Numeri del proprio profilo: ore condivise e persone (sessioni concluse), momenti pubblicati, servizi attivi. */
+export async function loadMyStats(userId: string): Promise<MyStats> {
+  const [b, p, s] = await Promise.all([
+    supabase.from('bookings').select('client_id, starts_at, ends_at').eq('seller_id', userId).eq('status', 'completed').limit(1000),
+    supabase.from('posts').select('id', { count: 'exact', head: true }).eq('author_id', userId),
+    supabase.from('services').select('id', { count: 'exact', head: true }).eq('seller_id', userId).eq('link_only', false).is('deleted_at', null),
+  ]);
+  const rows = (b.data ?? []) as { client_id: string; starts_at: string; ends_at: string }[];
+  const minutes = rows.reduce((sum, r) => sum + Math.max(0, (new Date(r.ends_at).getTime() - new Date(r.starts_at).getTime()) / 60000), 0);
+  return { hours: Math.round(minutes / 6) / 10, people: new Set(rows.map((r) => r.client_id)).size, moments: p.count ?? 0, services: s.count ?? 0 };
+}

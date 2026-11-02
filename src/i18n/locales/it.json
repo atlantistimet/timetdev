@@ -1081,5 +1081,17 @@
     "payouts": "Bonifici su Stripe",
     "tax": "Dati fiscali",
     "menu": "Incassi"
+  },
+  "profile": {
+    "edit": "Modifica",
+    "preview": "Vedi come appare",
+    "share": "Condividi",
+    "withPeople_one": "con {{count}} persona",
+    "withPeople_other": "con {{count}} persone",
+    "moments": "momenti",
+    "availability": "Disponibilità",
+    "availableNow": "ora",
+    "availableOff": "da impostare",
+    "payments": "Pagamenti"
   }
 }
