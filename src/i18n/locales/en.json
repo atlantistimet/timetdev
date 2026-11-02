@@ -402,7 +402,18 @@
     "delete": "Delete",
     "deleteWarning": "Delete this service? It will no longer be visible or bookable, and its offers and links are deleted too. You can find it in \"Past services\".",
     "pastTitle": "Past services",
-    "pastHelp": "Deleted services: no longer bookable, existing bookings stay valid."
+    "pastHelp": "Deleted services: no longer bookable, existing bookings stay valid.",
+    "tabServices": "Services",
+    "tabOffers": "Offers",
+    "tabLinks": "Links",
+    "actions": "Actions for {{name}}",
+    "minutesRange": "from {{min}} to {{max}} minutes",
+    "statBookings": "{{count}} bookings this month",
+    "statCalls": "{{count}} calls this month",
+    "statPackages": "{{count}} packages sold",
+    "pastCount": "Past · {{count}}",
+    "newOffer": "New offer",
+    "newSlot": "Send slot"
   },
   "offers": {
     "title": "My offers",

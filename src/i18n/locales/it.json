@@ -402,7 +402,18 @@
     "delete": "Elimina",
     "deleteWarning": "Eliminare questo servizio? Non sarà più visibile né prenotabile, e verranno eliminate anche le sue offerte e i suoi link. Lo ritrovi in «Servizi passati».",
     "pastTitle": "Servizi passati",
-    "pastHelp": "Servizi eliminati: non sono più prenotabili, le prenotazioni già fatte restano valide."
+    "pastHelp": "Servizi eliminati: non sono più prenotabili, le prenotazioni già fatte restano valide.",
+    "tabServices": "Servizi",
+    "tabOffers": "Offerte",
+    "tabLinks": "Link",
+    "actions": "Azioni per {{name}}",
+    "minutesRange": "da {{min}} a {{max}} minuti",
+    "statBookings": "{{count}} prenotazioni questo mese",
+    "statCalls": "{{count}} chiamate questo mese",
+    "statPackages": "{{count}} pacchetti venduti",
+    "pastCount": "Passati · {{count}}",
+    "newOffer": "Nuova offerta",
+    "newSlot": "Invia slot"
   },
   "offers": {
     "title": "Le mie offerte",

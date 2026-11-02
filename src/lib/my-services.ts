@@ -168,3 +168,27 @@ export async function countFutureBookings(column: 'service_id' | 'offer_id' | 's
   const { count } = await supabase.from('bookings').select('id', { count: 'exact', head: true }).eq(column, id).eq('status', 'confirmed').gt('starts_at', new Date().toISOString());
   return count ?? 0;
 }
+
+export type MonthCounts = { services: Record<string, number>; offers: Record<string, number>; links: Record<string, number>; packages: Record<string, number> };
+
+/** Prenotazioni e chiamate del mese, per servizio, offerta e link (e pacchetti venduti per servizio). */
+export async function loadMonthCounts(sellerId: string): Promise<MonthCounts> {
+  const d = new Date();
+  const from = new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+  const [b, c] = await Promise.all([
+    supabase.from('bookings').select('service_id, offer_id, slot_link_id, package_id').eq('seller_id', sellerId).gte('starts_at', from).in('status', ['confirmed', 'completed']).limit(1000),
+    supabase.from('calls').select('service_id').eq('seller_id', sellerId).gte('started_at', from).eq('status', 'ended').limit(1000),
+  ]);
+  const out: MonthCounts = { services: {}, offers: {}, links: {}, packages: {} };
+  const seenPackages = new Set<string>();
+  for (const r of (b.data ?? []) as { service_id: string | null; offer_id: string | null; slot_link_id: string | null; package_id: string | null }[]) {
+    if (r.package_id) {
+      if (!seenPackages.has(r.package_id) && r.service_id) out.packages[r.service_id] = (out.packages[r.service_id] ?? 0) + 1;
+      seenPackages.add(r.package_id);
+    } else if (r.service_id) out.services[r.service_id] = (out.services[r.service_id] ?? 0) + 1;
+    if (r.offer_id) out.offers[r.offer_id] = (out.offers[r.offer_id] ?? 0) + 1;
+    if (r.slot_link_id) out.links[r.slot_link_id] = (out.links[r.slot_link_id] ?? 0) + 1;
+  }
+  for (const r of (c.data ?? []) as { service_id: string | null }[]) if (r.service_id) out.services[r.service_id] = (out.services[r.service_id] ?? 0) + 1;
+  return out;
+}
