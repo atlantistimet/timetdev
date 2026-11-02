@@ -134,7 +134,22 @@
     "start": "Start sign-up",
     "continue": "Continue sign-up",
     "returnTitle": "Seller sign-up",
-    "goToSeller": "Go to the seller area"
+    "goToSeller": "Go to the seller area",
+    "panel": {
+      "title": "Your\ntime, today",
+      "available": "Available",
+      "unavailable": "Unavailable",
+      "nextIn": "next session in",
+      "inProgress": "session in progress",
+      "noNext": "No upcoming sessions",
+      "week": "this week",
+      "sold": "sold",
+      "reviews_one": "{{count}} review",
+      "reviews_other": "{{count}} reviews",
+      "paid": "Paid",
+      "free": "Free time?",
+      "sendSlot": "Send slot"
+    }
   },
   "book": {
     "servicesTitle": "Available services",

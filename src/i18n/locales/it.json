@@ -134,7 +134,22 @@
     "start": "Inizia la registrazione",
     "continue": "Continua la registrazione",
     "returnTitle": "Registrazione venditore",
-    "goToSeller": "Vai all'area venditore"
+    "goToSeller": "Vai all'area venditore",
+    "panel": {
+      "title": "Il tuo\ntempo, oggi",
+      "available": "Disponibile",
+      "unavailable": "Non disponibile",
+      "nextIn": "prossima sessione tra",
+      "inProgress": "sessione in corso",
+      "noNext": "Nessuna sessione in arrivo",
+      "week": "settimana",
+      "sold": "vendute",
+      "reviews_one": "{{count}} recensione",
+      "reviews_other": "{{count}} recensioni",
+      "paid": "Pagata",
+      "free": "Tempo libero?",
+      "sendSlot": "Invia slot"
+    }
   },
   "book": {
     "servicesTitle": "Servizi disponibili",
