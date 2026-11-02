@@ -10,6 +10,7 @@ import {
 import { Stack, router, usePathname, type Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { AuthProvider, useAuth } from '@/lib/auth';
@@ -77,9 +78,11 @@ export default function RootLayout() {
   const [fontsLoaded, fontsError] = useFonts({ InterTight_300Light, InterTight_400Regular, InterTight_500Medium, InterTight_600SemiBold });
   if (!fontsLoaded && !fontsError) return null;
   return (
-    <AuthProvider>
-      <RootNavigator />
-      <StatusBar style="auto" />
-    </AuthProvider>
+    <KeyboardProvider>
+      <AuthProvider>
+        <RootNavigator />
+        <StatusBar style="auto" />
+      </AuthProvider>
+    </KeyboardProvider>
   );
 }

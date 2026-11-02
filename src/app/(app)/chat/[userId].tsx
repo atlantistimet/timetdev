@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,7 +19,6 @@ import { LoadingView } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { REACTIONS, isBlockedByMe, loadChatBookings, loadMessages, loadReactions, toggleReaction, type ChatBooking, type ReactionKey, type ReactionMap, markRead, openConversation, reportMessage, sendAttachment, sendCard, sendMessage, type ProfileCard, type SlotCard, setBlocked, signedUrls, type Message } from '@/lib/chat';
 import { useChatPresence } from '@/lib/chat-presence';
-import { useKeyboardPadding } from '@/lib/keyboard';
 import { loadProfileById } from '@/lib/public-profile';
 import { supabase } from '@/lib/supabase';
 import { fonts, pastelFor, useTheme } from '@/theme';
@@ -51,7 +51,6 @@ export default function ChatScreen() {
   const [recording, setRecording] = useState(false);
   const [recMs, setRecMs] = useState(0);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const keyboardPadding = useKeyboardPadding();
   const convRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -259,7 +258,7 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
-      <View style={{ flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', paddingBottom: keyboardPadding }}>
+      <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={0} style={{ flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center' }}>
         <View style={[headerStyles.head, { backgroundColor: pastelFor(userId) }]}>
           <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={headerStyles.back}>
             <Ionicons name="chevron-back" size={22} color={theme.ink} />
@@ -490,7 +489,7 @@ export default function ChatScreen() {
           }}
           textInputProps={{ placeholder: t('chat.write'), maxLength: 2000, onChangeText: () => notifyTyping() }}
         />
-      </View>
+      </KeyboardAvoidingView>
       <AttachSheet visible={attachOpen} me={me} otherId={userId ?? ''} onClose={() => setAttachOpen(false)} onMedia={() => void pickMedia()} onDocument={() => void pickDocument()} onProfile={(c) => void shareCard(c)} onSlot={(c) => void shareCard(c)} />
       <Modal visible={!!lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(null)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
