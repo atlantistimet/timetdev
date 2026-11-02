@@ -13,9 +13,10 @@ export type PublicProfile = {
   travel_fee_cents: number;
   is_verified: boolean;
   available_until: string | null;
+  avatar_path: string | null;
 };
 
-const COLUMNS = 'id, handle, full_name, role_title, city, bio, place_type, place_address, service_area, travel_fee_cents, is_verified, available_until';
+const COLUMNS = 'id, handle, full_name, role_title, city, bio, place_type, place_address, service_area, travel_fee_cents, is_verified, available_until, avatar_path';
 
 export async function loadProfileByHandle(handle: string): Promise<PublicProfile | null> {
   const { data } = await supabase.from('profiles').select(COLUMNS).eq('handle', handle.toLowerCase()).maybeSingle();
