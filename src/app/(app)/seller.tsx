@@ -15,9 +15,7 @@ import { fonts, useTheme } from '@/theme';
 
 const MENU: { key: string; icon: keyof typeof Ionicons.glyphMap; labelKey: string; href: string }[] = [
   { key: 'earnings', icon: 'wallet-outline', labelKey: 'earnings.menu', href: '/earnings' },
-  { key: 'services', icon: 'briefcase-outline', labelKey: 'myServices.title', href: '/my-services' },
-  { key: 'offers', icon: 'pricetags-outline', labelKey: 'offers.title', href: '/my-offers' },
-  { key: 'links', icon: 'paper-plane-outline', labelKey: 'slotLinks.title', href: '/slot-links' },
+  { key: 'services', icon: 'briefcase-outline', labelKey: 'myServices.hub', href: '/my-services' },
   { key: 'avail', icon: 'calendar-outline', labelKey: 'availability.link', href: '/availability' },
   { key: 'policy', icon: 'shield-checkmark-outline', labelKey: 'policy.title', href: '/policies' },
   { key: 'profile', icon: 'person-outline', labelKey: 'profileEdit.link', href: '/profile-edit' },
@@ -204,7 +202,7 @@ export default function SellerScreen() {
         <View style={[styles.row, summary.today.length > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.fill }]}>
           <View style={[styles.dashed, { borderColor: theme.muted }]} />
           <Text style={[styles.rowName, styles.flex, { color: theme.muted }]}>{t('seller.panel.free')}</Text>
-          <Pressable accessibilityRole="button" onPress={() => router.push('/slot-links')} style={[styles.send, { backgroundColor: theme.accent }]}>
+          <Pressable accessibilityRole="button" onPress={() => router.push('/slot-link-edit')} style={[styles.send, { backgroundColor: theme.accent }]}>
             <Text style={[styles.sendText, { color: theme.onAccent }]}>{t('seller.panel.sendSlot')}</Text>
           </Pressable>
         </View>

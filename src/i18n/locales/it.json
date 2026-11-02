@@ -413,7 +413,8 @@
     "statPackages": "{{count}} pacchetti venduti",
     "pastCount": "Passati · {{count}}",
     "newOffer": "Nuova offerta",
-    "newSlot": "Invia slot"
+    "newSlot": "Invia slot",
+    "hub": "Servizi, offerte e link"
   },
   "offers": {
     "title": "Le mie offerte",

@@ -199,7 +199,7 @@ export default function SlotLinkEditScreen() {
       <Screen
         bare
         footer={
-          <Pressable accessibilityRole="button" onPress={() => router.replace('/slot-links')} style={[styles.done, { backgroundColor: theme.ink }]}>
+          <Pressable accessibilityRole="button" onPress={() => router.replace('/my-services')} style={[styles.done, { backgroundColor: theme.ink }]}>
             <Text style={styles.doneText}>{t('slotLinks.done')}</Text>
           </Pressable>
         }>
@@ -290,7 +290,7 @@ export default function SlotLinkEditScreen() {
       }>
       <View style={styles.page}>
         <View style={styles.head}>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => router.replace('/slot-links')} style={[styles.back, { backgroundColor: theme.surface }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => router.replace('/my-services')} style={[styles.back, { backgroundColor: theme.surface }]}>
             <Ionicons name="chevron-back" size={22} color={theme.ink} />
           </Pressable>
           <Text style={[styles.title, { color: theme.text }]}>{t('slotLinks.sendTitle')}</Text>
