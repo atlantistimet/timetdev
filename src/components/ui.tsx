@@ -231,6 +231,8 @@ export function ActionBar({
   onAction,
   loading,
   disabled,
+  oldLabel,
+  badge,
 }: {
   label: string;
   caption?: string;
@@ -238,12 +240,22 @@ export function ActionBar({
   onAction: () => void;
   loading?: boolean;
   disabled?: boolean;
+  oldLabel?: string;
+  badge?: string;
 }) {
   const theme = useTheme();
   return (
     <View style={[styles.actionBar, { backgroundColor: theme.ink }]}>
       <View style={styles.actionText}>
-        <Text style={[styles.actionLabel, { color: theme.inkOn }]}>{label}</Text>
+        <View style={styles.actionPriceRow}>
+          <Text style={[styles.actionLabel, { color: theme.inkOn }]}>{label}</Text>
+          {oldLabel ? <Text style={[styles.actionOld, { color: theme.inkMuted }]}>{oldLabel}</Text> : null}
+          {badge ? (
+            <View style={[styles.actionBadge, { backgroundColor: theme.accent }]}>
+              <Text style={[styles.actionBadgeText, { color: theme.onAccent }]}>{badge}</Text>
+            </View>
+          ) : null}
+        </View>
         {caption ? <Text style={[styles.actionCaption, { color: theme.inkMuted }]}>{caption}</Text> : null}
       </View>
       <Pressable
@@ -309,6 +321,10 @@ const styles = StyleSheet.create({
   actionBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.pill, paddingVertical: 8, paddingLeft: 24, paddingRight: 8, gap: 12 },
   actionText: { flexShrink: 1 },
   actionLabel: { fontSize: 20, fontFamily: fonts.semibold, letterSpacing: -0.5 },
+  actionPriceRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  actionOld: { fontSize: 14, fontFamily: fonts.medium, textDecorationLine: 'line-through' },
+  actionBadge: { height: 22, paddingHorizontal: 8, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  actionBadgeText: { fontSize: 12, fontFamily: fonts.semibold },
   actionCaption: { fontSize: 13, fontFamily: fonts.medium },
   actionButton: { minHeight: 52, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24 },
 });

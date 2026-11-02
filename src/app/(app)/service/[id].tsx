@@ -3,7 +3,6 @@ import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Emoji } from '@/components/Emoji';
-import { MediaCover } from '@/components/MediaView';
 import { ServiceHero } from '@/components/ServiceHero';
 import { TierLines } from '@/components/TierLines';
 import { ActionBar, Body, Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
@@ -100,10 +99,10 @@ export default function ServiceDetailScreen() {
         tag={service.kind === 'per_minute' ? rateText : `${service.duration_min} min`}
         onBack={goBack}
         backLabel={t('common.back')}
+        imagePath={photos.find((x) => x.type === 'image')?.path}
       />
       <View style={styles.body}>
-        {photos.length > 0 ? <MediaCover items={photos} bucket="service-media" height={180} /> : null}
-        {mine ? <ErrorText>{t('serviceDetail.mine')}</ErrorText> : null}
+                {mine ? <ErrorText>{t('serviceDetail.mine')}</ErrorText> : null}
         {service.description ? <Text style={[styles.desc, { color: theme.text }]}>{service.description}</Text> : null}
         {service.includes.length > 0 ? (
           <View style={styles.pills}>

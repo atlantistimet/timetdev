@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { MediaCover } from '@/components/MediaView';
+
 import { PaymentForm } from '@/components/PaymentForm';
 import { Avatar } from '@/components/Avatar';
 import { Emoji } from '@/components/Emoji';
@@ -193,6 +193,8 @@ export default function BookScreen() {
         ? `${shortFmt.format(new Date(chosenSlot.starts_at))} · ${timeFmt.format(new Date(chosenSlot.starts_at))}`
         : t('book.chooseWhen');
   const go = () => void (isInstant ? startInstant() : isPackage ? startPackage() : start());
+  const heroPhoto = photos.find((x) => x.type === 'image');
+  const heroImage = link?.preview_path && link.preview_type === 'image' ? { path: link.preview_path, bucket: 'media' as const } : heroPhoto ? { path: heroPhoto.path, bucket: 'service-media' as const } : null;
   const goBack = () => (router.canGoBack() ? router.back() : router.replace('/services'));
 
   if (paid) {
@@ -264,6 +266,8 @@ export default function BookScreen() {
       footer={
         <ActionBar
           label={formatEuro(totalCents, i18n.language)}
+          oldLabel={discountPct ? formatEuro(baseCents + extraCents * (isPackage ? sessions : 1), i18n.language) : undefined}
+          badge={discountPct ? `−${discountPct}%` : undefined}
           caption={caption}
           actionTitle={t('book.reserve')}
           onAction={go}
@@ -282,22 +286,12 @@ export default function BookScreen() {
         tag={tag}
         onBack={goBack}
         backLabel={t('common.back')}
+        imagePath={heroImage?.path}
+        imageBucket={heroImage?.bucket}
       />
       <View style={styles.body}>
-        <View style={[styles.priceRow, { backgroundColor: theme.surface }]}>
-          <View style={styles.priceMain}>
-            {discountPct ? <Text style={[styles.priceOld, { color: theme.muted }]}>{formatEuro(baseCents, i18n.language)}</Text> : null}
-            <Text style={[styles.priceNow, { color: theme.text }]}>{isPackage ? t('book.packageLine', { count: sessions, minutes: durationMin, price: formatEuro(priceCents, i18n.language) }) : formatEuro(priceCents, i18n.language)}</Text>
-          </View>
-          {discountPct ? (
-            <View style={[styles.discount, { backgroundColor: theme.accent }]}>
-              <Text style={[styles.discountText, { color: theme.onAccent }]}>{`−${discountPct}%`}</Text>
-            </View>
-          ) : null}
-        </View>
         {(link ?? offer)?.message ? <Body muted>{(link ?? offer)?.message}</Body> : null}
-        {link?.preview_path && link.preview_type ? <MediaCover items={[{ path: link.preview_path, type: link.preview_type }]} bucket="media" /> : null}
-        {photos.length > 0 ? <MediaCover items={photos} bucket="service-media" height={180} /> : null}
+
         {service.description ? <Text style={[styles.desc, { color: theme.text }]}>{service.description}</Text> : null}
         {service.includes.length > 0 ? (
           <View style={styles.pills}>
