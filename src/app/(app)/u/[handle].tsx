@@ -10,7 +10,7 @@ import { PostCard } from '@/components/PostCard';
 import { ReviewReply } from '@/components/ReviewReply';
 import { useAuth } from '@/lib/auth';
 import { followInfo, loadPosts, setFollow, type Post } from '@/lib/feed';
-import { formatEuro, listSellerServices, type SlotService } from '@/lib/booking';
+import { cleanTitle, formatEuro, listSellerServices, type SlotService } from '@/lib/booking';
 import { finalPriceCents, listSellerOffers, validityText, type Offer } from '@/lib/offers';
 import { loadReviews, stars, type Review, type ReviewSummary } from '@/lib/reviews';
 import { loadProfileByHandle, type PublicProfile } from '@/lib/public-profile';
@@ -258,7 +258,7 @@ export default function PublicProfileScreen() {
             ) : null}
             {services.length === 0 ? <Body muted>{t('publicProfile.noServices')}</Body> : null}
             {services.map((s) =>
-              row(s.id, pastelFor(s.id), s.title, metaText(s), priceText(s), () => router.push({ pathname: '/service/[id]', params: { id: s.id } })),
+              row(s.id, pastelFor(s.id), cleanTitle(s.title), metaText(s), priceText(s), () => router.push({ pathname: '/service/[id]', params: { id: s.id } })),
             )}
           </>
         ) : tab === 'reviews' ? (
@@ -280,7 +280,7 @@ export default function PublicProfileScreen() {
               row(
                 o.id,
                 pastelFor(o.id),
-                o.service_title,
+                cleanTitle(o.service_title),
                 `${o.discount_pct ? `−${o.discount_pct}% · ` : ''}${validityText(o.validity, i18n.language, t)}`,
                 formatEuro(finalPriceCents(o), i18n.language),
                 () => router.push({ pathname: '/book', params: { serviceId: o.service_id, offerId: o.id } }),

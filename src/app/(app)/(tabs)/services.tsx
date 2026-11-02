@@ -7,7 +7,7 @@ import { Avatar } from '@/components/Avatar';
 import { Emoji } from '@/components/Emoji';
 import { Body, Button, Chip, ErrorText, LoadingView, Pill, Screen, Spacer } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { formatEuro, listSlotServices, type SlotService } from '@/lib/booking';
+import { cleanTitle, formatEuro, listSlotServices, type SlotService } from '@/lib/booking';
 import {
   isAvailableNow,
   loadCategories,
@@ -118,7 +118,7 @@ export default function ServicesScreen() {
       id: `o-${o.id}`,
       sellerId: o.seller_id,
       serviceId: o.service_id,
-      title: o.service_title,
+      title: cleanTitle(o.service_title),
       meta: `${t('explore.minutes', { n: o.duration_min })}`,
       price: formatEuro(finalPriceCents(o), i18n.language),
       badge: o.discount_pct ? `−${o.discount_pct}%` : null,
@@ -128,7 +128,7 @@ export default function ServicesScreen() {
       id: `s-${s.id}`,
       sellerId: s.seller_id,
       serviceId: s.id,
-      title: s.title,
+      title: cleanTitle(s.title),
       meta: s.kind === 'package' ? t('book.packageShort', { count: s.sessions ?? 0 }) : t('explore.minutes', { n: s.duration_min }),
       price:
         s.kind === 'per_minute' && s.rate_cents_per_min

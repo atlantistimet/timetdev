@@ -3,7 +3,7 @@ import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Emoji } from '@/components/Emoji';
-import { MediaGallery } from '@/components/MediaView';
+import { MediaCover } from '@/components/MediaView';
 import { ServiceHero } from '@/components/ServiceHero';
 import { TierLines } from '@/components/TierLines';
 import { ActionBar, Body, Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
@@ -102,7 +102,7 @@ export default function ServiceDetailScreen() {
         backLabel={t('common.back')}
       />
       <View style={styles.body}>
-        {photos.length > 0 ? <MediaGallery items={photos} bucket="service-media" /> : null}
+        {photos.length > 0 ? <MediaCover items={photos} bucket="service-media" height={180} /> : null}
         {mine ? <ErrorText>{t('serviceDetail.mine')}</ErrorText> : null}
         {service.description ? <Text style={[styles.desc, { color: theme.text }]}>{service.description}</Text> : null}
         {service.includes.length > 0 ? (

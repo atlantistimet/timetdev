@@ -207,3 +207,6 @@ export async function markBookingOutcome(bookingId: string, outcome: 'completed'
   if (!error) return null;
   return error.message.includes('not_finished') ? 'bookings.errors.not_finished' : 'errors.generic';
 }
+
+/** Toglie dal titolo la durata tra parentesi, "(60 min)": la durata si mostra a parte. */
+export const cleanTitle = (title: string): string => title.replace(/\s*\(\s*\d+\s*(min|minuti|minutes)\s*\)\s*$/i, '').trim() || title;

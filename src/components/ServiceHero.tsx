@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Avatar } from '@/components/Avatar';
 import { Emoji } from '@/components/Emoji';
+import { cleanTitle } from '@/lib/booking';
 import { fonts, radius, useTheme } from '@/theme';
 
 /** Pannello pastello in cima a servizio e prenotazione: indietro, emoji, titolo, chi lo offre e la pillola nera con durata e luogo. */
@@ -41,7 +42,8 @@ export function ServiceHero({
           </View>
         ) : null}
       </View>
-      <Text style={[styles.title, { color: theme.ink }]}>{title}</Text>
+      <View style={styles.block}>
+      <Text style={[styles.title, { color: theme.ink }]}>{cleanTitle(title)}</Text>
       <View style={styles.seller}>
         <Avatar name={sellerName} seed={sellerId} size={40} path={sellerPath} />
         <Text numberOfLines={1} style={[styles.sellerText, { color: theme.ink }]}>
@@ -54,16 +56,18 @@ export function ServiceHero({
           </View>
         ) : null}
       </View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: { margin: 8, borderRadius: radius.panel, paddingHorizontal: 18, paddingTop: 20, paddingBottom: 20, gap: 22 },
+  hero: { margin: 8, minHeight: 340, justifyContent: 'space-between', borderRadius: radius.panel, paddingHorizontal: 22, paddingTop: 24, paddingBottom: 26, gap: 28 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   back: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center' },
   emoji: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  title: { fontFamily: fonts.semibold, fontSize: 38, lineHeight: 38, letterSpacing: -1.7 },
+  title: { fontFamily: fonts.semibold, fontSize: 38, lineHeight: 40, letterSpacing: -1.7 },
+  block: { gap: 20 },
   seller: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   sellerText: { flex: 1, fontFamily: fonts.medium, fontSize: 15 },
   tag: { height: 34, paddingHorizontal: 12, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },

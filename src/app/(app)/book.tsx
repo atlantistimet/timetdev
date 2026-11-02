@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { MediaGallery } from '@/components/MediaView';
+import { MediaCover } from '@/components/MediaView';
 import { PaymentForm } from '@/components/PaymentForm';
 import { Avatar } from '@/components/Avatar';
 import { Emoji } from '@/components/Emoji';
@@ -15,6 +15,7 @@ import { fonts, pastelFor, radius, useTheme } from '@/theme';
 import {
   createBookingPayment,
   createPackagePayment,
+  cleanTitle,
   formatEuro,
   loadExactSlot,
   loadLinkSlots,
@@ -116,6 +117,8 @@ export default function BookScreen() {
     : chosen === 'domicilio' ? sellerPlace.travel_fee_cents : chosen === 'sede' ? service.space_fee_cents : 0;
   const priceCents = link ? discountedCents(link.price_cents, link.discount_pct) : offer ? finalPriceCents(offer) : service.price_cents;
   const durationMin = link?.duration_min ?? offer?.duration_min ?? service.duration_min;
+  const discountPct = (link ?? offer)?.discount_pct ?? 0;
+  const baseCents = link ? link.price_cents : offer ? offer.price_cents : service.price_cents;
   const isPackage = service.kind === 'package';
   const sessions = service.sessions ?? 1;
   const pickedMs = picked.map((iso) => new Date(iso).getTime()).sort((a, b) => a - b);
@@ -222,7 +225,7 @@ export default function BookScreen() {
           <View style={styles.sumHead}>
             <Avatar name={seller?.full_name ?? '?'} seed={service.seller_id} size={56} round={20} path={seller?.avatar_path} />
             <View style={styles.sumHeadText}>
-              <Text numberOfLines={2} style={[styles.sumTitle, { color: theme.text }]}>{service.title}</Text>
+              <Text numberOfLines={2} style={[styles.sumTitle, { color: theme.text }]}>{cleanTitle(service.title)}</Text>
               <Text numberOfLines={1} style={[styles.sumSub, { color: theme.muted }]}>{[t('book.withSeller', { name: seller?.full_name ?? '' }), chosen ? t(`places.${chosen}`) : null].filter(Boolean).join(' · ')}</Text>
             </View>
           </View>
@@ -281,19 +284,20 @@ export default function BookScreen() {
         backLabel={t('common.back')}
       />
       <View style={styles.body}>
-        {link?.preview_path && link.preview_type ? <MediaGallery items={[{ path: link.preview_path, type: link.preview_type }]} bucket="media" /> : null}
-        {photos.length > 0 ? <MediaGallery items={photos} bucket="service-media" /> : null}
-        {(link ?? offer)?.discount_pct ? (
-          <View style={[styles.offerStrip, { backgroundColor: theme.accent }]}>
-            <Emoji name="party_popper" size={28} />
-            <Text style={[styles.offerText, { color: theme.onAccent }]}>
-              {`−${(link ?? offer)?.discount_pct}%`}
-              {(link ?? offer)?.message ? ` · ${(link ?? offer)?.message}` : ''}
-            </Text>
+        <View style={[styles.priceRow, { backgroundColor: theme.surface }]}>
+          <View style={styles.priceMain}>
+            {discountPct ? <Text style={[styles.priceOld, { color: theme.muted }]}>{formatEuro(baseCents, i18n.language)}</Text> : null}
+            <Text style={[styles.priceNow, { color: theme.text }]}>{isPackage ? t('book.packageLine', { count: sessions, minutes: durationMin, price: formatEuro(priceCents, i18n.language) }) : formatEuro(priceCents, i18n.language)}</Text>
           </View>
-        ) : (link ?? offer)?.message ? (
-          <Body muted>{(link ?? offer)?.message}</Body>
-        ) : null}
+          {discountPct ? (
+            <View style={[styles.discount, { backgroundColor: theme.accent }]}>
+              <Text style={[styles.discountText, { color: theme.onAccent }]}>{`−${discountPct}%`}</Text>
+            </View>
+          ) : null}
+        </View>
+        {(link ?? offer)?.message ? <Body muted>{(link ?? offer)?.message}</Body> : null}
+        {link?.preview_path && link.preview_type ? <MediaCover items={[{ path: link.preview_path, type: link.preview_type }]} bucket="media" /> : null}
+        {photos.length > 0 ? <MediaCover items={photos} bucket="service-media" height={180} /> : null}
         {service.description ? <Text style={[styles.desc, { color: theme.text }]}>{service.description}</Text> : null}
         {service.includes.length > 0 ? (
           <View style={styles.pills}>
@@ -394,8 +398,12 @@ const styles = StyleSheet.create({
   includePill: { height: 34, paddingLeft: 6, paddingRight: 12, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', gap: 6 },
   includeText: { fontFamily: fonts.medium, fontSize: 14 },
   placePill: { height: 42, paddingHorizontal: 18, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
-  offerStrip: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: radius.card, paddingVertical: 12, paddingHorizontal: 14 },
-  offerText: { flex: 1, fontFamily: fonts.semibold, fontSize: 15 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.card, paddingVertical: 14, paddingHorizontal: 18 },
+  priceMain: { flexDirection: 'row', alignItems: 'baseline', gap: 10, flexShrink: 1 },
+  priceOld: { fontFamily: fonts.medium, fontSize: 16, textDecorationLine: 'line-through' },
+  priceNow: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: -0.5 },
+  discount: { height: 32, paddingHorizontal: 12, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  discountText: { fontFamily: fonts.semibold, fontSize: 15 },
   days: { gap: 6 },
   dayTile: { width: 66, height: 70, borderRadius: radius.tile, alignItems: 'center', justifyContent: 'center' },
   dayOff: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#C9C8C2' },
