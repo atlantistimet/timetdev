@@ -77,11 +77,11 @@ function Stage({ onHangup, name, avatarPath, seed, myName, children, chat, onAdd
 }
 
 /** Web: stessa stanza del telefono (video, tua anteprima, minuti, chat e file), con in più la condivisione schermo. */
-export function CallRoom({ serverUrl, token, onDisconnected, name, avatarPath, seed, myName, children, chat, onAddMinutes }: CallRoomProps) {
+export function CallRoom({ serverUrl, token, onDisconnected, onHangup, name, avatarPath, seed, myName, children, chat, onAddMinutes }: CallRoomProps) {
   return (
     <View style={{ flex: 1 }}>
       <LiveKitRoom serverUrl={serverUrl} token={token} connect audio video onDisconnected={onDisconnected} style={{ flex: 1, display: 'flex' }}>
-        <Stage onHangup={onDisconnected} name={name} avatarPath={avatarPath} seed={seed} myName={myName} chat={chat} onAddMinutes={onAddMinutes}>
+        <Stage onHangup={onHangup} name={name} avatarPath={avatarPath} seed={seed} myName={myName} chat={chat} onAddMinutes={onAddMinutes}>
           {children}
         </Stage>
         <RoomAudioRenderer />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { SheetModal } from '@/components/SheetModal';
 import { Pressable } from '@/components/Pressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -42,6 +42,7 @@ export default function CallScreen() {
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [now, setNow] = useState(nowMs());
   const tokenRequested = useRef(false);
+  const [reconnects, setReconnects] = useState(0);
   const fmt = (cents: number) => formatEuro(cents, i18n.language);
 
   const refresh = useCallback(async () => {
@@ -120,7 +121,7 @@ export default function CallScreen() {
         setErrorKey(res.errorKey);
       }
     });
-  }, [active, id]);
+  }, [active, id, reconnects]);
 
   if (!call) return <LoadingView />;
   if (call === 'missing' || (call.client_id !== me && call.seller_id !== me)) {
@@ -142,6 +143,19 @@ export default function CallScreen() {
   const coveredUntil = startedMs ? startedMs + held * 60_000 : null;
   const secondsLeft = coveredUntil ? Math.max(0, Math.floor((coveredUntil - now) / 1000)) : null;
   const ringLeft = call.ring_expires_at ? Math.max(0, Math.floor((Date.parse(call.ring_expires_at) - now) / 1000)) : 0;
+
+  /** La linea è caduta: la chiamata resta aperta sul server (che la chiude da solo se nessuno torna) e ci si ricollega con un nuovo token. */
+  const reconnect = () => {
+    setRoom(null);
+    tokenRequested.current = false;
+    setTimeout(() => setReconnects((n) => n + 1), 1500);
+  };
+  const confirmHangup = () => {
+    Alert.alert(t('calls.hangupTitle'), t('calls.hangupBody'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('calls.hangupConfirm'), style: 'destructive', onPress: () => void act(endCall) },
+    ]);
+  };
 
   const add = async (minutes: number) => {
     setAdding(true);
@@ -298,7 +312,7 @@ export default function CallScreen() {
           {!callsSupported ? <ErrorText>{t('calls.nativeNotReady')}</ErrorText> : null}
           {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
           {room ? (
-            <CallRoom serverUrl={room.url} token={room.token} onDisconnected={() => void act(endCall)} name={otherName} avatarPath={other?.avatar} seed={seed} myName={myName} chat={otherId ? <CallChat me={me} otherId={otherId} /> : undefined} onAddMinutes={isClient && held < CALL_MAX_MIN ? () => setAddOpen(true) : undefined}>
+            <CallRoom serverUrl={room.url} token={room.token} onDisconnected={reconnect} onHangup={confirmHangup} name={otherName} avatarPath={other?.avatar} seed={seed} myName={myName} chat={otherId ? <CallChat me={me} otherId={otherId} /> : undefined} onAddMinutes={isClient && held < CALL_MAX_MIN ? () => setAddOpen(true) : undefined}>
               {timerCard}
             </CallRoom>
           ) : callsSupported && !errorKey ? (

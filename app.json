@@ -13,6 +13,7 @@
         "NSCameraUsageDescription": "Timeet usa la fotocamera per le videochiamate.",
         "NSMicrophoneUsageDescription": "Timeet usa il microfono per le chiamate.",
         "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["audio"],
         "UIDesignRequiresCompatibility": true
       },
       "appleTeamId": "MP2ZP7C4T6"

@@ -1095,7 +1095,15 @@
     "screenShare": "Condividi lo schermo",
     "screenStop": "Smetti di condividere",
     "sharing": "Stai condividendo lo schermo",
-    "theirScreen": "Schermo di {{name}}"
+    "theirScreen": "Schermo di {{name}}",
+    "otherLost": "{{name}} non è collegato/a",
+    "otherLostSub": "Aspettiamo che rientri. Se non torna entro {{time}} la chiamata si chiude da sola.",
+    "hangupTitle": "Chiudere la chiamata?",
+    "hangupBody": "La chiamata finisce per entrambi e paghi solo i minuti usati.",
+    "hangupConfirm": "Chiudi",
+    "liveBar": "Chiamata in corso",
+    "liveBarRinging": "Stai chiamando…",
+    "rejoin": "Rientra"
   },
   "delete": {
     "yes": "Sì, elimina",

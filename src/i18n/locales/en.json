@@ -1095,7 +1095,15 @@
     "screenShare": "Share screen",
     "screenStop": "Stop sharing",
     "sharing": "You are sharing your screen",
-    "theirScreen": "{{name}}'s screen"
+    "theirScreen": "{{name}}'s screen",
+    "otherLost": "{{name}} is not connected",
+    "otherLostSub": "We are waiting for them to come back. If they do not return within {{time}} the call ends by itself.",
+    "hangupTitle": "End the call?",
+    "hangupBody": "The call ends for both of you and you only pay for the minutes used.",
+    "hangupConfirm": "End call",
+    "liveBar": "Call in progress",
+    "liveBarRinging": "Calling…",
+    "rejoin": "Rejoin"
   },
   "delete": {
     "yes": "Yes, delete",
