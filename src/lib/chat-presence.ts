@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
 /**
- * Un solo canale Realtime per conversazione:
+ * Un canale Realtime per conversazione e per schermata (`scope`: la chat e la chat dentro la chiamata non devono condividerlo):
  *  - postgres_changes: nuovi messaggi e conferme di lettura → `onChange`
  *  - presence: chi è in chat adesso → `otherOnline`
  *  - broadcast "typing": l'altra persona sta scrivendo → `otherTyping`
  */
-export function useChatPresence(convId: string | null, me: string, other: string, onChange: () => void) {
+export function useChatPresence(convId: string | null, me: string, other: string, onChange: () => void, scope = 'chat') {
   const [otherOnline, setOtherOnline] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -21,7 +21,10 @@ export function useChatPresence(convId: string | null, me: string, other: string
 
   useEffect(() => {
     if (!convId || !me) return;
-    const channel = supabase.channel(`chat-${convId}`, { config: { presence: { key: me }, broadcast: { self: false } } });
+    // lo stesso nome canale restituisce il canale già esistente (anche se si sta ancora chiudendo): lo si toglie prima
+    const topic = `${scope}-${convId}`;
+    for (const old of supabase.getChannels()) if (old.topic === `realtime:${topic}`) void supabase.removeChannel(old);
+    const channel = supabase.channel(topic, { config: { presence: { key: me }, broadcast: { self: false } } });
     channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` }, () => {
         setOtherTyping(false);
@@ -46,7 +49,7 @@ export function useChatPresence(convId: string | null, me: string, other: string
       joined.current = false;
       void supabase.removeChannel(channel);
     };
-  }, [convId, me, other]);
+  }, [convId, me, other, scope]);
 
   /** Da chiamare a ogni modifica del testo: invia al massimo un segnale ogni 2 secondi. */
   const notifyTyping = () => {

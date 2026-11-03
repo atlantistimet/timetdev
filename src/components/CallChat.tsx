@@ -47,7 +47,7 @@ export function CallChat({ me, otherId }: { me: string; otherId: string }) {
     };
   }, [me, otherId]);
 
-  const { notifyTyping } = useChatPresence(convId, me, otherId, refresh);
+  const { notifyTyping } = useChatPresence(convId, me, otherId, refresh, 'callchat');
 
   useEffect(() => {
     const missing = messages.flatMap((m) => (m.attachment?.kind === 'media' && !urls[m.attachment.path] ? [m.attachment.path] : []));
