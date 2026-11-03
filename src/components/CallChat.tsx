@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Linking, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
+import { ChatVideo, ChatVideoFull } from '@/components/ChatVideo';
 import { loadMessages, markRead, openConversation, sendAttachment, sendMessage, signedUrls, type Message } from '@/lib/chat';
 import { useChatPresence } from '@/lib/chat-presence';
 import { fonts, useTheme } from '@/theme';
@@ -24,6 +25,7 @@ export function CallChat({ me, otherId }: { me: string; otherId: string }) {
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const convRef = useRef<string | null>(null);
   const scroller = useRef<ScrollView>(null);
+  const [lightbox, setLightbox] = useState<{ uri: string; video: boolean } | null>(null);
 
   const refresh = useCallback(async () => {
     const id = convRef.current;
@@ -94,7 +96,12 @@ export function CallChat({ me, otherId }: { me: string; otherId: string }) {
   };
 
   const files = messages.flatMap((m) => (m.attachment?.kind === 'media' && m.attachment.type !== 'audio' ? [{ id: m.id, a: m.attachment }] : []));
-  const open = (path: string) => urls[path] && void Linking.openURL(urls[path]);
+  const open = (path: string, type: string) => {
+    const uri = urls[path];
+    if (!uri) return;
+    if (type === 'image' || type === 'video') setLightbox({ uri, video: type === 'video' });
+    else void Linking.openURL(uri);
+  };
 
   return (
     <View style={[styles.panel, { backgroundColor: theme.surface }]}>
@@ -113,8 +120,14 @@ export function CallChat({ me, otherId }: { me: string; otherId: string }) {
             const media = m.attachment?.kind === 'media' ? m.attachment : null;
             return (
               <View key={m.id} style={[styles.bubble, mine ? { alignSelf: 'flex-end', backgroundColor: theme.ink, borderBottomRightRadius: 8 } : { alignSelf: 'flex-start', backgroundColor: theme.bg, borderBottomLeftRadius: 8 }]}>
-                {media ? (
-                  <Pressable accessibilityRole="button" onPress={() => open(media.path)} style={styles.file}>
+                {media && media.type === 'image' && urls[media.path] ? (
+                  <Pressable accessibilityRole="imagebutton" onPress={() => open(media.path, media.type)}>
+                    <Image source={{ uri: urls[media.path] }} style={styles.thumb} resizeMode="cover" />
+                  </Pressable>
+                ) : media && media.type === 'video' && urls[media.path] ? (
+                  <ChatVideo uri={urls[media.path]} onOpen={() => open(media.path, media.type)} />
+                ) : media ? (
+                  <Pressable accessibilityRole="button" onPress={() => open(media.path, media.type)} style={styles.file}>
                     <Ionicons name={media.type === 'image' ? 'image' : media.type === 'video' ? 'videocam' : media.type === 'audio' ? 'mic' : 'document-text'} size={20} color={mine ? '#FFFFFF' : theme.text} />
                     <Text numberOfLines={1} style={{ color: mine ? '#FFFFFF' : theme.text, fontFamily: fonts.medium, fontSize: 14, maxWidth: 180 }}>{media.name}</Text>
                   </Pressable>
@@ -129,9 +142,9 @@ export function CallChat({ me, otherId }: { me: string; otherId: string }) {
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
           {files.length === 0 ? <Text style={[styles.empty, { color: theme.muted }]}>{t('calls.filesEmpty')}</Text> : null}
           {files.map(({ id, a }) => (
-            <Pressable key={id} accessibilityRole="button" onPress={() => open(a.path)} style={[styles.fileRow, { backgroundColor: theme.bg }]}>
+            <Pressable key={id} accessibilityRole="button" onPress={() => open(a.path, a.type)} style={[styles.fileRow, { backgroundColor: theme.bg }]}>
               <View style={[styles.fileIcon, { backgroundColor: theme.surface }]}>
-                <Ionicons name={a.type === 'image' ? 'image' : a.type === 'video' ? 'videocam' : 'document-text'} size={20} color={theme.ink} />
+                {a.type === 'image' && urls[a.path] ? <Image source={{ uri: urls[a.path] }} style={styles.fileIcon} resizeMode="cover" /> : <Ionicons name={a.type === 'image' ? 'image' : a.type === 'video' ? 'videocam' : 'document-text'} size={20} color={theme.ink} />}
               </View>
               <View style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={{ color: theme.text, fontFamily: fonts.semibold, fontSize: 14 }}>{a.name}</Text>
@@ -173,12 +186,26 @@ export function CallChat({ me, otherId }: { me: string; otherId: string }) {
           <Ionicons name="arrow-up" size={22} color={theme.onAccent} />
         </Pressable>
       </View>
+      <Modal visible={!!lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(null)}>
+        <View style={styles.lightbox}>
+          {lightbox?.video ? (
+            <ChatVideoFull uri={lightbox.uri} />
+          ) : lightbox ? (
+            <Pressable onPress={() => setLightbox(null)} style={{ width: '100%', height: '100%' }}>
+              <Image source={{ uri: lightbox.uri }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+            </Pressable>
+          ) : null}
+          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.close')} onPress={() => setLightbox(null)} style={styles.lightboxClose}>
+            <Text style={{ color: '#FFFFFF', fontSize: 28 }}>✕</Text>
+          </Pressable>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  panel: { flex: 1, minHeight: 200, borderRadius: 34, overflow: 'hidden' },
+  panel: { flex: 1, minHeight: 120, borderRadius: 34, overflow: 'hidden' },
   tabs: { margin: 10, flexDirection: 'row', padding: 4, borderRadius: 999 },
   tab: { flex: 1, height: 40, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   tabText: { fontSize: 15 },
@@ -186,6 +213,9 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 14, paddingVertical: 4, gap: 8 },
   empty: { fontFamily: fonts.regular, fontSize: 14, textAlign: 'center', paddingVertical: 16 },
   bubble: { maxWidth: '80%', borderRadius: 22, paddingHorizontal: 14, paddingVertical: 10, gap: 4 },
+  thumb: { width: 200, height: 150, borderRadius: 14 },
+  lightbox: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
+  lightboxClose: { position: 'absolute', top: 56, right: 24, padding: 8 },
   file: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   fileRow: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 20, padding: 8 },
   fileIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

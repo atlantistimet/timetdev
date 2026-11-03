@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Keyboard, Platform, StyleSheet, Text, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -27,6 +27,16 @@ function Stage({ lib, onHangup, name, avatarPath, seed, myName, children, chat, 
   const { t } = useTranslation();
   const theme = useTheme();
   const [chatOpen, setChatOpen] = useState(false);
+  // con la tastiera aperta la parte alta (video) si nasconde, così il campo di testo resta visibile
+  const [keyboard, setKeyboard] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKeyboard(true));
+    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKeyboard(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = lib.useLocalParticipant();
   const room = lib.useRoomContext();
   const remoteCount = lib.useRemoteParticipants().length;
@@ -62,7 +72,7 @@ function Stage({ lib, onHangup, name, avatarPath, seed, myName, children, chat, 
   );
   return (
     <View style={styles.stage}>
-      <View style={[styles.hero, chatOpen && styles.heroSmall, { backgroundColor: pastelFor(seed ?? name) }]}>
+      <View style={[styles.hero, chatOpen && styles.heroSmall, chatOpen && keyboard && styles.heroHidden, { backgroundColor: pastelFor(seed ?? name) }]}>
         {remote ? <lib.VideoTrack trackRef={remote} style={StyleSheet.absoluteFill} objectFit="cover" /> : null}
         <View style={styles.heroTop}>
           <View style={[styles.tag, { backgroundColor: theme.accent }]}>
@@ -146,6 +156,7 @@ const styles = StyleSheet.create({
   waitTitle: { fontFamily: fonts.semibold, fontSize: 16 },
   waitSub: { fontFamily: fonts.medium, fontSize: 13 },
   hero: { height: 470, borderRadius: 38, padding: 18, paddingTop: 48, overflow: 'hidden', justifyContent: 'space-between', alignItems: 'center' },
+  heroHidden: { display: 'none' },
   heroSmall: { height: 250, paddingTop: 40 },
   chatShown: { flex: 1 },
   chatHidden: { display: 'none' },
