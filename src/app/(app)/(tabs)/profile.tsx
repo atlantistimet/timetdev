@@ -48,7 +48,7 @@ export default function ProfileScreen() {
 
   const share = async () => {
     if (!handle) return router.push('/profile-edit');
-    const r = await shareText(`https://timeet.world/${handle}`);
+    const r = await shareText(`https://timeet.world/u/${handle}`);
     setNote(r === 'copied' ? t('slotLinks.copied') : r === 'failed' ? t('errors.generic') : null);
   };
 
@@ -74,7 +74,7 @@ export default function ProfileScreen() {
         </View>
         <View style={{ gap: 4 }}>
           <Text style={[styles.name, { color: theme.ink }]}>{first}</Text>
-          <Text style={[styles.handle, { color: theme.ink }]}>{handle ? `timeet.world/${handle}` : t('publicProfile.needHandle')}</Text>
+          <Text style={[styles.handle, { color: theme.ink }]}>{handle ? `timeet.world/u/${handle}` : t('publicProfile.needHandle')}</Text>
         </View>
         <View style={styles.heroBtns}>
           <Pressable accessibilityRole="button" onPress={() => (handle ? router.push({ pathname: '/u/[handle]', params: { handle } }) : router.push('/profile-edit'))} style={[styles.heroBtn, { backgroundColor: theme.ink }]}>
