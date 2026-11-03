@@ -15,6 +15,9 @@ import { formatEuro } from '@/lib/booking';
 import { listPolicies, STANDARD_TIERS, validateTiers, type CancelPolicy, type Tier } from '@/lib/cancel-policy';
 import { CALL_MIN_RATE_CENTS } from '@/lib/calls';
 import { PLACES, type Place, centsToEuroText, loadMyService, MIN_PRICE_CENTS, parseEuroToCents, saveService } from '@/lib/my-services';
+import { type ScheduleDraft, loadSchedule, toMinutes } from '@/lib/availability';
+import { type MediaItem } from '@/lib/media';
+import { attachDraftPhotos } from '@/lib/service-media';
 import { shareText } from '@/lib/slot-links';
 import { fonts, useTheme } from '@/theme';
 
@@ -49,6 +52,8 @@ export default function ServiceEditScreen() {
   const [rows, setRows] = useState<TierRow[]>(toRows(STANDARD_TIERS));
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [draftPhotos, setDraftPhotos] = useState<MediaItem[]>([]);
+  const [general, setGeneral] = useState<ScheduleDraft | null>(null);
   const [done, setDone] = useState<{ id: string; note: string | null } | null>(null);
   const availability = useSpecificAvailability({ sellerId: userId, scope: 'service', targetId: id ?? null, inheritServiceId: null });
 
@@ -56,8 +61,9 @@ export default function ServiceEditScreen() {
     if (!userId) return;
     let alive = true;
     (async () => {
-      const [list, service] = await Promise.all([listPolicies(userId), id ? loadMyService(id) : Promise.resolve(null)]);
+      const [list, service, gen] = await Promise.all([listPolicies(userId), id ? loadMyService(id) : Promise.resolve(null), loadSchedule(userId, 'general', null)]);
       if (!alive) return;
+      setGeneral(gen);
       setPolicies(list.policies);
       const base = list.policies.find((p) => p.is_default)?.tiers ?? STANDARD_TIERS;
       setRows(toRows(service?.cancel_tiers ?? base));
@@ -146,8 +152,9 @@ export default function ServiceEditScreen() {
       return setErrorKey(result.errorKey ?? 'errors.generic');
     }
     const availFailure = kind === 'per_minute' ? null : await availability.persist(result.id);
+    const photoFailure = id ? null : await attachDraftPhotos(result.id, draftPhotos);
     setSaving(false);
-    if (availFailure) return setErrorKey(availFailure);
+    if (availFailure ?? photoFailure) return setErrorKey((availFailure ?? photoFailure) as string);
     if (id) router.replace('/my-services');
     else setDone({ id: result.id, note: null });
   };
@@ -280,7 +287,7 @@ export default function ServiceEditScreen() {
       {step === 'details' ? (
         <>
           <Text style={[styles.h1, { color: theme.text }]}>{t('svc.detailsTitle')}</Text>
-          {userId && id ? <PhotosSection serviceId={id} userId={userId} /> : <Text style={[styles.rowSub, { color: theme.muted }]}>{t('svc.photosLater')}</Text>}
+          {userId ? <PhotosSection serviceId={id ?? null} userId={userId} draft={draftPhotos} onDraftChange={setDraftPhotos} /> : null}
           <View style={[styles.card, { backgroundColor: theme.surface, paddingVertical: 6 }]}>
             <View style={styles.field}>
               <Text style={[styles.label, { color: theme.muted }]}>{t('svc.fieldTitle')}</Text>
@@ -440,6 +447,7 @@ export default function ServiceEditScreen() {
                 );
               })}
               {availability.specific && availability.draft ? <AvailabilityPanel draft={availability.draft} onChange={availability.setDraft} errors={availability.errors} /> : null}
+              {WeekPreview(availability.specific && availability.draft ? availability.draft : general)}
             </>
           ) : null}
           <Pressable accessibilityRole="switch" accessibilityState={{ checked: active }} onPress={() => setActive((v) => !v)} style={[styles.card, styles.switchRow, { backgroundColor: theme.surface }]}>
@@ -452,6 +460,35 @@ export default function ServiceEditScreen() {
       ) : null}
     </Screen>
   );
+
+  function WeekPreview(src: ScheduleDraft | null) {
+    if (!src) return null;
+    const FROM = 8 * 60;
+    const SPAN = 14 * 60;
+    const letters = ['L', 'M', 'M', 'G', 'V', 'S', 'D'];
+    return (
+      <View style={[styles.card, { backgroundColor: theme.surface }]}>
+        <Text style={[styles.rowTitle, { color: theme.text, fontSize: 15 }]}>{t('svc.weekPreview')}</Text>
+        <View style={styles.week} accessibilityLabel={t('svc.weekPreview')}>
+          {src.days.map((d, i) => (
+            <View key={i} style={styles.weekCol}>
+              <View style={[styles.weekBar, { backgroundColor: theme.bg }]}>
+                {d.active
+                  ? d.ranges.map((r, j) => {
+                      const a = Math.max(FROM, toMinutes(r.start));
+                      const b = Math.min(FROM + SPAN, toMinutes(r.end));
+                      if (!(b > a)) return null;
+                      return <View key={j} style={[styles.weekSeg, { backgroundColor: theme.ink, top: `${((a - FROM) / SPAN) * 100}%`, height: `${((b - a) / SPAN) * 100}%` }]} />;
+                    })
+                  : null}
+              </View>
+              <Text style={[styles.weekLetter, { color: theme.text }]}>{letters[i]}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  }
 
   function IncludesCard() {
     const add = () => {
@@ -543,5 +580,10 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 16, gap: 10 },
   linkBox: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingLeft: 16, paddingRight: 6, borderRadius: 999 },
   linkText: { flex: 1, fontFamily: fonts.regular, fontSize: 15 },
+  week: { flexDirection: 'row', gap: 5, height: 140 },
+  weekCol: { flex: 1, gap: 4 },
+  weekBar: { flex: 1, borderRadius: 12, overflow: 'hidden' },
+  weekSeg: { position: 'absolute', left: 3, right: 3, borderRadius: 8 },
+  weekLetter: { fontFamily: fonts.semibold, fontSize: 11, textAlign: 'center' },
   linkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 12 },
 });

@@ -41,3 +41,20 @@ export async function removePhoto(photo: ServicePhoto): Promise<string | null> {
   await removeFiles(BUCKET, [photo.path]);
   return null;
 }
+
+/** Carica una foto o un video su un servizio non ancora salvato: resta in bozza finché il servizio non viene creato. */
+export async function pickDraftPhoto(userId: string, current: number): Promise<{ item: MediaItem | null; errorKey: string | null }> {
+  if (current >= MAX_PHOTOS) return { item: null, errorKey: 'media.errors.limit' };
+  return pickAndUpload(BUCKET, userId);
+}
+
+export async function discardDraftPhoto(path: string): Promise<void> {
+  await removeFiles(BUCKET, [path]);
+}
+
+/** Collega al servizio appena creato le foto caricate in bozza. */
+export async function attachDraftPhotos(serviceId: string, items: MediaItem[]): Promise<string | null> {
+  if (items.length === 0) return null;
+  const { error } = await supabase.from('service_media').insert(items.map((m, i) => ({ service_id: serviceId, path: m.path, type: m.type, position: i })));
+  return error ? 'errors.generic' : null;
+}

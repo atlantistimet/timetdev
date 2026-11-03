@@ -1129,7 +1129,6 @@
     "typePackage": "Package",
     "typePackageSub": "Several sessions with a single payment, to use over time.",
     "detailsTitle": "Tell about it",
-    "photosLater": "You can add photos and videos after publishing.",
     "fieldTitle": "Title",
     "fieldDescription": "Description",
     "fieldDuration": "Duration",
@@ -1171,8 +1170,9 @@
     "announceSub": "Your followers see it",
     "makeOffer": "Create an offer",
     "makeOfferSub": "A discount for your first clients",
-    "addPhotos": "Add photos and videos",
-    "addPhotosSub": "Show what your service is like",
-    "goServices": "Go to my services"
+    "addPhotos": "Add or remove photos",
+    "addPhotosSub": "Manage photos and videos",
+    "goServices": "Go to my services",
+    "weekPreview": "Week preview"
   }
 }

@@ -1129,7 +1129,6 @@
     "typePackage": "Pacchetto",
     "typePackageSub": "Più sessioni con un solo pagamento, da usare nel tempo.",
     "detailsTitle": "Raccontalo",
-    "photosLater": "Foto e video si aggiungono dopo la pubblicazione.",
     "fieldTitle": "Titolo",
     "fieldDescription": "Descrizione",
     "fieldDuration": "Durata",
@@ -1171,8 +1170,9 @@
     "announceSub": "Lo vede chi ti segue",
     "makeOffer": "Crea un'offerta",
     "makeOfferSub": "Uno sconto per i primi clienti",
-    "addPhotos": "Aggiungi foto e video",
-    "addPhotosSub": "Mostra com'è il tuo servizio",
-    "goServices": "Vai ai miei servizi"
+    "addPhotos": "Aggiungi o togli foto",
+    "addPhotosSub": "Gestisci le foto e i video",
+    "goServices": "Vai ai miei servizi",
+    "weekPreview": "Anteprima della settimana"
   }
 }
