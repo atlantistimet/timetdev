@@ -49,8 +49,8 @@ export async function pickAndUpload(
     const isVideo = asset.type === 'video' || (asset.mimeType ?? '').startsWith('video/');
     const uri = isVideo ? asset.uri : await compressImage(asset.uri, asset.width, asset.height, 1600);
     const mime = isVideo ? (asset.mimeType && EXTENSIONS[asset.mimeType] ? asset.mimeType : 'video/mp4') : uri === asset.uri && asset.mimeType && EXTENSIONS[asset.mimeType] ? asset.mimeType : 'image/jpeg';
-    const blob = await (await fetch(uri)).blob();
-    if (blob.size > (isVideo ? VIDEO_MAX : IMAGE_MAX)) return { item: null, errorKey: isVideo ? 'media.errors.videoSize' : 'media.errors.imageSize' };
+    const blob = await (await fetch(uri)).arrayBuffer();
+    if (blob.byteLength > (isVideo ? VIDEO_MAX : IMAGE_MAX)) return { item: null, errorKey: isVideo ? 'media.errors.videoSize' : 'media.errors.imageSize' };
     const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${EXTENSIONS[mime]}`;
     const up = await supabase.storage.from(bucket).upload(path, blob, { contentType: mime });
     if (up.error) return { item: null, errorKey: 'errors.generic' };

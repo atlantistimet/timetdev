@@ -916,7 +916,9 @@
       "short": "Messaggio troppo breve."
     },
     "contactCard": "Contatto Timeet",
-    "slotCard": "slot da scegliere"
+    "slotCard": "slot da scegliere",
+    "open": "Apri",
+    "download": "Scarica"
   },
   "session": {
     "notFound": "Sessione non trovata",

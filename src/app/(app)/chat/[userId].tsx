@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Linking, Modal, Platform, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
@@ -15,7 +15,8 @@ import { AttachSheet } from '@/components/AttachSheet';
 import { Emoji } from '@/components/Emoji';
 import { VoiceBubble, clock } from '@/components/VoiceBubble';
 import { formatEuro } from '@/lib/booking';
-import { ChatVideo, ChatVideoFull } from '@/components/ChatVideo';
+import { AttachmentViewer, type ViewerItem } from '@/components/AttachmentViewer';
+import { ChatVideo } from '@/components/ChatVideo';
 import { LoadingView } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { REACTIONS, isBlockedByMe, loadChatBookings, loadMessages, loadReactions, toggleReaction, type ChatBooking, type ReactionKey, type ReactionMap, markRead, openConversation, reportMessage, sendAttachment, sendCard, sendMessage, type ProfileCard, type SlotCard, setBlocked, signedUrls, type Message } from '@/lib/chat';
@@ -24,7 +25,7 @@ import { loadProfileById } from '@/lib/public-profile';
 import { supabase } from '@/lib/supabase';
 import { fonts, pastelFor, useTheme } from '@/theme';
 
-type ChatItem = IMessage & { fileUrl?: string; fileName?: string; audioUrl?: string; durationMs?: number; card?: ProfileCard | SlotCard; booking?: ChatBooking; readAt?: string | null };
+type ChatItem = IMessage & { attPath?: string; attName?: string; attSize?: number; fileUrl?: string; fileName?: string; audioUrl?: string; durationMs?: number; card?: ProfileCard | SlotCard; booking?: ChatBooking; readAt?: string | null };
 type Panel = null | 'menu' | { report: string };
 const DOC_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'text/plain', 'text/csv'];
 
@@ -43,7 +44,7 @@ export default function ChatScreen() {
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [panel, setPanel] = useState<Panel>(null);
   const [blocked, setBlockedState] = useState(false);
-  const [lightbox, setLightbox] = useState<{ uri: string; video: boolean } | null>(null);
+  const [viewer, setViewer] = useState<ViewerItem | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [reactions, setReactions] = useState<ReactionMap>({});
   const [bookings, setBookings] = useState<ChatBooking[]>([]);
@@ -124,6 +125,9 @@ export default function ChatScreen() {
       sent: false,
       received: false,
       readAt: m.id === lastOwnRead ? m.read_at : null,
+      attPath: m.attachment?.kind === 'media' ? m.attachment.path : undefined,
+      attName: m.attachment?.kind === 'media' ? m.attachment.name : undefined,
+      attSize: m.attachment?.kind === 'media' ? m.attachment.size : undefined,
       image: m.attachment?.kind === 'media' && m.attachment.type === 'image' ? urls[m.attachment.path] : undefined,
       video: m.attachment?.kind === 'media' && m.attachment.type === 'video' ? urls[m.attachment.path] : undefined,
       fileUrl: m.attachment?.kind === 'media' && m.attachment.type === 'file' ? urls[m.attachment.path] : undefined,
@@ -444,12 +448,12 @@ export default function ChatScreen() {
           )}
           renderMessageImage={(p) =>
             p.currentMessage.image ? (
-              <Pressable accessibilityRole="imagebutton" onPress={() => setLightbox({ uri: p.currentMessage.image ?? '', video: false })} style={{ margin: 4 }}>
+              <Pressable accessibilityRole="imagebutton" onPress={() => { const c = p.currentMessage as ChatItem; setViewer({ path: c.attPath ?? '', name: c.attName ?? 'foto.jpg', type: 'image', uri: c.image ?? '', size: c.attSize }); }} style={{ margin: 4 }}>
                 <Image source={{ uri: p.currentMessage.image }} style={{ width: 220, height: 160, borderRadius: 12 }} resizeMode="cover" />
               </Pressable>
             ) : null
           }
-          renderMessageVideo={(p) => (p.currentMessage.video ? <ChatVideo uri={p.currentMessage.video} onOpen={() => setLightbox({ uri: p.currentMessage.video ?? '', video: true })} /> : null)}
+          renderMessageVideo={(p) => (p.currentMessage.video ? <ChatVideo uri={p.currentMessage.video} onOpen={() => { const c = p.currentMessage as ChatItem; setViewer({ path: c.attPath ?? '', name: c.attName ?? 'video.mp4', type: 'video', uri: c.video ?? '', size: c.attSize }); }} /> : null)}
           renderCustomView={(p) => {
             const m = p.currentMessage as ChatItem;
             const mine = m.user._id === me;
@@ -483,7 +487,7 @@ export default function ChatScreen() {
               );
             }
             return m.fileName ? (
-              <Pressable onPress={() => m.fileUrl && void Linking.openURL(m.fileUrl)} style={{ padding: 10 }}>
+              <Pressable onPress={() => m.fileUrl && setViewer({ path: m.attPath ?? '', name: m.fileName ?? 'file', type: 'file', uri: m.fileUrl, size: m.attSize })} style={{ padding: 10 }}>
                 <Text style={{ color: mine ? '#FFFFFF' : theme.text, textDecorationLine: 'underline' }}>{`📄 ${m.fileName}`}</Text>
               </Pressable>
             ) : null;
@@ -492,20 +496,7 @@ export default function ChatScreen() {
         />
       </KeyboardAvoidingView>
       <AttachSheet visible={attachOpen} me={me} otherId={userId ?? ''} onClose={() => setAttachOpen(false)} onMedia={() => void pickMedia()} onDocument={() => void pickDocument()} onProfile={(c) => void shareCard(c)} onSlot={(c) => void shareCard(c)} />
-      <Modal visible={!!lightbox} transparent animationType="fade" onRequestClose={() => setLightbox(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' }}>
-          {lightbox?.video ? (
-            <ChatVideoFull uri={lightbox.uri} />
-          ) : lightbox ? (
-            <Pressable onPress={() => setLightbox(null)} style={{ width: '100%', height: '100%' }}>
-              <Image source={{ uri: lightbox.uri }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
-            </Pressable>
-          ) : null}
-          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.close')} onPress={() => setLightbox(null)} style={{ position: 'absolute', top: 40, right: 24, padding: 8 }}>
-            <Text style={{ color: '#FFFFFF', fontSize: 28 }}>✕</Text>
-          </Pressable>
-        </View>
-      </Modal>
+      <AttachmentViewer item={viewer} onClose={() => setViewer(null)} />
     </SafeAreaView>
   );
 }

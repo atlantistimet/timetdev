@@ -916,7 +916,9 @@
       "short": "Message too short."
     },
     "contactCard": "Timeet contact",
-    "slotCard": "pick a time"
+    "slotCard": "pick a time",
+    "open": "Open",
+    "download": "Download"
   },
   "session": {
     "notFound": "Session not found",

@@ -107,13 +107,14 @@ export async function sendAttachment(conversationId: string, senderId: string, o
   const file = { ...(await toJpeg(original)), durationMs: original.durationMs };
   const ext = CHAT_MIME[file.mime];
   if (!ext) return 'chat.errors.type';
-  const blob = await (await fetch(file.uri)).blob();
-  if (blob.size > CHAT_MAX) return 'chat.errors.size';
+  // si carica il contenuto grezzo (non il Blob): così il server memorizza il tipo giusto e un PDF si apre come PDF
+  const bytes = await (await fetch(file.uri)).arrayBuffer();
+  if (bytes.byteLength > CHAT_MAX) return 'chat.errors.size';
   const path = `${conversationId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const up = await supabase.storage.from('chat-media').upload(path, blob, { contentType: file.mime });
+  const up = await supabase.storage.from('chat-media').upload(path, bytes, { contentType: file.mime });
   if (up.error) return 'errors.generic';
   const type = file.mime.startsWith('image/') ? 'image' : file.mime.startsWith('video/') ? 'video' : file.mime.startsWith('audio/') ? 'audio' : 'file';
-  const attachment: MediaAttachment = { kind: 'media', type, path, name: file.name, size: blob.size, mime: file.mime, ...(file.durationMs ? { durationMs: file.durationMs } : {}) };
+  const attachment: MediaAttachment = { kind: 'media', type, path, name: file.name, size: bytes.byteLength, mime: file.mime, ...(file.durationMs ? { durationMs: file.durationMs } : {}) };
   const { error } = await supabase.from('messages').insert({ conversation_id: conversationId, sender_id: senderId, body: '', lang, attachment });
   if (error) {
     await supabase.storage.from('chat-media').remove([path]);
@@ -141,6 +142,12 @@ export async function signedUrls(paths: string[]): Promise<Record<string, string
   const out: Record<string, string> = {};
   for (const row of data ?? []) if (row.path && row.signedUrl) out[row.path] = row.signedUrl;
   return out;
+}
+
+/** Indirizzo (5 minuti) che fa scaricare l'allegato con il suo nome invece di aprirlo. */
+export async function attachmentDownloadUrl(path: string, name: string): Promise<string | null> {
+  const { data } = await supabase.storage.from('chat-media').createSignedUrl(path, 300, { download: name });
+  return data?.signedUrl ?? null;
 }
 
 export async function isBlockedByMe(me: string, other: string): Promise<boolean> {
