@@ -705,7 +705,9 @@
     "bodyPlaceholder": "What would you like to share?",
     "publish": "Publish",
     "errors": {
-      "empty": "Write something or add a photo or video."
+      "empty": "Write something or add a photo or video.",
+      "pickOffer": "Choose an offer.",
+      "pickLink": "Choose a slot."
     },
     "share": "Share",
     "linkCopied": "Link copied to the clipboard.",
@@ -727,7 +729,21 @@
       "max": "You can tag at most 5 people.",
       "declined": "This person already declined or removed the tag."
     },
-    "like": "Like"
+    "like": "Like",
+    "cancel": "Cancel",
+    "kindUpdate": "Moment",
+    "kindOffer": "Offer",
+    "kindSlots": "Free slots",
+    "withWho": "Who were you with?",
+    "tagAdd": "+ Tag",
+    "linkService": "Link a service",
+    "linkServiceHint": "Show the service under the post",
+    "pickOffer": "Choose the offer to publish",
+    "noOffers": "You have no active offers yet.",
+    "createOffer": "Create an offer",
+    "pickLink": "Choose the slot to publish",
+    "noLinks": "You have no custom slots yet.",
+    "createLink": "Create a slot"
   },
   "explore": {
     "search": "Search people or services",

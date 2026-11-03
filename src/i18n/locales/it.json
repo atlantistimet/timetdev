@@ -705,7 +705,9 @@
     "bodyPlaceholder": "Cosa vuoi condividere?",
     "publish": "Pubblica",
     "errors": {
-      "empty": "Scrivi qualcosa o aggiungi una foto o un video."
+      "empty": "Scrivi qualcosa o aggiungi una foto o un video.",
+      "pickOffer": "Scegli un'offerta.",
+      "pickLink": "Scegli uno slot."
     },
     "share": "Condividi",
     "linkCopied": "Link copiato negli appunti.",
@@ -727,7 +729,21 @@
       "max": "Puoi taggare al massimo 5 persone.",
       "declined": "Questa persona ha già rifiutato o tolto il tag."
     },
-    "like": "Mi piace"
+    "like": "Mi piace",
+    "cancel": "Annulla",
+    "kindUpdate": "Momento",
+    "kindOffer": "Offerta",
+    "kindSlots": "Slot liberi",
+    "withWho": "Con chi eri?",
+    "tagAdd": "+ Tagga",
+    "linkService": "Collega un servizio",
+    "linkServiceHint": "Mostra il servizio sotto il post",
+    "pickOffer": "Scegli l'offerta da pubblicare",
+    "noOffers": "Non hai ancora offerte attive.",
+    "createOffer": "Crea un'offerta",
+    "pickLink": "Scegli lo slot da pubblicare",
+    "noLinks": "Non hai ancora slot personalizzati.",
+    "createLink": "Crea uno slot"
   },
   "explore": {
     "search": "Cerca persone o servizi",
