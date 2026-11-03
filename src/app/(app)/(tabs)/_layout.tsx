@@ -12,8 +12,8 @@ export default function TabsLayout() {
       initialRouteName="index"
       tabBar={() => null}
       screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: theme.bg } }}>
-      <Tabs.Screen name="services" options={{ title: t('tabs.explore') }} />
       <Tabs.Screen name="index" options={{ title: t('tabs.feed') }} />
+      <Tabs.Screen name="services" options={{ title: t('tabs.explore') }} />
       <Tabs.Screen name="bookings" options={{ title: t('tabs.agenda') }} />
       <Tabs.Screen name="messages" options={{ title: t('tabs.messages') }} />
       <Tabs.Screen name="profile" options={{ title: t('tabs.profile') }} />

@@ -15,7 +15,7 @@ type TabKey = 'services' | 'index' | 'bookings' | 'messages' | 'profile';
 
 // Icone dei mockup stile E (24×24, contorno 2)
 const ICONS: Record<TabKey, string> = {
-  services: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM15.5 8.5l-2 5-5 2 2-5z',
+  services: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4',
   index: 'M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z',
   bookings: 'M6.5 5h11a3 3 0 0 1 3 3v9.5a3 3 0 0 1-3 3h-11a3 3 0 0 1-3-3V8a3 3 0 0 1 3-3zM8 3v4M16 3v4M3.5 10h17',
   messages: 'M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12z',
@@ -23,8 +23,8 @@ const ICONS: Record<TabKey, string> = {
 };
 
 const TABS: { key: TabKey; href: Href; label: string }[] = [
-  { key: 'services', href: '/services', label: 'tabs.explore' },
   { key: 'index', href: '/', label: 'tabs.feed' },
+  { key: 'services', href: '/services', label: 'tabs.explore' },
   { key: 'bookings', href: '/bookings', label: 'tabs.agenda' },
   { key: 'messages', href: '/messages', label: 'tabs.messages' },
   { key: 'profile', href: '/profile', label: 'tabs.profile' },

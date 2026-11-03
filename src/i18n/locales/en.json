@@ -799,7 +799,8 @@
     "menuAccept": "Accept",
     "menuInviteSub": "Accept to show the post on your profile.",
     "menuRemoveSub": "The post disappears from your profile.",
-    "menuDelete": "Delete post"
+    "menuDelete": "Delete post",
+    "hello": "Hi {{name}}"
   },
   "explore": {
     "search": "Search people or services",

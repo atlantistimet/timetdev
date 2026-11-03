@@ -96,13 +96,15 @@ export default function BookingsScreen() {
 
   return (
     <Screen tabs>
-      <Text style={[styles.title, { color: theme.text }]}>{t('tabs.agenda')}</Text>
-      <View style={[styles.toggle, { backgroundColor: theme.surface }]}>
-        {toggles.map(([key, label]) => (
-          <Pressable key={key} accessibilityRole="button" onPress={() => setTab(key)} style={[styles.toggleItem, tab === key && { backgroundColor: theme.ink }]}>
-            <Text style={[styles.toggleText, { color: tab === key ? '#FFFFFF' : theme.text, fontFamily: tab === key ? fonts.semibold : fonts.medium }]}>{label}</Text>
-          </Pressable>
-        ))}
+      <View style={styles.titleRow}>
+        <Text style={[styles.title, { color: theme.text }]}>{t('tabs.agenda')}</Text>
+        <View style={[styles.toggle, { backgroundColor: theme.surface }]}>
+          {toggles.map(([key, label]) => (
+            <Pressable key={key} accessibilityRole="button" onPress={() => setTab(key)} style={[styles.toggleItem, tab === key && { backgroundColor: theme.ink }]}>
+              <Text style={[styles.toggleText, { color: tab === key ? '#FFFFFF' : theme.text, fontFamily: tab === key ? fonts.semibold : fonts.medium }]}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
         {filters.map(([key, label]) => (
@@ -203,13 +205,14 @@ export default function BookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  title: { fontFamily: fonts.semibold, fontSize: 36, letterSpacing: -1.4, marginTop: 8, paddingHorizontal: 4 },
-  toggle: { flexDirection: 'row', padding: 4, borderRadius: 999, alignSelf: 'flex-start', marginVertical: 8 },
-  toggleItem: { height: 38, paddingHorizontal: 14, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 },
+  title: { fontFamily: fonts.semibold, fontSize: 30, letterSpacing: -1.2, paddingHorizontal: 4 },
+  toggle: { flexDirection: 'row', padding: 4, borderRadius: 999, flexShrink: 1 },
+  toggleItem: { height: 36, paddingHorizontal: 10, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   filters: { gap: 8, paddingBottom: 8, paddingRight: 8 },
   filter: { height: 34, paddingHorizontal: 14, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   filterText: { fontFamily: fonts.medium, fontSize: 13 },
-  toggleText: { fontSize: 14 },
+  toggleText: { fontSize: 13 },
   pending: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 32, padding: 16, marginBottom: 12 },
   pendingTitle: { fontFamily: fonts.semibold, fontSize: 16 },
   pendingSub: { fontFamily: fonts.medium, fontSize: 13 },

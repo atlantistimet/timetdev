@@ -6,13 +6,15 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { Emoji } from '@/components/Emoji';
+import { supabase } from '@/lib/supabase';
 import { CreateSheet } from '@/components/CreateSheet';
 import { PostCard } from '@/components/PostCard';
 import { Body, ErrorText, LoadingView, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { loadPosts, type Post } from '@/lib/feed';
 import { useUnreadCount } from '@/lib/notifications';
-import { fonts, radius, type, useTheme } from '@/theme';
+import { fonts, radius, useTheme } from '@/theme';
 
 export default function Home() {
   const { t } = useTranslation();
@@ -24,6 +26,17 @@ export default function Home() {
   const [scope, setScope] = useState<'all' | 'following'>('all');
   const [loaded, setLoaded] = useState<{ posts: Post[]; errorKey: string | null; nowMs: number; scope: string } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [me, setMe] = useState<{ name: string; avatar: string | null } | null>(null);
+  useEffect(() => {
+    if (!userId) return;
+    let alive = true;
+    void supabase.from('profiles').select('full_name, avatar_path').eq('id', userId).maybeSingle().then(({ data }) => {
+      if (alive && data) setMe({ name: (data.full_name as string | null) ?? '', avatar: (data.avatar_path as string | null) ?? null });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [userId]);
   const [scopeW, setScopeW] = useState(0);
   const pill = useSharedValue(0);
   const pillStyle = useAnimatedStyle(() => ({ transform: [{ translateX: pill.get() * Math.max(scopeW - 8, 0) / 2 }] }));
@@ -66,9 +79,13 @@ export default function Home() {
     <Screen tabs flush>
       <View style={styles.top}>
       <View style={styles.header}>
-        <Text accessibilityRole="header" style={[type.title, { color: theme.text }]}>
-          {t('feed.title')}
-        </Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('tabs.profile')} onPress={() => router.push('/profile')} style={styles.hello}>
+          <Avatar name={me?.name || '?'} seed={userId} size={46} round={18} path={me?.avatar} />
+          <Text accessibilityRole="header" numberOfLines={1} style={[styles.helloText, { color: theme.text }]}>
+            {t('feed.hello', { name: (me?.name ?? '').split(' ')[0] })}
+          </Text>
+          <Emoji name="waving_hand" size={26} />
+        </Pressable>
         <View style={styles.headerBtns}>
           <Pressable accessibilityRole="button" accessibilityLabel={t('notifications.title')} onPress={() => router.push('/notifications')} style={[styles.round, { backgroundColor: theme.surface }]}>
             <Ionicons name="notifications-outline" size={22} color={theme.text} />
@@ -128,6 +145,8 @@ const styles = StyleSheet.create({
   pad: { paddingHorizontal: 20, paddingVertical: 12 },
   scopeWrap: { paddingHorizontal: 20 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  hello: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, marginRight: 8 },
+  helloText: { flexShrink: 1, fontFamily: fonts.semibold, fontSize: 24, letterSpacing: -0.8 },
   headerBtns: { flexDirection: 'row', gap: 8 },
   round: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   dot: { position: 'absolute', top: 10, right: 11, width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },
