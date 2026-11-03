@@ -1055,7 +1055,16 @@
       "tag_request": "{{name}} tagged you in a post.",
       "review_reply": "{{name}} replied to your review: \"{{snippet}}\"",
       "tag_accepted": "{{name}} accepted the tag in your post."
-    }
+    },
+    "markRead": "Mark read",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "earlier": "Earlier",
+    "now": "just now",
+    "minAgo_one": "{{count}} min ago",
+    "minAgo_other": "{{count}} min ago",
+    "hourAgo_one": "{{count}} h ago",
+    "hourAgo_other": "{{count}} h ago"
   },
   "create": {
     "title": "What do you want to create?",

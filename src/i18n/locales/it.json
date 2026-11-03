@@ -1055,7 +1055,16 @@
       "tag_request": "{{name}} ti ha taggato in un post.",
       "review_reply": "{{name}} ha risposto alla tua recensione: «{{snippet}}»",
       "tag_accepted": "{{name}} ha accettato il tag nel tuo post."
-    }
+    },
+    "markRead": "Segna lette",
+    "today": "Oggi",
+    "yesterday": "Ieri",
+    "earlier": "Prima",
+    "now": "adesso",
+    "minAgo_one": "{{count}} min fa",
+    "minAgo_other": "{{count}} min fa",
+    "hourAgo_one": "{{count}} h fa",
+    "hourAgo_other": "{{count}} h fa"
   },
   "create": {
     "title": "Cosa vuoi creare?",

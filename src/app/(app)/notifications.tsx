@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Body, Button, Card, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Avatar } from '@/components/Avatar';
+import { Emoji } from '@/components/Emoji';
+import { ErrorText, LoadingView, Screen } from '@/components/ui';
+import { fonts, useTheme } from '@/theme';
 import { useAuth } from '@/lib/auth';
 import { formatEuro } from '@/lib/booking';
 import { listNotifications, markAllRead, markRead, type Notif } from '@/lib/notifications';
@@ -10,6 +14,7 @@ type Loaded = { items: Notif[]; errorKey: string | null; nowMs: number };
 
 export default function NotificationsScreen() {
   const { t, i18n } = useTranslation();
+  const theme = useTheme();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
@@ -75,36 +80,93 @@ export default function NotificationsScreen() {
     }
   };
 
+  const EMOJI: Record<string, string> = {
+    booking_new: 'party_popper', package_new: 'gift', booking_cancelled: 'calendar', tip: 'money_bag', message: 'speech_balloon', comment: 'speech_balloon',
+    follow: 'waving_hand', review: 'raising_hands', call_missed: 'telephone_receiver', availability_expiring: 'stopwatch', tag_request: 'heart_hands',
+    review_reply: 'speech_balloon', tag_accepted: 'heart_hands',
+  };
+  const ago = (iso: string) => {
+    const min = Math.max(0, Math.round((loaded.nowMs - new Date(iso).getTime()) / 60000));
+    if (min < 1) return t('notifications.now');
+    if (min < 60) return t('notifications.minAgo', { count: min });
+    if (min < 1440) return t('notifications.hourAgo', { count: Math.round(min / 60) });
+    return when(iso);
+  };
+  const day0 = new Date(loaded.nowMs).setHours(0, 0, 0, 0);
+  const groupOf = (iso: string) => {
+    const d = new Date(iso).getTime();
+    return d >= day0 ? 'today' : d >= day0 - 86_400_000 ? 'yesterday' : 'earlier';
+  };
+  const groups = (['today', 'yesterday', 'earlier'] as const)
+    .map((g) => ({ g, rows: loaded.items.filter((n) => groupOf(n.created_at) === g) }))
+    .filter((x) => x.rows.length > 0);
+  const hasUnread = loaded.items.some((n) => !n.read_at);
+
   return (
     <Screen back>
-      <Title>{t('notifications.title')}</Title>
-      <Spacer />
-      {loaded.errorKey ? <ErrorText>{t(loaded.errorKey)}</ErrorText> : null}
-      {!loaded.errorKey && loaded.items.length === 0 ? <Body muted>{t('notifications.empty')}</Body> : null}
-      {loaded.items.some((n) => !n.read_at) ? (
-        <>
-          <Button
-            title={t('notifications.markAll')}
-            variant="ghost"
+      <View style={styles.head}>
+        <Text accessibilityRole="header" style={[styles.title, { color: theme.text }]}>{t('notifications.title')}</Text>
+        {hasUnread ? (
+          <Pressable
+            accessibilityRole="button"
             onPress={async () => {
               if (userId) await markAllRead(userId);
               setReloadKey((k) => k + 1);
             }}
-          />
-          <Spacer size={8} />
-        </>
-      ) : null}
-      {loaded.items.map((n) => (
-        <Card key={n.id}>
-          <Body>
-            {n.read_at ? '' : '● '}
-            {text(n)}
-          </Body>
-          <Body muted>{when(n.created_at)}</Body>
-          <Spacer size={8} />
-          <Button title={t('notifications.open')} variant="ghost" onPress={() => void open(n)} />
-        </Card>
+            style={[styles.markAll, { backgroundColor: theme.surface }]}
+          >
+            <Text style={[styles.markAllText, { color: theme.text }]}>{t('notifications.markRead')}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      {loaded.errorKey ? <ErrorText>{t(loaded.errorKey)}</ErrorText> : null}
+      {!loaded.errorKey && loaded.items.length === 0 ? <Text style={[styles.empty, { color: theme.muted }]}>{t('notifications.empty')}</Text> : null}
+      {groups.map(({ g, rows }) => (
+        <View key={g} style={{ gap: 8 }}>
+          <Text style={[styles.group, { color: theme.muted }]}>{t(`notifications.${g}`)}</Text>
+          <View style={[styles.card, { backgroundColor: theme.surface }]}>
+            {rows.map((n, i) => {
+              const p = n.payload as Record<string, string | undefined>;
+              const full = text(n);
+              const name = typeof p.name === 'string' ? p.name : '';
+              const bold = name && full.startsWith(name);
+              return (
+                <Pressable key={n.id} accessibilityRole="button" onPress={() => void open(n)} style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.fill }]}>
+                  <View>
+                    <Avatar name={name || '·'} path={p.avatar_path} seed={n.id} size={52} />
+                    <View style={[styles.badge, { backgroundColor: theme.surface }]}>
+                      <Emoji name={EMOJI[n.kind] ?? 'sparkles'} size={20} />
+                    </View>
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={[styles.text, { color: theme.text }]}>
+                      {bold ? <Text style={{ fontFamily: fonts.semibold }}>{name}</Text> : null}
+                      {bold ? full.slice(name.length) : full}
+                    </Text>
+                    <Text style={[styles.when, { color: theme.muted }]}>{ago(n.created_at)}</Text>
+                  </View>
+                  {!n.read_at ? <View style={[styles.dot, { backgroundColor: theme.accent, borderColor: theme.ink }]} /> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
       ))}
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  title: { flex: 1, fontFamily: fonts.semibold, fontSize: 30, letterSpacing: -1.2 },
+  markAll: { height: 40, paddingHorizontal: 14, borderRadius: 999, justifyContent: 'center' },
+  markAllText: { fontFamily: fonts.medium, fontSize: 14 },
+  empty: { fontFamily: fonts.regular, fontSize: 15 },
+  group: { fontFamily: fonts.semibold, fontSize: 14, paddingHorizontal: 4 },
+  card: { borderRadius: 30, padding: 6 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, paddingHorizontal: 10 },
+  badge: { position: 'absolute', right: -6, bottom: -6, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  text: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 20 },
+  when: { fontFamily: fonts.regular, fontSize: 12 },
+  dot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },
+});
