@@ -53,7 +53,7 @@ function RootNavigator() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, scrollEdgeEffects: { top: 'hidden', bottom: 'hidden', left: 'hidden', right: 'hidden' } }}>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />

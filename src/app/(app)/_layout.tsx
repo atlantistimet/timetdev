@@ -6,7 +6,7 @@ import { TabBar } from '@/components/TabBar';
 export default function AppLayout() {
   return (
     <View style={{ flex: 1 }}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false, scrollEdgeEffects: { top: 'hidden', bottom: 'hidden', left: 'hidden', right: 'hidden' } }} />
       <TabBar />
       <IncomingCallBanner />
     </View>
