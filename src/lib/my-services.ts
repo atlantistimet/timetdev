@@ -15,13 +15,14 @@ export type MyService = {
   kind: 'slot' | 'package' | 'per_minute';
   sessions: number | null;
   rate_cents_per_min: number | null;
+  category_key: string | null;
   deleted_at?: string | null;
 };
 
 export type Place = 'online' | 'sede' | 'domicilio';
 export const PLACES: Place[] = ['online', 'sede', 'domicilio'];
 
-const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers, places, includes, space_fee_cents, kind, sessions, rate_cents_per_min, deleted_at';
+const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers, places, includes, space_fee_cents, kind, sessions, rate_cents_per_min, category_key, deleted_at';
 
 /** Servizi del venditore (anche quelli in pausa). Di norma solo a slot: offerte e link non valgono per i pacchetti. */
 export async function listMyServices(sellerId: string, kinds: ('slot' | 'package' | 'per_minute')[] = ['slot']): Promise<{ services: MyService[]; errorKey: string | null }> {
@@ -70,11 +71,12 @@ export async function saveService(input: {
   kind?: 'slot' | 'package' | 'per_minute';
   sessions?: number | null;
   rateCents?: number;
+  categoryKey?: string | null;
 }): Promise<{ errorKey: string | null; id: string | null }> {
   if (input.kind === 'per_minute') {
     const perMinute = {
       title: input.title.trim(), description: input.description.trim() || null, includes: input.includes, active: input.active,
-      rate_cents_per_min: input.rateCents ?? null, min_minutes: 5, max_minutes: 60, places: ['online'] as Place[], price_cents: null, duration_min: null, sessions: null, cancel_tiers: null, space_fee_cents: 0,
+      category_key: input.categoryKey ?? null, rate_cents_per_min: input.rateCents ?? null, min_minutes: 5, max_minutes: 60, places: ['online'] as Place[], price_cents: null, duration_min: null, sessions: null, cancel_tiers: null, space_fee_cents: 0,
     };
     const { data, error } = input.id
       ? await supabase.from('services').update(perMinute).eq('id', input.id).select('id').single()
@@ -92,6 +94,7 @@ export async function saveService(input: {
     includes: input.includes,
     space_fee_cents: input.places.includes('sede') ? input.spaceFeeCents : 0,
     sessions: input.kind === 'package' ? input.sessions ?? null : null,
+    category_key: input.categoryKey ?? null,
   };
   const { data, error } = input.id
     ? await supabase.from('services').update(row).eq('id', input.id).select('id').single()

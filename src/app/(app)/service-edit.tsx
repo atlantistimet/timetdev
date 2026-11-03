@@ -18,6 +18,7 @@ import { PLACES, type Place, centsToEuroText, loadMyService, MIN_PRICE_CENTS, pa
 import { type ScheduleDraft, loadSchedule, toMinutes } from '@/lib/availability';
 import { type MediaItem } from '@/lib/media';
 import { attachDraftPhotos } from '@/lib/service-media';
+import { loadCategories, type Category } from '@/lib/explore';
 import { shareText } from '@/lib/slot-links';
 import { fonts, useTheme } from '@/theme';
 
@@ -54,6 +55,8 @@ export default function ServiceEditScreen() {
   const [saving, setSaving] = useState(false);
   const [draftPhotos, setDraftPhotos] = useState<MediaItem[]>([]);
   const [general, setGeneral] = useState<ScheduleDraft | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryKey, setCategoryKey] = useState<string | null>(null);
   const [done, setDone] = useState<{ id: string; note: string | null } | null>(null);
   const availability = useSpecificAvailability({ sellerId: userId, scope: 'service', targetId: id ?? null, inheritServiceId: null });
 
@@ -64,6 +67,8 @@ export default function ServiceEditScreen() {
       const [list, service, gen] = await Promise.all([listPolicies(userId), id ? loadMyService(id) : Promise.resolve(null), loadSchedule(userId, 'general', null)]);
       if (!alive) return;
       setGeneral(gen);
+      setCategories(await loadCategories(i18n.language, true));
+      if (!alive) return;
       setPolicies(list.policies);
       const base = list.policies.find((p) => p.is_default)?.tiers ?? STANDARD_TIERS;
       setRows(toRows(service?.cancel_tiers ?? base));
@@ -80,13 +85,14 @@ export default function ServiceEditScreen() {
         setSpaceFee(service.space_fee_cents ? centsToEuroText(service.space_fee_cents) : '');
         setIncludes(service.includes);
         setCustom(service.cancel_tiers !== null);
+        setCategoryKey(service.category_key);
       }
       setReady(true);
     })();
     return () => {
       alive = false;
     };
-  }, [userId, id]);
+  }, [userId, id, i18n.language]);
 
   if (!ready) return <LoadingView />;
 
@@ -138,13 +144,13 @@ export default function ServiceEditScreen() {
     const lines = includes.map((x) => x.trim()).filter(Boolean);
     let result;
     if (kind === 'per_minute') {
-      result = await saveService({ id: id ?? null, sellerId: userId, title, description, priceCents: 0, durationMin: 0, active, cancelTiers: null, places: ['online'], includes: lines, spaceFeeCents: 0, kind: 'per_minute', rateCents: parseEuroToCents(rate) ?? 0 });
+      result = await saveService({ id: id ?? null, sellerId: userId, title, description, priceCents: 0, durationMin: 0, active, cancelTiers: null, places: ['online'], includes: lines, spaceFeeCents: 0, kind: 'per_minute', rateCents: parseEuroToCents(rate) ?? 0, categoryKey });
     } else {
       result = await saveService({
         id: id ?? null, sellerId: userId, title, description, priceCents: parseEuroToCents(price) ?? 0, durationMin: duration, active,
         cancelTiers: custom ? fromRows(rows) : null, places, includes: lines,
         spaceFeeCents: places.includes('sede') && spaceFee.trim() ? parseEuroToCents(spaceFee) ?? 0 : 0,
-        kind, sessions: kind === 'package' ? sessions : null,
+        kind, sessions: kind === 'package' ? sessions : null, categoryKey,
       });
     }
     if (result.errorKey || !result.id) {
@@ -298,6 +304,22 @@ export default function ServiceEditScreen() {
               <TextInput value={description} onChangeText={setDescription} multiline maxLength={500} style={[styles.inputDesc, { color: theme.text }]} placeholderTextColor={theme.muted} />
             </View>
           </View>
+          {categories.length > 0 ? (
+            <View style={[styles.card, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.rowTitle, { color: theme.text, fontSize: 15 }]}>{t('svc.category')}</Text>
+              <View style={styles.chips}>
+                {categories.map((c) => {
+                  const on = categoryKey === c.key;
+                  return (
+                    <Pressable key={c.key} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => setCategoryKey(on ? null : c.key)} style={[styles.catChip, { backgroundColor: on ? theme.ink : theme.bg }]}>
+                      {c.emoji ? <Emoji name={c.emoji} size={24} /> : null}
+                      <Text style={[styles.chipSmText, { color: on ? '#FFFFFF' : theme.text }]}>{c.name}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
           {kind === 'per_minute' ? (
             <View style={[styles.tile, { backgroundColor: theme.accent }]}>
               <Text style={[styles.label, { color: theme.onAccent }]}>{t('svc.fieldRate')}</Text>
@@ -556,6 +578,7 @@ const styles = StyleSheet.create({
   rowSub: { fontFamily: fonts.regular, fontSize: 13 },
   check: { width: 22, height: 22, borderRadius: 7, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  catChip: { height: 38, paddingLeft: 5, paddingRight: 12, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 6 },
   chipSm: { height: 38, paddingHorizontal: 14, borderRadius: 999, justifyContent: 'center' },
   chipSmText: { fontFamily: fonts.semibold, fontSize: 14 },
   addRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 999, paddingLeft: 16, paddingRight: 4, height: 50 },

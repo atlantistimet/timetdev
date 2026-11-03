@@ -1173,6 +1173,7 @@
     "addPhotos": "Add or remove photos",
     "addPhotosSub": "Manage photos and videos",
     "goServices": "Go to my services",
-    "weekPreview": "Week preview"
+    "weekPreview": "Week preview",
+    "category": "Category"
   }
 }
