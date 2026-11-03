@@ -13,14 +13,17 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, radius, type as typo, useTheme } from '@/theme';
 
 /** Contenitore di schermata: area sicura, tastiera che non copre i campi, contenuto centrato e largo al massimo 440. */
 export function Screen({ children, tabs, wide, bare, footer, back, flush }: { children: ReactNode; tabs?: boolean; wide?: boolean; bare?: boolean; footer?: ReactNode; back?: boolean; flush?: boolean }) {
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  // a tutto schermo: il contenuto scorre fino ai bordi (sotto l'orologio e sotto la barra in basso), come su Instagram
+  const Root = flush ? View : SafeAreaView;
   return (
-    <SafeAreaView style={[styles.flex, { backgroundColor: flush ? theme.surface : theme.bg }]}>
+    <Root style={[styles.flex, { backgroundColor: flush ? theme.surface : theme.bg }]}>
       {back ? (
         <View style={[styles.screenColumn, wide && styles.screenColumnWide, styles.backBar]}>
           <Pressable
@@ -34,7 +37,7 @@ export function Screen({ children, tabs, wide, bare, footer, back, flush }: { ch
       ) : null}
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={[styles.screenContent, tabs && styles.screenTabs, (bare || flush) && styles.screenBare, footer ? styles.screenFooter : null]}
+          contentContainerStyle={[styles.screenContent, tabs && styles.screenTabs, (bare || flush) && styles.screenBare, footer ? styles.screenFooter : null, flush ? { paddingTop: insets.top } : null]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <View style={[styles.screenColumn, wide && styles.screenColumnWide]}>{children}</View>
@@ -45,7 +48,8 @@ export function Screen({ children, tabs, wide, bare, footer, back, flush }: { ch
           <View style={styles.footerColumn}>{footer}</View>
         </View>
       ) : null}
-    </SafeAreaView>
+      {flush ? <View pointerEvents="none" style={[styles.statusVeil, { height: insets.top, backgroundColor: theme.surface }]} /> : null}
+    </Root>
   );
 }
 
@@ -305,6 +309,7 @@ const styles = StyleSheet.create({
   screenFooter: { paddingBottom: 210 },
   backBar: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   backBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  statusVeil: { position: 'absolute', top: 0, left: 0, right: 0, opacity: 0.85 },
   footerWrap: { position: 'absolute', left: 12, right: 12, bottom: 108, alignItems: 'center' },
   footerColumn: { width: '100%', maxWidth: 440 },
   chip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 18, borderRadius: radius.pill },
