@@ -49,8 +49,14 @@ export function Screen({ children, tabs, wide, bare, footer, back, flush }: { ch
           <View style={styles.footerColumn}>{footer}</View>
         </View>
       ) : null}
-      {flush ? <BlurView pointerEvents="none" intensity={60} tint="systemChromeMaterial" style={[styles.statusVeil, { height: insets.top }]} /> : null}
-    </Root>
+      {flush ? (
+        <View pointerEvents="none" style={[styles.statusVeil, { height: insets.top + 20 }]}>
+          {[insets.top + 20, insets.top + 8, insets.top - 6, insets.top - 22].map((h, i) => (
+            <BlurView key={i} intensity={14} tint="default" style={[styles.statusVeil, { height: Math.max(h, 8) }]} />
+          ))}
+        </View>
+      ) : null}
+      </Root>
   );
 }
 
