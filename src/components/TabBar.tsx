@@ -58,8 +58,8 @@ export function TabBar() {
   }, [index, slot]);
   const shrink = useAnimatedStyle(() => {
     const c = barCompact.get();
-    const k = interpolate(c, [0, 1], [1, 0.8]);
-    return { transform: [{ translateY: interpolate(c, [0, 1], [0, 8]) }, { scale: k }] };
+    const k = interpolate(c, [0, 1], [1, 0.9]);
+    return { transform: [{ translateY: interpolate(c, [0, 1], [0, 4]) }, { scale: k }] };
   });
   useEffect(() => {
     resetBar();
