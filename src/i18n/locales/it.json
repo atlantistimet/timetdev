@@ -788,7 +788,13 @@
     "collabMax": "Hai raggiunto il massimo di {{count}} collaboratori.",
     "collabWith": "Con {{name}}",
     "collabPending": "In attesa di conferma",
-    "and": "e"
+    "and": "e",
+    "menu": "Altre azioni",
+    "menuTags": "Modifica collaboratori e tag",
+    "menuAccept": "Accetta",
+    "menuInviteSub": "Accetta per mostrare il post sul tuo profilo.",
+    "menuRemoveSub": "Il post sparisce dal tuo profilo.",
+    "menuDelete": "Elimina post"
   },
   "explore": {
     "search": "Cerca persone o servizi",

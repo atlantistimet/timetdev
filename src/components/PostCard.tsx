@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +7,7 @@ import { Avatar } from '@/components/Avatar';
 import { CommentsSection } from '@/components/CommentsSection';
 import { Emoji } from '@/components/Emoji';
 import { MediaCover } from '@/components/MediaView';
-import { Body, Button, Spacer } from '@/components/ui';
+import { Body } from '@/components/ui';
 import { formatEuro } from '@/lib/booking';
 import { TagEditor } from '@/components/TagEditor';
 import { answerTag, deletePost, setLike, type Post } from '@/lib/feed';
@@ -66,7 +66,7 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
   const [commentCount, setCommentCount] = useState(post.comments);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [tags, setTags] = useState(post.tags);
-  const [editingTags, setEditingTags] = useState(false);
+  const [menu, setMenu] = useState<'menu' | 'tags' | null>(null);
   const mine = post.author_id === userId;
   const fmt = (cents: number) => formatEuro(cents, i18n.language);
 
@@ -120,7 +120,8 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
 
   return (
     <View style={[styles.card, { backgroundColor: theme.surface }]}>
-      <Pressable accessibilityRole="button" onPress={openAuthor} style={styles.head}>
+      <View style={styles.head}>
+      <Pressable accessibilityRole="button" onPress={openAuthor} style={styles.headMain}>
         <Avatar name={post.author.full_name} seed={post.author_id} size={42} path={post.author.avatar_path} />
         <View style={styles.who}>
           <Text style={[styles.name, { color: theme.text }]}>
@@ -144,6 +145,11 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
           </View>
         ) : null}
       </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('feed.menu')} hitSlop={8} onPress={() => setMenu('menu')} style={styles.dots}>
+          <Ionicons name="ellipsis-horizontal" size={22} color={theme.text} />
+          {myTag?.status === 'pending' ? <View style={[styles.dot, { backgroundColor: theme.accent, borderColor: theme.ink }]} /> : null}
+        </Pressable>
+      </View>
 
       {post.review ? (
         <View style={[styles.review, { backgroundColor: theme.bg }]}>
@@ -177,23 +183,6 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
           ))}
         </Text>
       ) : null}
-      {mine && pendingCount > 0 ? <Text style={[styles.pad, { color: theme.muted, fontSize: 12 }]}>{t('feed.tagsPending', { count: pendingCount })}</Text> : null}
-      {mine ? (
-        <>
-          <Button title={editingTags ? t('feed.tagEditDone') : t('feed.tagEdit')} variant="ghost" onPress={() => setEditingTags((v) => !v)} />
-          {editingTags ? <TagEditor postId={post.id} authorId={userId} tags={tags} onChange={setTags} /> : null}
-        </>
-      ) : null}
-      {myTag?.status === 'pending' ? (
-        <>
-          <Spacer size={4} />
-          <Body>{t('feed.tagRequest', { name: post.author.full_name })}</Body>
-          <Button title={t('feed.tagAccept')} onPress={() => void answer('accepted')} />
-          <Button title={t('feed.tagDecline')} variant="ghost" onPress={() => void answer('declined')} />
-        </>
-      ) : null}
-      {myTag?.status === 'accepted' ? <Button title={t('feed.tagRemove')} variant="ghost" onPress={() => void answer('removed')} /> : null}
-
       <View style={[styles.actions, styles.pad]}>
         <View style={styles.counts}>
           <Pressable accessibilityRole="button" accessibilityLabel={t('feed.like')} accessibilityState={{ selected: liked }} onPress={() => void toggleLike()} style={styles.count}>
@@ -207,17 +196,6 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
           <Pressable accessibilityRole="button" accessibilityLabel={t('feed.share')} onPress={() => void share()} hitSlop={8}>
             <Ionicons name="share-outline" size={22} color={theme.text} />
           </Pressable>
-          {mine ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t('feed.delete')}
-              hitSlop={8}
-              onPress={async () => {
-                if (!(await deletePost(post.id))) onDeleted();
-              }}>
-              <Ionicons name="trash-outline" size={21} color={theme.muted} />
-            </Pressable>
-          ) : null}
         </View>
       </View>
       {banner ? (
@@ -236,13 +214,70 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
       ) : null}
       {shareNote ? <Body muted>{shareNote}</Body> : null}
       {showComments ? <CommentsSection postId={post.id} userId={userId} postAuthorId={post.author_id} onChanged={setCommentCount} /> : null}
+      <Modal visible={menu !== null} transparent animationType="slide" onRequestClose={() => setMenu(null)}>
+        <Pressable style={[styles.backdrop, { backgroundColor: theme.scrim }]} onPress={() => setMenu(null)} />
+        <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
+          <View style={[styles.grab, { backgroundColor: theme.fill }]} />
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
+            {menu === 'tags' ? (
+              <>
+                <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('feed.menuTags')}</Text>
+                <TagEditor postId={post.id} authorId={userId} tags={tags} onChange={setTags} />
+              </>
+            ) : null}
+            {menu === 'menu' ? (
+              <>
+                {myTag?.status === 'pending' ? (
+                  <>
+                    <View style={[styles.invite, { backgroundColor: theme.accent }]}>
+                      <Text style={[styles.rowTitle, { color: theme.onAccent }]}>{t('feed.tagRequest', { name: post.author.full_name })}</Text>
+                      <Text style={[styles.rowSub, { color: theme.onAccent }]}>{t('feed.menuInviteSub')}</Text>
+                    </View>
+                    <MenuRow icon="checkmark" label={t('feed.menuAccept')} onPress={() => { setMenu(null); void answer('accepted'); }} />
+                    <MenuRow icon="close" label={t('feed.tagDecline')} onPress={() => { setMenu(null); void answer('declined'); }} />
+                  </>
+                ) : null}
+                {mine ? <MenuRow icon="people-outline" label={t('feed.menuTags')} sub={pendingCount > 0 ? t('feed.tagsPending', { count: pendingCount }) : undefined} onPress={() => setMenu('tags')} /> : null}
+                {myTag?.status === 'accepted' ? <MenuRow icon="person-remove-outline" label={t('feed.tagRemove')} sub={t('feed.menuRemoveSub')} onPress={() => { setMenu(null); void answer('removed'); }} /> : null}
+                <MenuRow icon="share-outline" label={t('feed.share')} onPress={() => { setMenu(null); void share(); }} />
+                {mine ? <MenuRow icon="trash-outline" label={t('feed.menuDelete')} danger onPress={async () => { setMenu(null); if (!(await deletePost(post.id))) onDeleted(); }} /> : null}
+              </>
+            ) : null}
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
+  );
+}
+
+function MenuRow({ icon, label, sub, danger, onPress }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; sub?: string; danger?: boolean; onPress: () => void }) {
+  const theme = useTheme();
+  const color = danger ? theme.danger : theme.text;
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={styles.menuRow}>
+      <Ionicons name={icon} size={22} color={color} style={{ width: 28 }} />
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.rowTitle, { color }]}>{label}</Text>
+        {sub ? <Text style={[styles.rowSub, { color: theme.muted }]}>{sub}</Text> : null}
+      </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: { borderRadius: 32, padding: 12, gap: 12, marginBottom: 14 },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4, paddingTop: 4 },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4, paddingTop: 4 },
+  headMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  dots: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  dot: { position: 'absolute', top: 4, right: 4, width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },
+  backdrop: { flex: 1 },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '85%', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 16, paddingBottom: 30 },
+  grab: { alignSelf: 'center', width: 44, height: 5, borderRadius: 3, marginBottom: 8 },
+  sheetTitle: { fontFamily: fonts.semibold, fontSize: 18, marginBottom: 4 },
+  menuRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 },
+  rowTitle: { fontFamily: fonts.semibold, fontSize: 16 },
+  rowSub: { fontFamily: fonts.regular, fontSize: 13 },
+  invite: { borderRadius: 22, padding: 14, gap: 2, marginBottom: 4 },
   who: { flex: 1 },
   name: { fontFamily: fonts.semibold, fontSize: 16 },
   sub: { fontFamily: fonts.medium, fontSize: 13 },
