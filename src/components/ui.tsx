@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
+import { BlurView } from 'expo-blur';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, radius, type as typo, useTheme } from '@/theme';
 
@@ -48,7 +49,7 @@ export function Screen({ children, tabs, wide, bare, footer, back, flush }: { ch
           <View style={styles.footerColumn}>{footer}</View>
         </View>
       ) : null}
-      {flush ? <View pointerEvents="none" style={[styles.statusVeil, { height: insets.top, backgroundColor: theme.surface }]} /> : null}
+      {flush ? <BlurView pointerEvents="none" intensity={60} tint="systemChromeMaterial" style={[styles.statusVeil, { height: insets.top }]} /> : null}
     </Root>
   );
 }
@@ -309,7 +310,7 @@ const styles = StyleSheet.create({
   screenFooter: { paddingBottom: 210 },
   backBar: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   backBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  statusVeil: { position: 'absolute', top: 0, left: 0, right: 0, opacity: 0.85 },
+  statusVeil: { position: 'absolute', top: 0, left: 0, right: 0 },
   footerWrap: { position: 'absolute', left: 12, right: 12, bottom: 108, alignItems: 'center' },
   footerColumn: { width: '100%', maxWidth: 440 },
   chip: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 18, borderRadius: radius.pill },

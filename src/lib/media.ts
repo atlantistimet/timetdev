@@ -1,3 +1,4 @@
+import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '@/lib/supabase';
 
@@ -18,6 +19,18 @@ const EXTENSIONS: Record<string, string> = {
   'video/webm': 'webm',
 };
 
+/** Ridimensiona (lato lungo max `maxSide`) e ricomprime in JPEG: una foto da 8 MB scende a poche centinaia di KB. Se fallisce usa l'originale. */
+async function compressImage(uri: string, width: number | undefined, height: number | undefined, maxSide: number): Promise<string> {
+  try {
+    const long = Math.max(width ?? 0, height ?? 0);
+    const actions: ImageManipulator.Action[] = long > maxSide ? [{ resize: (width ?? 0) >= (height ?? 0) ? { width: maxSide } : { height: maxSide } }] : [];
+    const out = await ImageManipulator.manipulateAsync(uri, actions, { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG });
+    return out.uri;
+  } catch {
+    return uri;
+  }
+}
+
 export const mediaUrl = (bucket: Bucket, path: string): string => supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
 
 /** Sceglie una foto o un video dalla galleria e lo carica nella cartella dell'utente. Null se l'utente annulla. */
@@ -34,8 +47,9 @@ export async function pickAndUpload(
   try {
     const asset = picked.assets[0];
     const isVideo = asset.type === 'video' || (asset.mimeType ?? '').startsWith('video/');
-    const mime = asset.mimeType && EXTENSIONS[asset.mimeType] ? asset.mimeType : isVideo ? 'video/mp4' : 'image/jpeg';
-    const blob = await (await fetch(asset.uri)).blob();
+    const uri = isVideo ? asset.uri : await compressImage(asset.uri, asset.width, asset.height, 1600);
+    const mime = isVideo ? (asset.mimeType && EXTENSIONS[asset.mimeType] ? asset.mimeType : 'video/mp4') : uri === asset.uri && asset.mimeType && EXTENSIONS[asset.mimeType] ? asset.mimeType : 'image/jpeg';
+    const blob = await (await fetch(uri)).blob();
     if (blob.size > (isVideo ? VIDEO_MAX : IMAGE_MAX)) return { item: null, errorKey: isVideo ? 'media.errors.videoSize' : 'media.errors.imageSize' };
     const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${EXTENSIONS[mime]}`;
     const up = await supabase.storage.from(bucket).upload(path, blob, { contentType: mime });
@@ -57,8 +71,9 @@ export async function pickAndSetAvatar(userId: string, previousPath: string | nu
   const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 0.6 });
   if (picked.canceled || !picked.assets[0]) return { path: null, errorKey: null };
   const asset = picked.assets[0];
-  const mime = asset.mimeType && EXTENSIONS[asset.mimeType] && asset.mimeType.startsWith('image/') ? asset.mimeType : 'image/jpeg';
-  const blob = await (await fetch(asset.uri)).blob();
+  const uri = await compressImage(asset.uri, asset.width, asset.height, 800);
+  const mime = uri === asset.uri && asset.mimeType && EXTENSIONS[asset.mimeType] && asset.mimeType.startsWith('image/') ? asset.mimeType : 'image/jpeg';
+  const blob = await (await fetch(uri)).blob();
   if (blob.size > AVATAR_MAX) return { path: null, errorKey: 'media.errors.imageSize' };
   const path = `${userId}/${Date.now()}.${EXTENSIONS[mime]}`;
   const up = await supabase.storage.from('avatars').upload(path, blob, { contentType: mime });
