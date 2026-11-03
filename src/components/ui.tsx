@@ -17,10 +17,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { fonts, radius, type as typo, useTheme } from '@/theme';
 
 /** Contenitore di schermata: area sicura, tastiera che non copre i campi, contenuto centrato e largo al massimo 440. */
-export function Screen({ children, tabs, wide, bare, footer, back }: { children: ReactNode; tabs?: boolean; wide?: boolean; bare?: boolean; footer?: ReactNode; back?: boolean }) {
+export function Screen({ children, tabs, wide, bare, footer, back, flush }: { children: ReactNode; tabs?: boolean; wide?: boolean; bare?: boolean; footer?: ReactNode; back?: boolean; flush?: boolean }) {
   const theme = useTheme();
   return (
-    <SafeAreaView style={[styles.flex, { backgroundColor: theme.bg }]}>
+    <SafeAreaView style={[styles.flex, { backgroundColor: flush ? theme.surface : theme.bg }]}>
       {back ? (
         <View style={[styles.screenColumn, wide && styles.screenColumnWide, styles.backBar]}>
           <Pressable
@@ -34,7 +34,7 @@ export function Screen({ children, tabs, wide, bare, footer, back }: { children:
       ) : null}
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
-          contentContainerStyle={[styles.screenContent, tabs && styles.screenTabs, bare && styles.screenBare, footer ? styles.screenFooter : null]}
+          contentContainerStyle={[styles.screenContent, tabs && styles.screenTabs, (bare || flush) && styles.screenBare, footer ? styles.screenFooter : null]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
           <View style={[styles.screenColumn, wide && styles.screenColumnWide]}>{children}</View>

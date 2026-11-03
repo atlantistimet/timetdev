@@ -55,7 +55,8 @@ export default function Home() {
   if (!userId) return <LoadingView />;
 
   return (
-    <Screen tabs>
+    <Screen tabs flush>
+      <View style={styles.top}>
       <View style={styles.header}>
         <Text accessibilityRole="header" style={[type.title, { color: theme.text }]}>
           {t('feed.title')}
@@ -69,6 +70,7 @@ export default function Home() {
             <Ionicons name="add" size={28} color={theme.inkOn} />
           </Pressable>
         </View>
+      </View>
       </View>
       <CreateSheet visible={creating} onClose={() => setCreating(false)} />
 
@@ -85,22 +87,24 @@ export default function Home() {
         </ScrollView>
       ) : null}
 
-      <View style={[styles.scope, { backgroundColor: theme.surface }]}>
+      <View style={styles.scopeWrap}>
+      <View style={[styles.scope, { backgroundColor: theme.bg }]}>
         {(['all', 'following'] as const).map((s) => (
           <Pressable key={s} accessibilityRole="tab" accessibilityState={{ selected: scope === s }} onPress={() => setScope(s)} style={[styles.scopeBtn, scope === s && { backgroundColor: theme.ink }]}>
             <Text style={[styles.scopeText, { color: scope === s ? theme.inkOn : theme.text, fontFamily: scope === s ? fonts.semibold : fonts.medium }]}>{t(s === 'all' ? 'feed.all' : 'feed.following')}</Text>
           </Pressable>
         ))}
       </View>
+      </View>
 
       {!loaded || loaded.scope !== scope ? (
-        <Body muted>{t('common.loading')}</Body>
+        <View style={styles.pad}><Body muted>{t('common.loading')}</Body></View>
       ) : (
         <>
-          {loaded.errorKey ? <ErrorText>{t(loaded.errorKey)}</ErrorText> : null}
-          {!loaded.errorKey && loaded.posts.length === 0 ? <Body muted>{t(scope === 'following' ? 'feed.emptyFollowing' : 'feed.empty')}</Body> : null}
+          {loaded.errorKey ? <View style={styles.pad}><ErrorText>{t(loaded.errorKey)}</ErrorText></View> : null}
+          {!loaded.errorKey && loaded.posts.length === 0 ? <View style={styles.pad}><Body muted>{t(scope === 'following' ? 'feed.emptyFollowing' : 'feed.empty')}</Body></View> : null}
           {loaded.posts.map((post) => (
-            <PostCard key={post.id} post={post} userId={userId} nowMs={loaded.nowMs} onDeleted={() => setReloadKey((k) => k + 1)} />
+            <PostCard key={post.id} post={post} userId={userId} nowMs={loaded.nowMs} onDeleted={() => setReloadKey((k) => k + 1)} flush />
           ))}
         </>
       )}
@@ -109,11 +113,14 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
+  top: { paddingHorizontal: 20, paddingTop: 24 },
+  pad: { paddingHorizontal: 20, paddingVertical: 12 },
+  scopeWrap: { paddingHorizontal: 20 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   headerBtns: { flexDirection: 'row', gap: 8 },
   round: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   dot: { position: 'absolute', top: 10, right: 11, width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },
-  people: { gap: 12, paddingVertical: 16, paddingHorizontal: 4 },
+  people: { gap: 12, paddingVertical: 16, paddingHorizontal: 24 },
   person: { width: 64, alignItems: 'center', gap: 5 },
   ring: { padding: 3, borderRadius: 40, borderWidth: 2.5, borderColor: 'transparent' },
   personName: { fontFamily: fonts.medium, fontSize: 12 },

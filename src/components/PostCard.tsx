@@ -57,7 +57,7 @@ function BodyText({ text, color, linkColor }: { text: string; color: string; lin
   );
 }
 
-export function PostCard({ post, userId, nowMs, onDeleted, openComments = false }: { post: Post; userId: string; nowMs: number; onDeleted: () => void; openComments?: boolean }) {
+export function PostCard({ post, userId, nowMs, onDeleted, openComments = false, flush = false }: { post: Post; userId: string; nowMs: number; onDeleted: () => void; openComments?: boolean; flush?: boolean }) {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const [liked, setLiked] = useState(post.liked);
@@ -119,7 +119,7 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
   const reviewName = post.review ? (post.review.public ? post.review.author_name : shortName(post.review.author_name)) : '';
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.surface }]}>
+    <View style={[styles.card, flush ? styles.cardFlush : null, { backgroundColor: theme.surface, borderBottomColor: theme.fill }]}>
       <View style={styles.head}>
       <Pressable accessibilityRole="button" onPress={openAuthor} style={styles.headMain}>
         <Avatar name={post.author.full_name} seed={post.author_id} size={42} path={post.author.avatar_path} />
@@ -168,7 +168,7 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
         </View>
       ) : null}
 
-      <MediaCover items={media} bucket="media" />
+      <View style={flush ? styles.bleed : null}><MediaCover items={media} bucket="media" flush={flush} /></View>
 
       {post.body ? <BodyText text={post.body} color={theme.text} linkColor={theme.ink} /> : null}
 
@@ -266,6 +266,8 @@ function MenuRow({ icon, label, sub, danger, onPress }: { icon: React.ComponentP
 
 const styles = StyleSheet.create({
   card: { borderRadius: 32, padding: 12, gap: 12, marginBottom: 14 },
+  cardFlush: { borderRadius: 0, marginBottom: 0, paddingHorizontal: 12, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth },
+  bleed: { marginHorizontal: -12 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 4, paddingTop: 4 },
   headMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   dots: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },

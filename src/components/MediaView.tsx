@@ -31,12 +31,14 @@ export function MediaGallery({ items, bucket, size = 'large' }: { items: MediaIt
 }
 
 /** Foto o video del post a tutta larghezza (angoli 24), scorrevoli a pagine. */
-export function MediaCover({ items, bucket, height = 210 }: { items: MediaItem[]; bucket: Bucket; height?: number }) {
+export function MediaCover({ items, bucket, height: fixedHeight = 210, flush }: { items: MediaItem[]; bucket: Bucket; height?: number; flush?: boolean }) {
   const theme = useTheme();
   const [width, setWidth] = useState(0);
   if (items.length === 0) return null;
+  // a tutto schermo: quadrato, senza angoli arrotondati
+  const height = flush && width > 0 ? width : fixedHeight;
   return (
-    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ height, borderRadius: 24, overflow: 'hidden', backgroundColor: theme.fill }}>
+    <View onLayout={(e) => setWidth(e.nativeEvent.layout.width)} style={{ height, borderRadius: flush ? 0 : 24, overflow: 'hidden', backgroundColor: theme.fill }}>
       {width > 0 ? (
         <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
           {items.map((m) =>
