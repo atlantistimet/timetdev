@@ -51,6 +51,7 @@ export default function SlotLinkEditScreen() {
   const [spaceFee, setSpaceFee] = useState('');
   const [travel, setTravel] = useState('');
   const [message, setMessage] = useState('');
+  const [validMin, setValidMin] = useState(1440);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [created, setCreated] = useState<SlotLink | null>(null);
@@ -157,6 +158,7 @@ export default function SlotLinkEditScreen() {
       days: picked,
       ranges,
       startsAt,
+      validForMin: validMin,
       places,
       extraSpaceCents: extraSpace,
       extraTravelCents: extraTravel,
@@ -405,6 +407,16 @@ export default function SlotLinkEditScreen() {
               </ChipRow>
               {places.includes('sede') ? <TextField label={t('myServices.spaceFee')} value={spaceFee} onChangeText={setSpaceFee} keyboardType="decimal-pad" hint={t('slotLinks.extraHint')} /> : null}
               {places.includes('domicilio') ? <TextField label={t('profileEdit.travelFee')} value={travel} onChangeText={setTravel} keyboardType="decimal-pad" hint={t('slotLinks.extraHint')} /> : null}
+            </View>
+
+            <View style={sectionStyle}>
+              <Text style={[styles.label, { color: theme.text }]}>{t('slotLinks.validFor')}</Text>
+              <Text style={[styles.hint, { color: theme.muted }]}>{t('slotLinks.validForHint')}</Text>
+              <ChipRow>
+                {[30, 60, 120, 360, 720, 1440].map((m) => (
+                  <Chip key={m} label={m < 60 ? `${m} min` : `${m / 60} h`} selected={validMin === m} onPress={() => setValidMin(m)} />
+                ))}
+              </ChipRow>
             </View>
 
             <View style={sectionStyle}>

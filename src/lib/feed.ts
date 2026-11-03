@@ -19,8 +19,12 @@ export type Post = {
   likes: number;
   liked: boolean;
   comments: number;
+  review_id: string | null;
   offer: { price_cents: number; discount_pct: number; duration_min: number; service_id: string; service_title: string } | null;
-  link: { code: string; price_cents: number; discount_pct: number; duration_min: number; days: string[]; expires_at: string | null; preview: MediaItem | null; service_title: string } | null;
+  service: { id: string; title: string; kind: 'slot' | 'package' | 'per_minute'; price_cents: number | null; rate_cents_per_min: number | null; duration_min: number | null } | null;
+  link: { code: string; price_cents: number; discount_pct: number; duration_min: number; days: string[]; expires_at: string | null; deleted: boolean; preview: MediaItem | null; service_title: string } | null;
+  /** Recensione ricondivisa: per chi la scrive vale la scelta fatta (anonimo finché non risponde). */
+  review: { id: string; rating: number; body: string | null; author_name: string; author_avatar: string | null; public: boolean } | null;
 };
 
 type Row = {
@@ -32,6 +36,9 @@ type Row = {
   offer_id: string | null;
   service_id: string | null;
   slot_link_id: string | null;
+  review_id: string | null;
+  services: { id: string; title: string; kind: 'slot' | 'package' | 'per_minute'; price_cents: number | null; rate_cents_per_min: number | null; duration_min: number | null } | null;
+  reviews: { id: string; rating: number; body: string | null; public_choice: string | null; profiles: { full_name: string; avatar_path: string | null } | { full_name: string; avatar_path: string | null }[] | null } | null;
   profiles: Post['author'] | Post['author'][] | null;
   post_media: { path: string; type: 'image' | 'video'; position: number }[] | null;
   post_tags: { tagged_id: string; status: PostTag['status']; profiles: { full_name: string; handle: string | null } | { full_name: string; handle: string | null }[] | null }[] | null;
@@ -39,21 +46,23 @@ type Row = {
   post_comments: { count: number }[] | null;
   offers: { price_cents: number; discount_pct: number; duration_min: number; service_id: string; services: { title: string } | { title: string }[] | null } | null;
   slot_links: {
-    code: string; price_cents: number; discount_pct: number; duration_min: number; days: string[]; expires_at: string | null;
+    code: string; price_cents: number; discount_pct: number; duration_min: number; days: string[]; expires_at: string | null; deleted_at: string | null;
     preview_path: string | null; preview_type: 'image' | 'video' | null; services: { title: string } | { title: string }[] | null;
   } | null;
 };
 
 const first = <T,>(v: T | T[] | null): T | null => (Array.isArray(v) ? (v[0] ?? null) : v);
 
-const SELECT = `id, author_id, kind, body, created_at, offer_id, service_id, slot_link_id,
+const SELECT = `id, author_id, kind, body, created_at, offer_id, service_id, slot_link_id, review_id,
+  services(id, title, kind, price_cents, rate_cents_per_min, duration_min),
+  reviews(id, rating, body, public_choice, profiles!reviews_author_id_fkey(full_name, avatar_path)),
   profiles!posts_author_id_fkey(full_name, handle, role_title, available_until, avatar_path),
   post_media(path, type, position),
   post_tags(tagged_id, status, profiles!post_tags_tagged_id_fkey(full_name, handle)),
   post_likes(count),
   post_comments(count),
   offers(price_cents, discount_pct, duration_min, service_id, services(title)),
-  slot_links(code, price_cents, discount_pct, duration_min, days, expires_at, preview_path, preview_type, services(title))`;
+  slot_links(code, price_cents, discount_pct, duration_min, days, expires_at, deleted_at, preview_path, preview_type, services(title))`;
 
 async function hydrate(rows: Row[], userId: string): Promise<Post[]> {
   const ids = rows.map((r) => r.id);
@@ -71,6 +80,11 @@ async function hydrate(rows: Row[], userId: string): Promise<Post[]> {
     offer_id: r.offer_id,
     service_id: r.service_id,
     slot_link_id: r.slot_link_id,
+    review_id: r.review_id,
+    service: first(r.services),
+    review: r.reviews
+      ? { id: r.reviews.id, rating: r.reviews.rating, body: r.reviews.body, author_name: first(r.reviews.profiles)?.full_name ?? '', author_avatar: first(r.reviews.profiles)?.avatar_path ?? null, public: r.reviews.public_choice === 'public' }
+      : null,
     author: first(r.profiles) ?? { full_name: '', handle: null, role_title: null, available_until: null, avatar_path: null },
     media: [...(r.post_media ?? [])].sort((a, b) => a.position - b.position).map((m) => ({ path: m.path, type: m.type })),
     tags: (r.post_tags ?? [])
@@ -83,7 +97,7 @@ async function hydrate(rows: Row[], userId: string): Promise<Post[]> {
     link: r.slot_links
       ? {
           code: r.slot_links.code, price_cents: r.slot_links.price_cents, discount_pct: r.slot_links.discount_pct,
-          duration_min: r.slot_links.duration_min, days: r.slot_links.days, expires_at: r.slot_links.expires_at,
+          duration_min: r.slot_links.duration_min, days: r.slot_links.days, expires_at: r.slot_links.expires_at, deleted: !!r.slot_links.deleted_at,
           preview: r.slot_links.preview_path && r.slot_links.preview_type ? { path: r.slot_links.preview_path, type: r.slot_links.preview_type } : null,
           service_title: first(r.slot_links.services)?.title ?? '',
         }
@@ -116,6 +130,7 @@ export async function createPost(input: {
   offerId?: string;
   serviceId?: string;
   slotLinkId?: string;
+  reviewId?: string;
   tagIds?: string[];
 }): Promise<{ id: string | null; errorKey: string | null }> {
   const { data, error } = await supabase
@@ -128,6 +143,7 @@ export async function createPost(input: {
       offer_id: input.offerId ?? null,
       service_id: input.serviceId ?? null,
       slot_link_id: input.slotLinkId ?? null,
+      review_id: input.reviewId ?? null,
     })
     .select('id')
     .single();

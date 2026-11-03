@@ -631,7 +631,9 @@
     "noChats": "You have no conversations yet.",
     "sentTo": "Sent to {{name}}.",
     "noServices": "You have no services in your catalog yet. Create one, or pick “Custom” to make a slot just for this link.",
-    "createService": "Go to my services"
+    "createService": "Go to my services",
+    "validFor": "The link is valid for",
+    "validForHint": "After this time the link expires and can no longer be booked."
   },
   "newService": {
     "chip": "+ New service",
@@ -743,7 +745,12 @@
     "createOffer": "Create an offer",
     "pickLink": "Choose the slot to publish",
     "noLinks": "You have no single slots yet.",
-    "createLink": "Create a slot"
+    "createLink": "Create a slot",
+    "offerGone": "Offer",
+    "slotGone": "Slot",
+    "serviceGone": "Service",
+    "unavailable": "No longer available",
+    "discover": "Discover"
   },
   "explore": {
     "search": "Search people or services",

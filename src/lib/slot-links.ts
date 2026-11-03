@@ -73,6 +73,7 @@ export async function createLink(input: {
   message: string;
   preview: { path: string; type: 'image' | 'video' } | null;
   startsAt?: Date | null; // un solo orario preciso (anche subito)
+  validForMin?: number; // il link smette di valere dopo questo tempo (da 30 minuti a 24 ore)
 }): Promise<{ link: SlotLink | null; errorKey: string | null }> {
   let days = [...input.days].sort();
   let ranges = input.ranges;
@@ -88,6 +89,7 @@ export async function createLink(input: {
     // il link scade a fine dell'ultimo giorno proposto
     expires = romeToDate(days[days.length - 1], '23:59');
   }
+  if (input.validForMin) expires = new Date(Math.min(expires.getTime(), Date.now() + input.validForMin * 60_000));
   const { data, error } = await supabase
     .from('slot_links')
     .insert({
