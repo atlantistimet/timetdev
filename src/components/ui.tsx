@@ -57,7 +57,6 @@ export function Screen({ children, tabs, wide, bare, footer, back, flush }: { ch
           <View style={styles.footerColumn}>{footer}</View>
         </View>
       ) : null}
-      {flush ? <View pointerEvents="none" style={[styles.statusVeil, { height: insets.top, backgroundColor: 'rgba(255,255,255,0.55)' }]} /> : null}
     </Root>
   );
 }
