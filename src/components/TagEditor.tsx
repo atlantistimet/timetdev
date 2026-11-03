@@ -36,7 +36,7 @@ export function TagEditor({ postId, authorId, tags, onChange }: { postId: string
     setErrorKey(null);
     const failure = await setPostTag(postId, p.id, true);
     if (failure) return setErrorKey(failure);
-    onChange([...tags, { tagged_id: p.id, status: 'pending', full_name: p.full_name, handle: p.handle }]);
+    onChange([...tags, { role: 'mention', tagged_id: p.id, status: 'pending', full_name: p.full_name, handle: p.handle }]);
     setSearch('');
     setHits([]);
   };

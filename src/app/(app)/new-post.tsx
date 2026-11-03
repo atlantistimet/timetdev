@@ -37,7 +37,10 @@ export default function NewPostScreen() {
   const [review, setReview] = useState<Review | null>(null);
   const [attach, setAttach] = useState<Attach | null>(null);
   const [lists, setLists] = useState<Lists>({ services: [], offers: [], links: [], reviews: [] });
-  const [sheet, setSheet] = useState(false);
+  const [sheet, setSheet] = useState<'review' | 'promote' | 'service' | 'offer' | 'slot' | 'collab' | null>(null);
+  const [collabs, setCollabs] = useState<PersonHit[]>([]);
+  const [collabQuery, setCollabQuery] = useState('');
+  const [collabHits, setCollabHits] = useState<PersonHit[]>([]);
   const [saving, setSaving] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const prefilled = useRef(false);
@@ -104,6 +107,23 @@ export default function NewPostScreen() {
   }, [query, userId]);
   const suggestions = query !== null && query.length >= 1 ? people : [];
 
+  // collaboratori: ricerca per nome o @handle nel foglio "Collabora"
+  const collabText = collabQuery.trim().replace(/^@/, '');
+  useEffect(() => {
+    if (!userId || collabText.length < 2) return;
+    let alive = true;
+    const timer = setTimeout(() => {
+      void searchPeople(collabText, userId, 2).then((r) => {
+        if (alive) setCollabHits(r);
+      });
+    }, 250);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
+  }, [collabText, userId]);
+  const shownHits = collabText.length >= 2 ? collabHits.filter((h) => !collabs.some((c) => c.id === h.id)) : [];
+
   const pickPerson = (p: PersonHit) => {
     if (!mention || !p.handle) return;
     const start = before.length - mention[0].length + mention[1].length;
@@ -129,7 +149,7 @@ export default function NewPostScreen() {
 
   const createNew = (kind: Attach['kind']) => {
     rememberCreating(kind, (kind === 'service' ? lists.services : kind === 'offer' ? lists.offers : lists.links).map((x) => x.id));
-    setSheet(false);
+    setSheet(null);
     router.push(kind === 'service' ? '/service-edit' : kind === 'offer' ? '/offer-edit' : '/slot-link-edit');
   };
 
@@ -155,7 +175,8 @@ export default function NewPostScreen() {
       slotLinkId: attach?.kind === 'slot' ? attach.id : undefined,
       serviceId: attach?.kind === 'service' ? attach.id : undefined,
       reviewId: review?.id,
-      tagIds: found.map((p) => p.id),
+      tagIds: found.filter((p) => !collabs.some((c) => c.id === p.id)).map((p) => p.id),
+      collabIds: collabs.map((c) => c.id),
     });
     setSaving(false);
     if (r.errorKey) setErrorKey(r.errorKey);
@@ -229,32 +250,31 @@ export default function NewPostScreen() {
         <Text style={[styles.hintTxt, { color: theme.muted }]}>{t('feed.mentionHint')}</Text>
       </View>
 
-      <View style={[styles.card, { backgroundColor: theme.surface }]}>
-        <Text style={[styles.cardTitle, { color: theme.text }]}>{t('feed.photosTitle')}</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-          {media.map((m) => (
-            <View key={m.path}>
-              {m.type === 'video' ? (
-                <View style={[styles.tile, styles.center, { backgroundColor: theme.fill }]}><Ionicons name="play" size={26} color={theme.text} /></View>
-              ) : (
-                <Image source={{ uri: mediaUrl('media', m.path) }} style={[styles.tile, { backgroundColor: theme.fill }]} />
-              )}
-              <Pressable accessibilityRole="button" accessibilityLabel={t('media.remove')} onPress={() => void removeMedia(m)} style={[styles.remove, { backgroundColor: theme.glass }]}>
-                <Ionicons name="close" size={16} color={theme.text} />
-              </Pressable>
+      <View style={[styles.grid, { backgroundColor: theme.surface }]}>
+        {([
+          ['photo', 'image-outline', t('feed.btnPhoto'), media.length > 0],
+          ['review', 'star-outline', t('feed.btnReview'), !!review],
+          ['promote', 'megaphone-outline', t('feed.btnPromote'), !!attach],
+          ['collab', 'people-outline', t('feed.btnCollab'), collabs.length > 0],
+        ] as const).map(([k, icon, label, on]) => (
+          <Pressable
+            key={k}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            disabled={k === 'photo' && (busy || media.length >= MAX_MEDIA)}
+            onPress={() => (k === 'photo' ? void addMedia() : setSheet(k))}
+            style={styles.gridItem}
+          >
+            <View style={[styles.gridCircle, { backgroundColor: on ? theme.accent : theme.bg }]}>
+              {k === 'photo' && busy ? <ActivityIndicator color={theme.text} /> : <Ionicons name={icon} size={24} color={on ? theme.onAccent : theme.ink} />}
             </View>
-          ))}
-          {media.length < MAX_MEDIA ? (
-            <Pressable accessibilityRole="button" accessibilityLabel={t('media.add')} disabled={busy} onPress={() => void addMedia()} style={[styles.tile, styles.center, styles.dashed, { borderColor: theme.muted }]}>
-              {busy ? <ActivityIndicator color={theme.text} /> : <Ionicons name="camera-outline" size={24} color={theme.text} />}
-              <Text style={[styles.sub, { color: theme.muted }]}>{`${media.length} / ${MAX_MEDIA}`}</Text>
-            </Pressable>
-          ) : null}
-        </ScrollView>
+            <Text style={[styles.gridLabel, { color: theme.text }]}>{label}</Text>
+          </Pressable>
+        ))}
       </View>
 
+      {review || attach || collabs.length > 0 ? (
       <View style={[styles.card, { backgroundColor: theme.surface }]}>
-        <Text style={[styles.cardTitle, { color: theme.text }]}>{t('feed.linkTitle')}</Text>
         {review ? (
           <View style={[styles.chosen, { backgroundColor: theme.bg }]}>
             <View style={{ flex: 1 }}>
@@ -274,25 +294,92 @@ export default function NewPostScreen() {
             <Pressable accessibilityRole="button" accessibilityLabel={t('media.remove')} onPress={() => setAttach(null)}><Ionicons name="close-circle" size={24} color={theme.ink} /></Pressable>
           </View>
         ) : null}
-        <Pressable accessibilityRole="button" onPress={() => setSheet(true)} style={[styles.addLink, { borderColor: theme.muted }]}>
-          <Ionicons name="add" size={20} color={theme.text} />
-          <Text style={[styles.pickTitle, { color: theme.text }]}>{review || attach ? t('feed.linkChange') : t('feed.linkAdd')}</Text>
-        </Pressable>
-        <Text style={[styles.hintTxt, { color: theme.muted }]}>{t('feed.linkHint')}</Text>
+        {collabs.map((c) => (
+          <View key={c.id} style={[styles.chosen, { backgroundColor: theme.bg }]}>
+            <Avatar name={c.full_name} seed={c.id} size={36} />
+            <View style={{ flex: 1 }}>
+              <Text numberOfLines={1} style={[styles.pickTitle, { color: theme.text }]}>{t('feed.collabWith', { name: c.full_name })}</Text>
+              <Text numberOfLines={1} style={[styles.sub, { color: theme.muted }]}>{t('feed.collabPending')}</Text>
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('media.remove')} onPress={() => setCollabs((l) => l.filter((x) => x.id !== c.id))}><Ionicons name="close-circle" size={24} color={theme.muted} /></Pressable>
+          </View>
+        ))}
       </View>
+      ) : null}
+
+      {media.length > 0 ? (
+      <View style={[styles.card, { backgroundColor: theme.surface }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          {media.map((m) => (
+            <View key={m.path}>
+              {m.type === 'video' ? (
+                <View style={[styles.tile, styles.center, { backgroundColor: theme.fill }]}><Ionicons name="play" size={26} color={theme.text} /></View>
+              ) : (
+                <Image source={{ uri: mediaUrl('media', m.path) }} style={[styles.tile, { backgroundColor: theme.fill }]} />
+              )}
+              <Pressable accessibilityRole="button" accessibilityLabel={t('media.remove')} onPress={() => void removeMedia(m)} style={[styles.remove, { backgroundColor: theme.glass }]}>
+                <Ionicons name="close" size={16} color={theme.text} />
+              </Pressable>
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+      ) : null}
 
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
 
-      <Modal visible={sheet} transparent animationType="slide" onRequestClose={() => setSheet(false)}>
-        <Pressable style={[styles.backdrop, { backgroundColor: theme.scrim }]} onPress={() => setSheet(false)} />
+      <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
+        <Pressable style={[styles.backdrop, { backgroundColor: theme.scrim }]} onPress={() => setSheet(null)} />
         <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
           <View style={[styles.grab, { backgroundColor: theme.fill }]} />
-          <Text style={[styles.topTitle, { color: theme.text, fontSize: 20 }]}>{t('feed.linkTitle')}</Text>
+          <Text style={[styles.topTitle, { color: theme.text, fontSize: 20 }]}>{sheet === 'review' ? t('feed.secReview') : sheet === 'promote' ? t('feed.promoteTitle') : sheet === 'collab' ? t('feed.collabTitle') : sheet === 'service' ? t('feed.secServices') : sheet === 'offer' ? t('feed.secOffers') : t('feed.secSlots')}</Text>
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 18, paddingBottom: 12 }}>
-            {section(t('feed.secReview'), 'star', lists.reviews.map((r) => ({ id: r.id, title: stars(r.rating), sub: r.body ?? t('feed.reviewNoText'), on: review?.id === r.id, press: () => { setReview(review?.id === r.id ? null : r); setSheet(false); } })), null, null, t('feed.noReviews'))}
-            {section(t('feed.secServices'), 'books', lists.services.map((s) => { const a = asServiceAttach(s); return { id: s.id, title: a.title, sub: a.sub, on: attach?.id === s.id, press: () => { setAttach(attach?.id === s.id ? null : a); setSheet(false); } }; }), t('feed.newService'), () => createNew('service'), t('feed.noServices'))}
-            {section(t('feed.secOffers'), 'party_popper', lists.offers.map((o) => { const a = asOfferAttach(o); return { id: o.id, title: a.title, sub: a.sub, on: attach?.id === o.id, press: () => { setAttach(attach?.id === o.id ? null : a); setSheet(false); } }; }), t('feed.newOffer'), () => createNew('offer'), t('feed.noOffers'))}
-            {section(t('feed.secSlots'), 'stopwatch', lists.links.map((l) => { const a = asLinkAttach(l); return { id: l.id, title: a.title, sub: a.sub, on: attach?.id === l.id, press: () => { setAttach(attach?.id === l.id ? null : a); setSheet(false); } }; }), t('feed.newSlot'), () => createNew('slot'), t('feed.noLinks'))}
+            {sheet === 'promote' ? (
+              <View>
+                {([
+                  ['service', 'briefcase-outline', t('feed.promoteService'), t('feed.promoteServiceSub')],
+                  ['offer', 'gift-outline', t('feed.promoteOffer'), t('feed.promoteOfferSub')],
+                  ['slot', 'flash-outline', t('feed.promoteSlot'), t('feed.promoteSlotSub')],
+                ] as const).map(([k, icon, title, sub]) => (
+                  <Pressable key={k} accessibilityRole="button" onPress={() => setSheet(k)} style={styles.promoRow}>
+                    <View style={[styles.gridCircle, { backgroundColor: theme.bg, width: 44, height: 44 }]}><Ionicons name={icon} size={20} color={theme.ink} /></View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.pickTitle, { color: theme.text }]}>{title}</Text>
+                      <Text style={[styles.sub, { color: theme.muted }]}>{sub}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={theme.muted} />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+            {sheet === 'collab' ? (
+              <View style={{ gap: 10 }}>
+                <TextInput
+                  accessibilityLabel={t('feed.collabSearch')}
+                  value={collabQuery}
+                  onChangeText={setCollabQuery}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder={t('feed.collabSearch')}
+                  placeholderTextColor={theme.muted}
+                  style={[styles.search, { backgroundColor: theme.bg, color: theme.text }]}
+                />
+                <Text style={[styles.sub, { color: theme.muted }]}>{collabs.length >= MAX_TAGS ? t('feed.collabMax', { count: MAX_TAGS }) : t('feed.collabHint')}</Text>
+                {collabs.length < MAX_TAGS ? shownHits.map((p) => (
+                  <Pressable key={p.id} accessibilityRole="button" onPress={() => { setCollabs((l) => [...l, p]); setCollabQuery(''); setCollabHits([]); setSheet(null); }} style={styles.person}>
+                    <Avatar name={p.full_name} seed={p.id} size={36} />
+                    <View style={{ flex: 1 }}>
+                      <Text numberOfLines={1} style={[styles.pickTitle, { color: theme.text }]}>{p.full_name}</Text>
+                      {p.handle ? <Text numberOfLines={1} style={[styles.sub, { color: theme.muted }]}>{`@${p.handle}`}</Text> : null}
+                    </View>
+                  </Pressable>
+                )) : null}
+              </View>
+            ) : null}
+            {sheet === 'review' ? section(t('feed.secReview'), 'star', lists.reviews.map((r) => ({ id: r.id, title: stars(r.rating), sub: r.body ?? t('feed.reviewNoText'), on: review?.id === r.id, press: () => { setReview(review?.id === r.id ? null : r); setSheet(null); } })), null, null, t('feed.noReviews')) : null}
+            {sheet === 'service' ? section(t('feed.secServices'), 'books', lists.services.map((sv) => { const a = asServiceAttach(sv); return { id: sv.id, title: a.title, sub: a.sub, on: attach?.id === sv.id, press: () => { setAttach(attach?.id === sv.id ? null : a); setSheet(null); } }; }), t('feed.newService'), () => createNew('service'), t('feed.noServices')) : null}
+            {sheet === 'offer' ? section(t('feed.secOffers'), 'party_popper', lists.offers.map((o) => { const a = asOfferAttach(o); return { id: o.id, title: a.title, sub: a.sub, on: attach?.id === o.id, press: () => { setAttach(attach?.id === o.id ? null : a); setSheet(null); } }; }), t('feed.newOffer'), () => createNew('offer'), t('feed.noOffers')) : null}
+            {sheet === 'slot' ? section(t('feed.secSlots'), 'stopwatch', lists.links.map((l) => { const a = asLinkAttach(l); return { id: l.id, title: a.title, sub: a.sub, on: attach?.id === l.id, press: () => { setAttach(attach?.id === l.id ? null : a); setSheet(null); } }; }), t('feed.newSlot'), () => createNew('slot'), t('feed.noLinks')) : null}
           </ScrollView>
         </View>
       </Modal>
@@ -317,6 +404,12 @@ const styles = StyleSheet.create({
   remove: { position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   chosen: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 24, padding: 12 },
   iconDot: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  grid: { borderRadius: 32, paddingVertical: 16, paddingHorizontal: 6, flexDirection: 'row', marginBottom: 16 },
+  gridItem: { flex: 1, alignItems: 'center', gap: 6 },
+  gridCircle: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  gridLabel: { fontFamily: fonts.medium, fontSize: 12, textAlign: 'center' },
+  promoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  search: { height: 48, borderRadius: 999, paddingHorizontal: 18, fontFamily: fonts.regular, fontSize: 16 },
   addLink: { height: 50, borderRadius: 999, borderWidth: 1.5, borderStyle: 'dashed', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
   sub: { fontFamily: fonts.regular, fontSize: 13 },
   backdrop: { flex: 1 },

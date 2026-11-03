@@ -85,7 +85,8 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
     if ((await answerTag(post.id, userId, status)) !== null) return;
     setTags((l) => (status === 'accepted' ? l.map((x) => (x.tagged_id === userId ? { ...x, status: 'accepted' as const } : x)) : l.filter((x) => x.tagged_id !== userId)));
   };
-  const visibleTags = tags.filter((x) => x.status === 'accepted');
+  const visibleTags = tags.filter((x) => x.status === 'accepted' && x.role !== 'collab');
+  const collabNames = tags.filter((x) => x.status === 'accepted' && x.role === 'collab');
   const pendingCount = tags.filter((x) => x.status === 'pending' && x.tagged_id !== userId).length;
   const share = async () => {
     const text = post.body ? `${post.author.full_name}: ${post.body.slice(0, 120)}` : post.author.full_name;
@@ -122,7 +123,10 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false 
       <Pressable accessibilityRole="button" onPress={openAuthor} style={styles.head}>
         <Avatar name={post.author.full_name} seed={post.author_id} size={42} path={post.author.avatar_path} />
         <View style={styles.who}>
-          <Text style={[styles.name, { color: theme.text }]}>{post.author.full_name}</Text>
+          <Text style={[styles.name, { color: theme.text }]}>
+            {post.author.full_name}
+            {collabNames.length > 0 ? <Text style={{ color: theme.muted, fontFamily: fonts.regular }}>{` ${t('feed.and')} ${collabNames.map((c) => c.full_name).join(', ')}`}</Text> : null}
+          </Text>
           <Text style={[styles.sub, { color: theme.muted }]}>
             {[post.author.role_title, timeAgo(post.created_at, i18n.language, nowMs)].filter(Boolean).join(' · ')}
           </Text>

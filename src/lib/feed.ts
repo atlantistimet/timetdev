@@ -1,7 +1,7 @@
 import { type MediaItem } from '@/lib/media';
 import { supabase } from '@/lib/supabase';
 
-export type PostTag = { tagged_id: string; status: 'pending' | 'accepted' | 'declined' | 'removed'; full_name: string; handle: string | null };
+export type PostTag = { role: 'mention' | 'collab'; tagged_id: string; status: 'pending' | 'accepted' | 'declined' | 'removed'; full_name: string; handle: string | null };
 export type PostKind = 'update' | 'offer' | 'slots';
 
 export type Post = {
@@ -41,7 +41,7 @@ type Row = {
   reviews: { id: string; rating: number; body: string | null; public_choice: string | null; profiles: { full_name: string; avatar_path: string | null } | { full_name: string; avatar_path: string | null }[] | null } | null;
   profiles: Post['author'] | Post['author'][] | null;
   post_media: { path: string; type: 'image' | 'video'; position: number }[] | null;
-  post_tags: { tagged_id: string; status: PostTag['status']; profiles: { full_name: string; handle: string | null } | { full_name: string; handle: string | null }[] | null }[] | null;
+  post_tags: { role: 'mention' | 'collab'; tagged_id: string; status: PostTag['status']; profiles: { full_name: string; handle: string | null } | { full_name: string; handle: string | null }[] | null }[] | null;
   post_likes: { count: number }[] | null;
   post_comments: { count: number }[] | null;
   offers: { price_cents: number; discount_pct: number; duration_min: number; service_id: string; services: { title: string } | { title: string }[] | null } | null;
@@ -58,7 +58,7 @@ const SELECT = `id, author_id, kind, body, created_at, offer_id, service_id, slo
   reviews(id, rating, body, public_choice, profiles!reviews_author_id_fkey(full_name, avatar_path)),
   profiles!posts_author_id_fkey(full_name, handle, role_title, available_until, avatar_path),
   post_media(path, type, position),
-  post_tags(tagged_id, status, profiles!post_tags_tagged_id_fkey(full_name, handle)),
+  post_tags(role, tagged_id, status, profiles!post_tags_tagged_id_fkey(full_name, handle)),
   post_likes(count),
   post_comments(count),
   offers(price_cents, discount_pct, duration_min, service_id, services(title)),
@@ -89,7 +89,7 @@ async function hydrate(rows: Row[], userId: string): Promise<Post[]> {
     media: [...(r.post_media ?? [])].sort((a, b) => a.position - b.position).map((m) => ({ path: m.path, type: m.type })),
     tags: (r.post_tags ?? [])
       .filter((x) => x.status === 'accepted' || x.status === 'pending')
-      .map((x) => ({ tagged_id: x.tagged_id, status: x.status, full_name: first(x.profiles)?.full_name ?? '', handle: first(x.profiles)?.handle ?? null })),
+      .map((x) => ({ role: x.role, tagged_id: x.tagged_id, status: x.status, full_name: first(x.profiles)?.full_name ?? '', handle: first(x.profiles)?.handle ?? null })),
     likes: r.post_likes?.[0]?.count ?? 0,
     liked: likedSet.has(r.id),
     comments: r.post_comments?.[0]?.count ?? 0,
@@ -109,7 +109,10 @@ async function hydrate(rows: Row[], userId: string): Promise<Post[]> {
 export async function loadPosts(userId: string, scope: { kind: 'all' } | { kind: 'following' } | { kind: 'author'; authorId: string }): Promise<{ posts: Post[]; errorKey: string | null }> {
   let query = supabase.from('posts').select(SELECT).is('deleted_at', null).order('created_at', { ascending: false }).limit(40);
   if (scope.kind === 'author') {
-    query = query.eq('author_id', scope.authorId);
+    // anche i post in collaborazione che questa persona ha accettato
+    const { data: co } = await supabase.from('post_tags').select('post_id').eq('tagged_id', scope.authorId).eq('role', 'collab').eq('status', 'accepted');
+    const coIds = ((co ?? []) as { post_id: string }[]).map((x) => x.post_id);
+    query = coIds.length > 0 ? query.or(`author_id.eq.${scope.authorId},id.in.(${coIds.join(',')})`) : query.eq('author_id', scope.authorId);
   } else if (scope.kind === 'following') {
     const { data: f } = await supabase.from('follows').select('followee_id').eq('follower_id', userId);
     const ids = ((f ?? []) as { followee_id: string }[]).map((x) => x.followee_id);
@@ -132,6 +135,7 @@ export async function createPost(input: {
   slotLinkId?: string;
   reviewId?: string;
   tagIds?: string[];
+  collabIds?: string[];
 }): Promise<{ id: string | null; errorKey: string | null }> {
   const { data, error } = await supabase
     .from('posts')
@@ -154,8 +158,12 @@ export async function createPost(input: {
       .insert(input.media.map((m, i) => ({ post_id: data.id, path: m.path, type: m.type, position: i })));
     if (mediaError) return { id: data.id, errorKey: 'errors.generic' };
   }
-  if (input.tagIds && input.tagIds.length > 0) {
-    const { error: tagError } = await supabase.from('post_tags').insert(input.tagIds.slice(0, MAX_TAGS).map((tagged_id) => ({ post_id: data.id, tagged_id })));
+  const tagRows = [
+    ...(input.collabIds ?? []).slice(0, MAX_TAGS).map((tagged_id) => ({ post_id: data.id, tagged_id, role: 'collab' })),
+    ...(input.tagIds ?? []).filter((id) => !(input.collabIds ?? []).includes(id)).slice(0, MAX_TAGS).map((tagged_id) => ({ post_id: data.id, tagged_id, role: 'mention' })),
+  ];
+  if (tagRows.length > 0) {
+    const { error: tagError } = await supabase.from('post_tags').insert(tagRows);
     if (tagError) return { id: data.id, errorKey: 'errors.generic' };
   }
   return { id: data.id, errorKey: null };
