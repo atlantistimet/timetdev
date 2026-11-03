@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import { Avatar } from '@/components/Avatar';
 import { Emoji } from '@/components/Emoji';
 import { ErrorText, LoadingView, Screen } from '@/components/ui';

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, usePathname, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -49,6 +50,8 @@ export function TabBar() {
             <Pressable
               key={tab.key}
               accessibilityRole="tab"
+              haptic="select"
+              scaleTo={0.9}
               accessibilityLabel={t(tab.label)}
               accessibilityState={{ selected: focused }}
               onPress={() => router.navigate(tab.href)}

@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import { fromMinutes, STEP_MIN, toMinutes } from '@/lib/availability';
 import { useTheme } from '@/theme';
 

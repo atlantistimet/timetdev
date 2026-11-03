@@ -1,4 +1,5 @@
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, ErrorText, Spacer } from '@/components/ui';

@@ -1,16 +1,6 @@
 import { forwardRef, useRef, useState, type ReactNode } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  type TextInputProps,
-} from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -283,7 +273,7 @@ export function ActionBar({
         </View>
         {caption ? <Text style={[styles.actionCaption, { color: theme.inkMuted }]}>{caption}</Text> : null}
       </View>
-      <Pressable
+      <Pressable haptic="light"
         accessibilityRole="button"
         accessibilityState={{ disabled: !!loading || !!disabled, busy: !!loading }}
         disabled={loading || disabled}

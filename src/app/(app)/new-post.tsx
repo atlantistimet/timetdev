@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -263,6 +264,7 @@ export default function NewPostScreen() {
             accessibilityState={{ selected: on }}
             disabled={k === 'photo' && (busy || media.length >= MAX_MEDIA)}
             onPress={() => (k === 'photo' ? void addMedia() : setSheet(k))}
+            haptic="light"
             style={styles.gridItem}
           >
             <View style={[styles.gridCircle, { backgroundColor: on ? theme.accent : theme.bg }]}>

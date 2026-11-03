@@ -1,6 +1,7 @@
 import '@livekit/components-styles';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import { LiveKitRoom, RoomAudioRenderer, VideoTrack, isTrackReference, useLocalParticipant, useTracks } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import Ionicons from '@expo/vector-icons/Ionicons';

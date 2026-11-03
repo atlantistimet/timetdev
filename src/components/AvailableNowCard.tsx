@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import { useTranslation } from 'react-i18next';
 import { ErrorText } from '@/components/ui';
 import { setAvailableNow } from '@/lib/explore';

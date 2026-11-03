@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { Emoji } from '@/components/Emoji';

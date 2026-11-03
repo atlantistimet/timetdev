@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Image, Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, Modal, Platform, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import * as DocumentPicker from 'expo-document-picker';

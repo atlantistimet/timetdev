@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { fonts, useTheme } from '@/theme';

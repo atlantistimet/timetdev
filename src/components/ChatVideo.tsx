@@ -1,4 +1,5 @@
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
 /** Anteprima del video nella bolla: fermo, con il tasto play. Un tocco lo apre a schermo intero. */

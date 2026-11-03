@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
+import { Pressable, buzz } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -70,8 +72,14 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false,
   const mine = post.author_id === userId;
   const fmt = (cents: number) => formatEuro(cents, i18n.language);
 
+  const heart = useSharedValue(1);
+  const heartStyle = useAnimatedStyle(() => ({ transform: [{ scale: heart.value }] }));
   const toggleLike = async () => {
     const next = !liked;
+    if (next) {
+      heart.set(withSequence(withSpring(1.45, { damping: 8, stiffness: 500 }), withSpring(1, { damping: 10, stiffness: 300 })));
+      buzz('light');
+    }
     setLiked(next);
     setLikes((n) => n + (next ? 1 : -1));
     const failure = await setLike(post.id, userId, next);
@@ -186,7 +194,7 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false,
       <View style={[styles.actions, styles.pad]}>
         <View style={styles.counts}>
           <Pressable accessibilityRole="button" accessibilityLabel={t('feed.like')} accessibilityState={{ selected: liked }} onPress={() => void toggleLike()} style={styles.count}>
-            <Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? theme.danger : theme.text} />
+            <Animated.View style={heartStyle}><Ionicons name={liked ? 'heart' : 'heart-outline'} size={22} color={liked ? theme.danger : theme.text} /></Animated.View>
             <Text style={[styles.countText, { color: theme.text }]}>{likes}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" accessibilityLabel={t('comments.write')} onPress={() => setShowComments((v) => !v)} style={styles.count}>

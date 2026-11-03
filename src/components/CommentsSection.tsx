@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, ErrorText, Spacer, TextField } from '@/components/ui';
 import { addComment, deleteComment, loadComments, type Comment } from '@/lib/comments';

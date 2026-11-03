@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -103,8 +105,10 @@ export default function Home() {
         <>
           {loaded.errorKey ? <View style={styles.pad}><ErrorText>{t(loaded.errorKey)}</ErrorText></View> : null}
           {!loaded.errorKey && loaded.posts.length === 0 ? <View style={styles.pad}><Body muted>{t(scope === 'following' ? 'feed.emptyFollowing' : 'feed.empty')}</Body></View> : null}
-          {loaded.posts.map((post) => (
-            <PostCard key={post.id} post={post} userId={userId} nowMs={loaded.nowMs} onDeleted={() => setReloadKey((k) => k + 1)} flush />
+          {loaded.posts.map((post, i) => (
+            <Animated.View key={post.id} entering={FadeInDown.delay(Math.min(i, 5) * 60).duration(320)}>
+              <PostCard post={post} userId={userId} nowMs={loaded.nowMs} onDeleted={() => setReloadKey((k) => k + 1)} flush />
+            </Animated.View>
           ))}
         </>
       )}

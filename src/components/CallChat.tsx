@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import Ionicons from '@expo/vector-icons/Ionicons';

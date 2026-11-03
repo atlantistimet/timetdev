@@ -1,4 +1,5 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, StyleSheet, Text, View } from 'react-native';
+import { Pressable } from '@/components/Pressable';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { fonts, radius, useTheme } from '@/theme';
