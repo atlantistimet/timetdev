@@ -44,7 +44,7 @@ function Stage({ lib, onHangup, name, avatarPath, seed, myName, children, chat, 
   const [absentSince, setAbsentSince] = useState<number | null>(() => (remoteCount === 0 ? Date.now() : null));
   const [tick, setTick] = useState(() => Date.now());
   useEffect(() => {
-    const gone = () => setAbsentSince((v) => v ?? Date.now());
+    const gone = () => setAbsentSince(Date.now());
     const back = () => setAbsentSince(null);
     const bus = room as unknown as { on: (event: string, fn: () => void) => void; off: (event: string, fn: () => void) => void };
     bus.on('participantDisconnected', gone);
@@ -59,7 +59,8 @@ function Stage({ lib, onHangup, name, avatarPath, seed, myName, children, chat, 
     const timer = setInterval(() => setTick(Date.now()), 1000);
     return () => clearInterval(timer);
   }, [absentSince]);
-  const waitLeft = absentSince === null ? null : Math.max(0, ABSENT_GRACE_SECONDS - Math.floor((tick - absentSince) / 1000));
+  // se l'altra persona è nella stanza il riquadro non si mostra mai, qualunque cosa dicano gli eventi
+  const waitLeft = absentSince === null || remoteCount > 0 ? null : Math.max(0, ABSENT_GRACE_SECONDS - Math.floor((tick - absentSince) / 1000));
   const tracks = lib.useTracks(['camera' as never]);
   const refs = tracks.filter((x) => lib.isTrackReference(x));
   const remote = refs.find((x) => !x.participant.isLocal);
