@@ -210,7 +210,7 @@ export default function ServiceEditScreen() {
           </View>
           <View style={[styles.card, { backgroundColor: theme.surface, padding: 8 }]}>
             {[
-              { e: 'sparkles', a: t('svc.announce'), b: t('svc.announceSub'), go: () => router.push('/new-post') },
+              { e: 'sparkles', a: t('svc.announce'), b: t('svc.announceSub'), go: () => router.push({ pathname: '/new-post', params: { serviceId: done.id } }) },
               { e: 'party_popper', a: t('svc.makeOffer'), b: t('svc.makeOfferSub'), go: () => router.push('/offer-edit') },
               { e: 'camera', a: t('svc.addPhotos'), b: t('svc.addPhotosSub'), go: () => router.push({ pathname: '/service-edit', params: { id: done.id } }) },
             ].map((r, i) => (

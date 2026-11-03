@@ -166,9 +166,9 @@ export const MAX_TAGS = 5;
 export type PersonHit = { id: string; full_name: string; handle: string | null };
 
 /** Cerca persone per nome o @handle, per taggarle. */
-export async function searchPeople(text: string, excludeId: string): Promise<PersonHit[]> {
+export async function searchPeople(text: string, excludeId: string, minLength = 2): Promise<PersonHit[]> {
   const q = text.trim().replace(/^@/, '').replace(/[%,()]/g, ' ');
-  if (q.length < 2) return [];
+  if (q.length < minLength) return [];
   const { data } = await supabase.from('profiles').select('id, full_name, handle').or(`full_name.ilike.%${q}%,handle.ilike.%${q}%`).neq('id', excludeId).limit(6);
   return (data ?? []) as PersonHit[];
 }
@@ -218,4 +218,11 @@ export async function setPostTag(postId: string, userId: string, add: boolean): 
   const { data, error } = await supabase.rpc('set_post_tag', { p_post: postId, p_user: userId, p_add: add });
   if (error) return 'errors.generic';
   return data === 'ok' ? null : data === 'max' ? 'feed.tagErrors.max' : data === 'declined' ? 'feed.tagErrors.declined' : 'errors.generic';
+}
+
+/** Persone con questi handle (per trasformare le @menzioni del testo in tag). */
+export async function profilesByHandles(handles: string[]): Promise<PersonHit[]> {
+  if (handles.length === 0) return [];
+  const { data } = await supabase.from('profiles').select('id, full_name, handle').in('handle', handles);
+  return (data ?? []) as PersonHit[];
 }

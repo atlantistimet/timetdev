@@ -1,111 +1,191 @@
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { router } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Image, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { Emoji } from '@/components/Emoji';
-import { MediaPicker } from '@/components/MediaView';
 import { ErrorText, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro } from '@/lib/booking';
-import { MAX_TAGS, createPost, searchPeople, type PersonHit, type PostKind } from '@/lib/feed';
-import { type MediaItem } from '@/lib/media';
+import { MAX_TAGS, createPost, profilesByHandles, searchPeople, type PersonHit } from '@/lib/feed';
+import { MAX_MEDIA, mediaUrl, pickAndUpload, removeFiles, type MediaItem } from '@/lib/media';
 import { listMyServices, type MyService } from '@/lib/my-services';
 import { finalPriceCents, listMyOffers, type Offer } from '@/lib/offers';
+import { rememberCreating, takeCreating } from '@/lib/post-link-draft';
+import { loadReviews, stars, type Review } from '@/lib/reviews';
 import { listMyLinks, type SlotLink } from '@/lib/slot-links';
+import { supabase } from '@/lib/supabase';
 import { fonts, useTheme } from '@/theme';
+
+type Attach = { kind: 'service' | 'offer' | 'slot'; id: string; title: string; sub: string; emoji: string };
+type Lists = { services: MyService[]; offers: Offer[]; links: SlotLink[]; reviews: Review[] };
+
+const MENTION_AT_CURSOR = /(^|\s)@([a-z0-9_.]{0,30})$/;
 
 export default function NewPostScreen() {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
-  const [kind, setKind] = useState<PostKind>('update');
+  const params = useLocalSearchParams<{ serviceId?: string }>();
   const [body, setBody] = useState('');
+  const [cursor, setCursor] = useState(0);
+  const [people, setPeople] = useState<PersonHit[]>([]);
   const [media, setMedia] = useState<MediaItem[]>([]);
-  const [tagged, setTagged] = useState<PersonHit[]>([]);
-  const [tagging, setTagging] = useState(false);
-  const [search, setSearch] = useState('');
-  const [hits, setHits] = useState<PersonHit[]>([]);
-  const [services, setServices] = useState<MyService[]>([]);
-  const [offers, setOffers] = useState<Offer[]>([]);
-  const [links, setLinks] = useState<SlotLink[]>([]);
-  const [linkService, setLinkService] = useState(false);
-  const [serviceId, setServiceId] = useState<string | null>(null);
-  const [offerId, setOfferId] = useState<string | null>(null);
-  const [linkId, setLinkId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [review, setReview] = useState<Review | null>(null);
+  const [attach, setAttach] = useState<Attach | null>(null);
+  const [lists, setLists] = useState<Lists>({ services: [], offers: [], links: [], reviews: [] });
+  const [sheet, setSheet] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errorKey, setErrorKey] = useState<string | null>(null);
+  const prefilled = useRef(false);
 
-  useEffect(() => {
-    if (!userId) return;
-    let alive = true;
-    (async () => {
-      const [s, o, l] = await Promise.all([listMyServices(userId), listMyOffers(userId), listMyLinks(userId)]);
-      if (!alive) return;
-      setServices(s.services.filter((x) => x.active));
-      setOffers(o.offers.filter((x) => x.active));
-      setLinks(l.links);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [userId]);
+  const asServiceAttach = useCallback((s: MyService): Attach => ({ kind: 'service', id: s.id, title: s.title, emoji: s.kind === 'per_minute' ? 'telephone_receiver' : s.kind === 'package' ? 'gift' : 'books', sub: s.kind === 'per_minute' ? `${formatEuro(s.rate_cents_per_min ?? 0, i18n.language)}/min` : `${formatEuro(s.price_cents ?? 0, i18n.language)}${s.duration_min ? ` · ${s.duration_min} min` : ''}` }), [i18n.language]);
+  const asOfferAttach = useCallback((o: Offer): Attach => ({ kind: 'offer', id: o.id, title: o.service_title, emoji: 'party_popper', sub: `${formatEuro(finalPriceCents(o), i18n.language)} · ${o.duration_min} min${o.discount_pct ? ` · -${o.discount_pct}%` : ''}` }), [i18n.language]);
+  const asLinkAttach = useCallback((l: SlotLink): Attach => ({ kind: 'slot', id: l.id, title: l.service_title || t('feed.kind.slots'), emoji: 'stopwatch', sub: `${formatEuro(l.price_cents, i18n.language)} · ${l.duration_min} min` }), [i18n.language, t]);
 
+  // elenchi dei miei collegamenti, riletti ogni volta che si torna qui (dopo "Crea nuovo")
+  useFocusEffect(
+    useCallback(() => {
+      if (!userId) return;
+      let alive = true;
+      (async () => {
+        const nowMs = Date.now();
+        const [s, o, l, r, used] = await Promise.all([
+          listMyServices(userId, ['slot', 'package', 'per_minute']),
+          listMyOffers(userId),
+          listMyLinks(userId),
+          loadReviews(userId),
+          supabase.from('posts').select('review_id').eq('author_id', userId).not('review_id', 'is', null).is('deleted_at', null),
+        ]);
+        if (!alive) return;
+        const usedIds = new Set(((used.data ?? []) as { review_id: string }[]).map((x) => x.review_id));
+        const next: Lists = {
+          services: s.services.filter((x) => x.active),
+          offers: o.offers.filter((x) => x.active),
+          links: l.links.filter((x) => !x.expires_at || new Date(x.expires_at).getTime() > nowMs),
+          reviews: r.reviews.filter((x) => !usedIds.has(x.id)),
+        };
+        setLists(next);
+        const c = takeCreating();
+        if (c) {
+          const fresh = c.kind === 'service' ? next.services.find((x) => !c.before.has(x.id)) : c.kind === 'offer' ? next.offers.find((x) => !c.before.has(x.id)) : next.links.find((x) => !c.before.has(x.id));
+          if (fresh) setAttach(c.kind === 'service' ? asServiceAttach(fresh as MyService) : c.kind === 'offer' ? asOfferAttach(fresh as Offer) : asLinkAttach(fresh as SlotLink));
+        } else if (params.serviceId && !prefilled.current) {
+          prefilled.current = true;
+          const sv = next.services.find((x) => x.id === params.serviceId);
+          if (sv) setAttach(asServiceAttach(sv));
+        }
+      })();
+      return () => {
+        alive = false;
+      };
+    }, [userId, params.serviceId, asServiceAttach, asOfferAttach, asLinkAttach]),
+  );
+
+  // @menzioni: suggerimenti mentre si scrive
+  const before = body.slice(0, cursor);
+  const mention = MENTION_AT_CURSOR.exec(before);
+  const query = mention ? mention[2] : null;
   useEffect(() => {
-    if (!userId || search.trim().length < 2) return;
+    if (!userId || query === null || query.length < 1) return;
     let alive = true;
     const timer = setTimeout(() => {
-      void searchPeople(search, userId).then((r) => {
-        if (alive) setHits(r);
+      void searchPeople(query, userId, 1).then((r) => {
+        if (alive) setPeople(r.filter((p) => p.handle));
       });
-    }, 250);
+    }, 200);
     return () => {
       alive = false;
       clearTimeout(timer);
     };
-  }, [search, userId]);
+  }, [query, userId]);
+  const suggestions = query !== null && query.length >= 1 ? people : [];
 
-  const shownHits = search.trim().length < 2 ? [] : hits.filter((h) => !tagged.some((x) => x.id === h.id));
-  const euro = (c: number) => formatEuro(c, i18n.language);
+  const pickPerson = (p: PersonHit) => {
+    if (!mention || !p.handle) return;
+    const start = before.length - mention[0].length + mention[1].length;
+    const text = `${body.slice(0, start)}@${p.handle} ${body.slice(cursor)}`;
+    setBody(text);
+    setCursor(start + p.handle.length + 2);
+    setPeople([]);
+  };
+
+  const addMedia = async () => {
+    if (!userId || busy || media.length >= MAX_MEDIA) return;
+    setBusy(true);
+    setErrorKey(null);
+    const r = await pickAndUpload('media', userId);
+    setBusy(false);
+    if (r.errorKey) setErrorKey(r.errorKey);
+    if (r.item) setMedia((m) => [...m, r.item!]);
+  };
+  const removeMedia = async (m: MediaItem) => {
+    setMedia((l) => l.filter((x) => x.path !== m.path));
+    await removeFiles('media', [m.path]);
+  };
+
+  const createNew = (kind: Attach['kind']) => {
+    rememberCreating(kind, (kind === 'service' ? lists.services : kind === 'offer' ? lists.offers : lists.links).map((x) => x.id));
+    setSheet(false);
+    router.push(kind === 'service' ? '/service-edit' : kind === 'offer' ? '/offer-edit' : '/slot-link-edit');
+  };
 
   const publish = async () => {
-    if (!userId) return;
-    if (kind === 'offer' && !offerId) return setErrorKey('feed.errors.pickOffer');
-    if (kind === 'slots' && !linkId) return setErrorKey('feed.errors.pickLink');
-    if (kind === 'update' && !body.trim() && media.length === 0) return setErrorKey('feed.errors.empty');
+    if (!userId || saving) return;
+    if (!body.trim() && media.length === 0 && !attach && !review) return setErrorKey('feed.errors.empty');
     setSaving(true);
     setErrorKey(null);
+    const handles = Array.from(new Set((body.match(/@[a-z0-9_.]{3,30}/g) ?? []).map((h) => h.slice(1).replace(/\.+$/, ''))));
+    const found = (await profilesByHandles(handles)).filter((p) => p.id !== userId);
+    if (found.length > MAX_TAGS) {
+      setSaving(false);
+      return setErrorKey('feed.errors.maxTags');
+    }
+    const kind = attach?.kind === 'offer' ? 'offer' : attach?.kind === 'slot' ? 'slots' : 'update';
     const r = await createPost({
       authorId: userId,
       kind,
       body,
       lang: i18n.language,
-      media: kind === 'update' ? media : [],
-      offerId: kind === 'offer' ? offerId ?? undefined : undefined,
-      slotLinkId: kind === 'slots' ? linkId ?? undefined : undefined,
-      serviceId: kind === 'update' && linkService ? serviceId ?? undefined : undefined,
-      tagIds: kind === 'update' ? tagged.map((x) => x.id) : [],
+      media,
+      offerId: attach?.kind === 'offer' ? attach.id : undefined,
+      slotLinkId: attach?.kind === 'slot' ? attach.id : undefined,
+      serviceId: attach?.kind === 'service' ? attach.id : undefined,
+      reviewId: review?.id,
+      tagIds: found.map((p) => p.id),
     });
     setSaving(false);
     if (r.errorKey) setErrorKey(r.errorKey);
     else router.replace('/');
   };
 
-  const types: { k: PostKind; emoji: string; label: string }[] = [
-    { k: 'update', emoji: 'sparkles', label: t('feed.kindUpdate') },
-    { k: 'offer', emoji: 'party_popper', label: t('feed.kindOffer') },
-    { k: 'slots', emoji: 'stopwatch', label: t('feed.kindSlots') },
-  ];
-  const pickRow = (id: string, title: string, sub: string, on: boolean, press: () => void) => (
-    <Pressable key={id} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={press} style={[styles.pick, { backgroundColor: on ? theme.ink : theme.bg }]}>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.pickTitle, { color: on ? '#FFFFFF' : theme.text }]}>{title}</Text>
-        <Text style={[styles.pickSub, { color: on ? theme.inkMuted : theme.muted }]}>{sub}</Text>
+  const section = (title: string, emoji: string, items: { id: string; title: string; sub: string; on: boolean; press: () => void }[], newLabel: string | null, onNew: (() => void) | null, empty: string) => (
+    <View style={{ gap: 8 }}>
+      <View style={styles.secHead}>
+        <Emoji name={emoji} size={22} />
+        <Text style={[styles.secTitle, { color: theme.text }]}>{title}</Text>
       </View>
-    </Pressable>
+      {items.length === 0 ? <Text style={[styles.sub, { color: theme.muted }]}>{empty}</Text> : null}
+      {items.map((x) => (
+        <Pressable key={x.id} accessibilityRole="radio" accessibilityState={{ selected: x.on }} onPress={x.press} style={[styles.pick, { backgroundColor: x.on ? theme.ink : theme.bg }]}>
+          <View style={{ flex: 1 }}>
+            <Text numberOfLines={1} style={[styles.pickTitle, { color: x.on ? '#FFFFFF' : theme.text }]}>{x.title}</Text>
+            <Text numberOfLines={1} style={[styles.sub, { color: x.on ? theme.inkMuted : theme.muted }]}>{x.sub}</Text>
+          </View>
+          {x.on ? <Ionicons name="checkmark" size={20} color="#FFFFFF" /> : null}
+        </Pressable>
+      ))}
+      {newLabel && onNew ? (
+        <Pressable accessibilityRole="button" onPress={onNew} style={[styles.pick, styles.newBtn, { borderColor: theme.muted }]}>
+          <Ionicons name="add" size={20} color={theme.text} />
+          <Text style={[styles.pickTitle, { color: theme.text }]}>{newLabel}</Text>
+        </Pressable>
+      ) : null}
+    </View>
   );
-  const linked = services.find((s) => s.id === serviceId) ?? null;
 
   return (
     <Screen>
@@ -119,137 +199,103 @@ export default function NewPostScreen() {
         </Pressable>
       </View>
 
-      <View style={styles.types} accessibilityRole="radiogroup">
-        {types.map((x) => {
-          const on = kind === x.k;
-          return (
-            <Pressable key={x.k} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => { setKind(x.k); setErrorKey(null); }} style={[styles.type, { backgroundColor: on ? theme.ink : theme.surface }]}>
-              <Emoji name={x.emoji} size={32} />
-              <Text style={[styles.typeText, { color: on ? '#FFFFFF' : theme.text }]}>{x.label}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
+      <View style={{ height: 8 }} />
 
       <View style={[styles.card, { backgroundColor: theme.surface }]}>
         <TextInput
           accessibilityLabel={t('feed.bodyLabel')}
           value={body}
           onChangeText={setBody}
+          onSelectionChange={(e) => setCursor(e.nativeEvent.selection.start)}
           multiline
           maxLength={2000}
           placeholder={t('feed.bodyPlaceholder')}
           placeholderTextColor={theme.muted}
           style={[styles.input, { color: theme.text }]}
         />
-        {kind === 'update' && userId ? <MediaPicker items={media} onChange={setMedia} bucket="media" userId={userId} /> : null}
-      </View>
-
-      {kind === 'update' ? (
-        <>
-          <View style={[styles.card, { backgroundColor: theme.surface }]}>
-            <View style={styles.cardHead}>
-              <Text style={[styles.cardTitle, { color: theme.text }]}>{t('feed.withWho')}</Text>
-              <Emoji name="heart_hands" size={22} />
-            </View>
-            <View style={styles.chips}>
-              {tagged.map((p) => (
-                <Pressable key={p.id} accessibilityRole="button" onPress={() => setTagged((l) => l.filter((x) => x.id !== p.id))} style={[styles.person, { backgroundColor: theme.ink }]}>
-                  <Avatar name={p.full_name} seed={p.id} size={32} />
-                  <Text style={[styles.personText, { color: '#FFFFFF' }]}>{p.full_name.split(' ')[0]} ✕</Text>
-                </Pressable>
-              ))}
-              {tagged.length < MAX_TAGS ? (
-                <Pressable accessibilityRole="button" onPress={() => setTagging((v) => !v)} style={[styles.person, styles.dashed, { borderColor: theme.muted, paddingLeft: 14 }]}>
-                  <Text style={[styles.personText, { color: theme.text }]}>{t('feed.tagAdd')}</Text>
-                </Pressable>
-              ) : null}
-            </View>
-            {tagging && tagged.length < MAX_TAGS ? (
-              <TextInput
-                value={search}
-                onChangeText={setSearch}
-                autoCapitalize="none"
-                placeholder={t('feed.tagSearch')}
-                placeholderTextColor={theme.muted}
-                style={[styles.search, { backgroundColor: theme.bg, color: theme.text }]}
-              />
-            ) : null}
-            {shownHits.length > 0 ? (
-              <View style={styles.chips}>
-                {shownHits.map((p) => (
-                  <Pressable
-                    key={p.id}
-                    accessibilityRole="button"
-                    onPress={() => {
-                      setTagged((l) => [...l, p]);
-                      setSearch('');
-                      setHits([]);
-                      setTagging(false);
-                    }}
-                    style={[styles.person, { backgroundColor: theme.bg }]}
-                  >
-                    <Avatar name={p.full_name} seed={p.id} size={32} />
-                    <Text style={[styles.personText, { color: theme.text }]}>{p.handle ? `${p.full_name} · @${p.handle}` : p.full_name}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-          </View>
-
-          {services.length > 0 ? (
-            <View style={[styles.card, { backgroundColor: theme.surface }]}>
-              <Pressable
-                accessibilityRole="switch"
-                accessibilityState={{ checked: linkService }}
-                onPress={() => {
-                  setLinkService((v) => !v);
-                  if (!serviceId) setServiceId(services[0].id);
-                }}
-                style={styles.switchRow}
-              >
-                <View style={[styles.sIcon, { backgroundColor: theme.bg }]}>
-                  <Emoji name="books" size={26} />
-                </View>
+        {suggestions.length > 0 ? (
+          <View style={[styles.suggest, { backgroundColor: theme.bg }]}>
+            {suggestions.map((p) => (
+              <Pressable key={p.id} accessibilityRole="button" onPress={() => pickPerson(p)} style={styles.person}>
+                <Avatar name={p.full_name} seed={p.id} size={34} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.cardTitle, { color: theme.text, fontSize: 15 }]}>{t('feed.linkService')}</Text>
-                  <Text style={[styles.pickSub, { color: theme.muted }]}>{linked ? `${linked.title} · ${euro(linked.price_cents)}` : t('feed.linkServiceHint')}</Text>
-                </View>
-                <View style={[styles.track, { backgroundColor: linkService ? theme.ink : theme.fill, alignItems: linkService ? 'flex-end' : 'flex-start' }]}>
-                  <View style={[styles.thumb, { backgroundColor: linkService ? theme.accent : theme.surface }]} />
+                  <Text numberOfLines={1} style={[styles.pickTitle, { color: theme.text }]}>{p.full_name}</Text>
+                  <Text numberOfLines={1} style={[styles.sub, { color: theme.muted }]}>{`@${p.handle}`}</Text>
                 </View>
               </Pressable>
-              {linkService ? <View style={{ gap: 6 }}>{services.map((s) => pickRow(s.id, s.title, euro(s.price_cents), serviceId === s.id, () => setServiceId(s.id)))}</View> : null}
+            ))}
+          </View>
+        ) : null}
+        <Text style={[styles.hintTxt, { color: theme.muted }]}>{t('feed.mentionHint')}</Text>
+      </View>
+
+      <View style={[styles.card, { backgroundColor: theme.surface }]}>
+        <Text style={[styles.cardTitle, { color: theme.text }]}>{t('feed.photosTitle')}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          {media.map((m) => (
+            <View key={m.path}>
+              {m.type === 'video' ? (
+                <View style={[styles.tile, styles.center, { backgroundColor: theme.fill }]}><Ionicons name="play" size={26} color={theme.text} /></View>
+              ) : (
+                <Image source={{ uri: mediaUrl('media', m.path) }} style={[styles.tile, { backgroundColor: theme.fill }]} />
+              )}
+              <Pressable accessibilityRole="button" accessibilityLabel={t('media.remove')} onPress={() => void removeMedia(m)} style={[styles.remove, { backgroundColor: theme.glass }]}>
+                <Ionicons name="close" size={16} color={theme.text} />
+              </Pressable>
             </View>
-          ) : null}
-        </>
-      ) : null}
-
-      {kind === 'offer' ? (
-        <View style={[styles.card, { backgroundColor: theme.surface }]}>
-          <Text style={[styles.cardTitle, { color: theme.text }]}>{t('feed.pickOffer')}</Text>
-          {offers.length === 0 ? <Text style={[styles.pickSub, { color: theme.muted }]}>{t('feed.noOffers')}</Text> : offers.map((o) => pickRow(o.id, o.service_title, `${euro(finalPriceCents(o))} · ${o.duration_min} min`, offerId === o.id, () => setOfferId(o.id)))}
-          {offers.length === 0 ? (
-            <Pressable accessibilityRole="button" onPress={() => router.push('/offer-edit')} style={[styles.pill, { backgroundColor: theme.ink, alignSelf: 'flex-start' }]}>
-              <Text style={[styles.pillText, { color: '#FFFFFF' }]}>{t('feed.createOffer')}</Text>
+          ))}
+          {media.length < MAX_MEDIA ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={t('media.add')} disabled={busy} onPress={() => void addMedia()} style={[styles.tile, styles.center, styles.dashed, { borderColor: theme.muted }]}>
+              {busy ? <ActivityIndicator color={theme.text} /> : <Ionicons name="camera-outline" size={24} color={theme.text} />}
+              <Text style={[styles.sub, { color: theme.muted }]}>{`${media.length} / ${MAX_MEDIA}`}</Text>
             </Pressable>
           ) : null}
-        </View>
-      ) : null}
+        </ScrollView>
+      </View>
 
-      {kind === 'slots' ? (
-        <View style={[styles.card, { backgroundColor: theme.surface }]}>
-          <Text style={[styles.cardTitle, { color: theme.text }]}>{t('feed.pickLink')}</Text>
-          {links.length === 0 ? <Text style={[styles.pickSub, { color: theme.muted }]}>{t('feed.noLinks')}</Text> : links.map((l) => pickRow(l.id, l.service_title || t('feed.kindSlots'), `${euro(l.price_cents)} · ${l.duration_min} min`, linkId === l.id, () => setLinkId(l.id)))}
-          {links.length === 0 ? (
-            <Pressable accessibilityRole="button" onPress={() => router.push('/slot-link-edit')} style={[styles.pill, { backgroundColor: theme.ink, alignSelf: 'flex-start' }]}>
-              <Text style={[styles.pillText, { color: '#FFFFFF' }]}>{t('feed.createLink')}</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      ) : null}
+      <View style={[styles.card, { backgroundColor: theme.surface }]}>
+        <Text style={[styles.cardTitle, { color: theme.text }]}>{t('feed.linkTitle')}</Text>
+        {review ? (
+          <View style={[styles.chosen, { backgroundColor: theme.bg }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.pickTitle, { color: theme.text }]}>{stars(review.rating)}</Text>
+              <Text numberOfLines={2} style={[styles.sub, { color: theme.muted }]}>{review.body ? `“${review.body}”` : t('feed.reviewNoText')}</Text>
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('media.remove')} onPress={() => setReview(null)}><Ionicons name="close-circle" size={24} color={theme.muted} /></Pressable>
+          </View>
+        ) : null}
+        {attach ? (
+          <View style={[styles.chosen, { backgroundColor: theme.accent }]}>
+            <View style={[styles.iconDot, { backgroundColor: theme.surface }]}><Emoji name={attach.emoji} size={24} /></View>
+            <View style={{ flex: 1 }}>
+              <Text numberOfLines={1} style={[styles.pickTitle, { color: theme.onAccent }]}>{attach.title}</Text>
+              <Text numberOfLines={1} style={[styles.sub, { color: theme.onAccent }]}>{attach.sub}</Text>
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('media.remove')} onPress={() => setAttach(null)}><Ionicons name="close-circle" size={24} color={theme.ink} /></Pressable>
+          </View>
+        ) : null}
+        <Pressable accessibilityRole="button" onPress={() => setSheet(true)} style={[styles.addLink, { borderColor: theme.muted }]}>
+          <Ionicons name="add" size={20} color={theme.text} />
+          <Text style={[styles.pickTitle, { color: theme.text }]}>{review || attach ? t('feed.linkChange') : t('feed.linkAdd')}</Text>
+        </Pressable>
+        <Text style={[styles.hintTxt, { color: theme.muted }]}>{t('feed.linkHint')}</Text>
+      </View>
 
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
+
+      <Modal visible={sheet} transparent animationType="slide" onRequestClose={() => setSheet(false)}>
+        <Pressable style={[styles.backdrop, { backgroundColor: theme.scrim }]} onPress={() => setSheet(false)} />
+        <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
+          <View style={[styles.grab, { backgroundColor: theme.fill }]} />
+          <Text style={[styles.topTitle, { color: theme.text, fontSize: 20 }]}>{t('feed.linkTitle')}</Text>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 18, paddingBottom: 12 }}>
+            {section(t('feed.secReview'), 'star', lists.reviews.map((r) => ({ id: r.id, title: stars(r.rating), sub: r.body ?? t('feed.reviewNoText'), on: review?.id === r.id, press: () => { setReview(review?.id === r.id ? null : r); setSheet(false); } })), null, null, t('feed.noReviews'))}
+            {section(t('feed.secServices'), 'books', lists.services.map((s) => { const a = asServiceAttach(s); return { id: s.id, title: a.title, sub: a.sub, on: attach?.id === s.id, press: () => { setAttach(attach?.id === s.id ? null : a); setSheet(false); } }; }), t('feed.newService'), () => createNew('service'), t('feed.noServices'))}
+            {section(t('feed.secOffers'), 'party_popper', lists.offers.map((o) => { const a = asOfferAttach(o); return { id: o.id, title: a.title, sub: a.sub, on: attach?.id === o.id, press: () => { setAttach(attach?.id === o.id ? null : a); setSheet(false); } }; }), t('feed.newOffer'), () => createNew('offer'), t('feed.noOffers'))}
+            {section(t('feed.secSlots'), 'stopwatch', lists.links.map((l) => { const a = asLinkAttach(l); return { id: l.id, title: a.title, sub: a.sub, on: attach?.id === l.id, press: () => { setAttach(attach?.id === l.id ? null : a); setSheet(false); } }; }), t('feed.newSlot'), () => createNew('slot'), t('feed.noLinks'))}
+          </ScrollView>
+        </View>
+      </Modal>
     </Screen>
   );
 }
@@ -259,23 +305,26 @@ const styles = StyleSheet.create({
   topTitle: { fontFamily: fonts.semibold, fontSize: 17 },
   pill: { height: 44, paddingHorizontal: 16, borderRadius: 999, justifyContent: 'center' },
   pillText: { fontFamily: fonts.medium, fontSize: 15 },
-  types: { flexDirection: 'row', gap: 8 },
-  type: { flex: 1, height: 84, borderRadius: 26, alignItems: 'center', justifyContent: 'center', gap: 4 },
-  typeText: { fontFamily: fonts.semibold, fontSize: 13 },
-  card: { borderRadius: 32, padding: 16, gap: 12 },
-  input: { fontFamily: fonts.regular, fontSize: 18, lineHeight: 24, minHeight: 80, padding: 0, textAlignVertical: 'top' },
-  cardHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  card: { borderRadius: 32, padding: 16, gap: 14, marginBottom: 16 },
   cardTitle: { fontFamily: fonts.semibold, fontSize: 17 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  person: { height: 40, paddingLeft: 4, paddingRight: 12, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  personText: { fontFamily: fonts.semibold, fontSize: 14 },
-  dashed: { borderWidth: 1.5, borderStyle: 'dashed' },
-  search: { height: 46, borderRadius: 999, paddingHorizontal: 16, fontFamily: fonts.regular, fontSize: 15 },
-  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  sIcon: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  track: { width: 52, height: 32, borderRadius: 999, padding: 3, justifyContent: 'center' },
-  thumb: { width: 26, height: 26, borderRadius: 13 },
-  pick: { borderRadius: 22, paddingVertical: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' },
+  input: { fontFamily: fonts.regular, fontSize: 18, lineHeight: 25, minHeight: 120, padding: 0, textAlignVertical: 'top' },
+  hintTxt: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18 },
+  suggest: { borderRadius: 22, padding: 6 },
+  person: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8 },
+  tile: { width: 92, height: 92, borderRadius: 24 },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  dashed: { borderWidth: 1.5, borderStyle: 'dashed', gap: 4 },
+  remove: { position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  chosen: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 24, padding: 12 },
+  iconDot: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  addLink: { height: 50, borderRadius: 999, borderWidth: 1.5, borderStyle: 'dashed', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  sub: { fontFamily: fonts.regular, fontSize: 13 },
+  backdrop: { flex: 1 },
+  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, maxHeight: '85%', borderTopLeftRadius: 36, borderTopRightRadius: 36, padding: 16, paddingBottom: 30, gap: 12 },
+  grab: { alignSelf: 'center', width: 44, height: 5, borderRadius: 3 },
+  secHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  secTitle: { fontFamily: fonts.semibold, fontSize: 16 },
+  pick: { borderRadius: 22, paddingVertical: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
   pickTitle: { fontFamily: fonts.semibold, fontSize: 15 },
-  pickSub: { fontFamily: fonts.regular, fontSize: 13 },
+  newBtn: { borderWidth: 1.5, borderStyle: 'dashed', justifyContent: 'center' },
 });

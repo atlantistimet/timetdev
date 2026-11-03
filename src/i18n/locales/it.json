@@ -684,7 +684,7 @@
     "remove": "Rimuovi",
     "errors": {
       "limit": "Massimo 6 tra foto e video.",
-      "imageSize": "La foto è troppo grande (massimo 5 MB).",
+      "imageSize": "La foto è troppo grande (massimo 10 MB).",
       "videoSize": "Il video è troppo grande (massimo 50 MB)."
     }
   },
@@ -709,7 +709,8 @@
     "errors": {
       "empty": "Scrivi qualcosa o aggiungi una foto o un video.",
       "pickOffer": "Scegli un'offerta.",
-      "pickLink": "Scegli uno slot."
+      "pickLink": "Scegli uno slot.",
+      "maxTags": "Puoi menzionare al massimo 5 persone."
     },
     "share": "Condividi",
     "linkCopied": "Link copiato negli appunti.",
@@ -750,7 +751,23 @@
     "slotGone": "Slot",
     "serviceGone": "Servizio",
     "unavailable": "Non più disponibile",
-    "discover": "Scopri"
+    "discover": "Scopri",
+    "mentionHint": "Scrivi @ per menzionare una persona: riceverà una richiesta di tag.",
+    "photosTitle": "Foto e video",
+    "linkTitle": "Collega",
+    "linkAdd": "Collega una recensione, un servizio, un'offerta o uno slot",
+    "linkChange": "Cambia collegamenti",
+    "linkHint": "La recensione compare in alto nel post, il servizio, l'offerta o lo slot in fondo.",
+    "reviewNoText": "Solo stelle",
+    "secReview": "Una recensione ricevuta",
+    "secServices": "Un mio servizio",
+    "secOffers": "Una mia offerta",
+    "secSlots": "Un mio slot singolo",
+    "noReviews": "Nessuna recensione disponibile da ricondividere.",
+    "noServices": "Non hai servizi attivi.",
+    "newService": "Crea un nuovo servizio",
+    "newOffer": "Crea una nuova offerta",
+    "newSlot": "Crea un nuovo slot singolo"
   },
   "explore": {
     "search": "Cerca persone o servizi",
@@ -1078,7 +1095,8 @@
       "availability_expiring": "La tua disponibilità scade il {{date}}: rinnovala per restare prenotabile.",
       "tag_request": "{{name}} ti ha taggato in un post.",
       "review_reply": "{{name}} ha risposto alla tua recensione: «{{snippet}}»",
-      "tag_accepted": "{{name}} ha accettato il tag nel tuo post."
+      "tag_accepted": "{{name}} ha accettato il tag nel tuo post.",
+      "review_shared": "{{name}} ha ricondiviso la tua recensione in un post. Vuoi restare anonimo o mostrarti con nome e foto?"
     },
     "markRead": "Segna lette",
     "today": "Oggi",
@@ -1088,7 +1106,9 @@
     "minAgo_one": "{{count}} min fa",
     "minAgo_other": "{{count}} min fa",
     "hourAgo_one": "{{count}} h fa",
-    "hourAgo_other": "{{count}} h fa"
+    "hourAgo_other": "{{count}} h fa",
+    "stayAnon": "Resto anonimo",
+    "showMe": "Mi mostro"
   },
   "create": {
     "title": "Cosa vuoi creare?",

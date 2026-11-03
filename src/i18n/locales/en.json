@@ -684,7 +684,7 @@
     "remove": "Remove",
     "errors": {
       "limit": "Up to 6 photos and videos.",
-      "imageSize": "The photo is too large (max 5 MB).",
+      "imageSize": "The photo is too large (max 10 MB).",
       "videoSize": "The video is too large (max 50 MB)."
     }
   },
@@ -709,7 +709,8 @@
     "errors": {
       "empty": "Write something or add a photo or video.",
       "pickOffer": "Choose an offer.",
-      "pickLink": "Choose a slot."
+      "pickLink": "Choose a slot.",
+      "maxTags": "You can mention up to 5 people."
     },
     "share": "Share",
     "linkCopied": "Link copied to the clipboard.",
@@ -750,7 +751,23 @@
     "slotGone": "Slot",
     "serviceGone": "Service",
     "unavailable": "No longer available",
-    "discover": "Discover"
+    "discover": "Discover",
+    "mentionHint": "Type @ to mention someone: they will get a tag request.",
+    "photosTitle": "Photos and videos",
+    "linkTitle": "Link",
+    "linkAdd": "Link a review, a service, an offer or a slot",
+    "linkChange": "Change links",
+    "linkHint": "The review shows at the top of the post, the service, offer or slot at the bottom.",
+    "reviewNoText": "Stars only",
+    "secReview": "A review you received",
+    "secServices": "One of my services",
+    "secOffers": "One of my offers",
+    "secSlots": "One of my single slots",
+    "noReviews": "No review available to reshare.",
+    "noServices": "You have no active services.",
+    "newService": "Create a new service",
+    "newOffer": "Create a new offer",
+    "newSlot": "Create a new single slot"
   },
   "explore": {
     "search": "Search people or services",
@@ -1078,7 +1095,8 @@
       "availability_expiring": "Your availability ends on {{date}}: renew it to stay bookable.",
       "tag_request": "{{name}} tagged you in a post.",
       "review_reply": "{{name}} replied to your review: \"{{snippet}}\"",
-      "tag_accepted": "{{name}} accepted the tag in your post."
+      "tag_accepted": "{{name}} accepted the tag in your post.",
+      "review_shared": "{{name}} reshared your review in a post. Do you want to stay anonymous or show your name and photo?"
     },
     "markRead": "Mark read",
     "today": "Today",
@@ -1088,7 +1106,9 @@
     "minAgo_one": "{{count}} min ago",
     "minAgo_other": "{{count}} min ago",
     "hourAgo_one": "{{count}} h ago",
-    "hourAgo_other": "{{count}} h ago"
+    "hourAgo_other": "{{count}} h ago",
+    "stayAnon": "Stay anonymous",
+    "showMe": "Show me"
   },
   "create": {
     "title": "What do you want to create?",

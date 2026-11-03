@@ -8,7 +8,7 @@ import { ErrorText, LoadingView, Screen } from '@/components/ui';
 import { fonts, useTheme } from '@/theme';
 import { useAuth } from '@/lib/auth';
 import { formatEuro } from '@/lib/booking';
-import { listNotifications, markAllRead, markRead, type Notif } from '@/lib/notifications';
+import { answerReviewPublicity, listNotifications, markAllRead, markRead, type Notif } from '@/lib/notifications';
 
 type Loaded = { items: Notif[]; errorKey: string | null; nowMs: number };
 
@@ -68,6 +68,8 @@ export default function NotificationsScreen() {
       case 'tag_accepted':
         if (n.ref_id) router.push({ pathname: '/p/[id]', params: { id: n.ref_id } });
         break;
+      case 'review_shared':
+        break;
       case 'review_reply':
       case 'follow':
         if (p.handle) router.push({ pathname: '/u/[handle]', params: { handle: p.handle } });
@@ -81,7 +83,7 @@ export default function NotificationsScreen() {
   };
 
   const EMOJI: Record<string, string> = {
-    booking_new: 'party_popper', package_new: 'gift', booking_cancelled: 'calendar', tip: 'money_bag', message: 'speech_balloon', comment: 'speech_balloon',
+    review_shared: 'star', booking_new: 'party_popper', package_new: 'gift', booking_cancelled: 'calendar', tip: 'money_bag', message: 'speech_balloon', comment: 'speech_balloon',
     follow: 'waving_hand', review: 'raising_hands', call_missed: 'telephone_receiver', availability_expiring: 'stopwatch', tag_request: 'heart_hands',
     review_reply: 'speech_balloon', tag_accepted: 'heart_hands',
   };
@@ -144,6 +146,22 @@ export default function NotificationsScreen() {
                       {bold ? full.slice(name.length) : full}
                     </Text>
                     <Text style={[styles.when, { color: theme.muted }]}>{ago(n.created_at)}</Text>
+                    {n.kind === 'review_shared' && !n.read_at && n.ref_id ? (
+                      <View style={styles.answerRow}>
+                        {[false, true].map((pub) => (
+                          <Pressable
+                            key={String(pub)}
+                            accessibilityRole="button"
+                            onPress={async () => {
+                              if (await answerReviewPublicity(n.ref_id!, pub)) setReloadKey((k) => k + 1);
+                            }}
+                            style={[styles.answerBtn, { backgroundColor: pub ? theme.ink : theme.bg }]}
+                          >
+                            <Text style={[styles.answerText, { color: pub ? '#FFFFFF' : theme.text }]}>{pub ? t('notifications.showMe') : t('notifications.stayAnon')}</Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    ) : null}
                   </View>
                   {!n.read_at ? <View style={[styles.dot, { backgroundColor: theme.accent, borderColor: theme.ink }]} /> : null}
                 </Pressable>
@@ -168,5 +186,8 @@ const styles = StyleSheet.create({
   badge: { position: 'absolute', right: -6, bottom: -6, width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   text: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 20 },
   when: { fontFamily: fonts.regular, fontSize: 12 },
+  answerRow: { flexDirection: 'row', gap: 6, marginTop: 6, flexWrap: 'wrap' },
+  answerBtn: { height: 36, paddingHorizontal: 12, borderRadius: 999, justifyContent: 'center' },
+  answerText: { fontFamily: fonts.semibold, fontSize: 13 },
   dot: { width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },
 });

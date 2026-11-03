@@ -52,3 +52,9 @@ export function useUnreadCount(userId: string | null, reloadKey = 0): number {
   }, [userId, reloadKey]);
   return userId ? count : 0;
 }
+
+/** Chi ha scritto una recensione sceglie se resta anonimo o si mostra con nome e foto quando viene ricondivisa. */
+export async function answerReviewPublicity(reviewId: string, makePublic: boolean): Promise<boolean> {
+  const { error } = await supabase.rpc('answer_review_publicity', { p_review: reviewId, p_public: makePublic });
+  return !error;
+}
