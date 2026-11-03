@@ -73,7 +73,7 @@ export function CallChat({ me, otherId }: { me: string; otherId: string }) {
     else await refresh();
   };
 
-  const upload = async (file: { uri: string; name: string; mime: string }) => {
+  const upload = async (file: { uri: string; name: string; mime: string; width?: number; height?: number }) => {
     setAttachOpen(false);
     if (!convId) return;
     const failure = await sendAttachment(convId, me, file, i18n.language.slice(0, 2));
@@ -84,7 +84,7 @@ export function CallChat({ me, otherId }: { me: string; otherId: string }) {
   const pickMedia = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images', 'videos'], quality: 0.8 });
     const a = res.canceled ? null : res.assets[0];
-    if (a) await upload({ uri: a.uri, name: a.fileName ?? 'media', mime: a.mimeType ?? (a.type === 'video' ? 'video/mp4' : 'image/jpeg') });
+    if (a) await upload({ uri: a.uri, name: a.fileName ?? 'media', mime: a.mimeType ?? (a.type === 'video' ? 'video/mp4' : 'image/jpeg'), width: a.width, height: a.height });
     else setAttachOpen(false);
   };
 

@@ -166,7 +166,7 @@ export default function ChatScreen() {
     const a = res.canceled ? null : res.assets[0];
     if (!a) return;
     const mime = a.mimeType ?? (a.type === 'video' ? 'video/mp4' : 'image/jpeg');
-    const failure = await sendAttachment(convId, me, { uri: a.uri, name: a.fileName ?? 'media', mime }, i18n.language.slice(0, 2));
+    const failure = await sendAttachment(convId, me, { uri: a.uri, name: a.fileName ?? 'media', mime, width: a.width, height: a.height }, i18n.language.slice(0, 2));
     if (failure) setErrorKey(failure);
     else await reload(convId);
   };

@@ -1,3 +1,4 @@
+import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '@/lib/supabase';
 
 export type MediaAttachment = { kind: 'media'; type: 'image' | 'video' | 'file' | 'audio'; path: string; name: string; size: number; mime: string; durationMs?: number };
@@ -89,7 +90,21 @@ export const CHAT_MIME: Record<string, string> = {
 const CHAT_MAX = 25 * 1024 * 1024;
 
 /** Carica un allegato nella cartella privata della conversazione e invia il messaggio che lo contiene. */
-export async function sendAttachment(conversationId: string, senderId: string, file: { uri: string; name: string; mime: string; durationMs?: number }, lang: string): Promise<string | null> {
+/** Le foto (anche HEIC dell'iPhone) diventano JPEG più leggeri, con il lato lungo al massimo 1600 px. Se la conversione fallisce restano com'erano. */
+async function toJpeg(file: { uri: string; name: string; mime: string; width?: number; height?: number }): Promise<{ uri: string; name: string; mime: string }> {
+  if (!file.mime.startsWith('image/') || file.mime === 'image/gif') return file;
+  try {
+    const long = Math.max(file.width ?? 0, file.height ?? 0);
+    const actions: ImageManipulator.Action[] = long > 1600 ? [{ resize: (file.width ?? 0) >= (file.height ?? 0) ? { width: 1600 } : { height: 1600 } }] : [];
+    const out = await ImageManipulator.manipulateAsync(file.uri, actions, { compress: 0.75, format: ImageManipulator.SaveFormat.JPEG });
+    return { uri: out.uri, name: file.name.replace(/\.[^.]+$/, '') + '.jpg', mime: 'image/jpeg' };
+  } catch {
+    return file;
+  }
+}
+
+export async function sendAttachment(conversationId: string, senderId: string, original: { uri: string; name: string; mime: string; durationMs?: number; width?: number; height?: number }, lang: string): Promise<string | null> {
+  const file = { ...(await toJpeg(original)), durationMs: original.durationMs };
   const ext = CHAT_MIME[file.mime];
   if (!ext) return 'chat.errors.type';
   const blob = await (await fetch(file.uri)).blob();

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { SheetModal } from '@/components/SheetModal';
 import { Pressable } from '@/components/Pressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -43,6 +43,7 @@ export default function CallScreen() {
   const [now, setNow] = useState(nowMs());
   const tokenRequested = useRef(false);
   const [reconnects, setReconnects] = useState(0);
+  const [hangupOpen, setHangupOpen] = useState(false);
   const fmt = (cents: number) => formatEuro(cents, i18n.language);
 
   const refresh = useCallback(async () => {
@@ -151,12 +152,7 @@ export default function CallScreen() {
     tokenRequested.current = false;
     setTimeout(() => setReconnects((n) => n + 1), 1500);
   };
-  const confirmHangup = () => {
-    Alert.alert(t('calls.hangupTitle'), t('calls.hangupBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('calls.hangupConfirm'), style: 'destructive', onPress: () => void act(endCall) },
-    ]);
-  };
+  const confirmHangup = () => setHangupOpen(true);
 
   const add = async (minutes: number) => {
     setAdding(true);
@@ -320,6 +316,21 @@ export default function CallScreen() {
             <LoadingView />
           ) : null}
         </View>
+        <SheetModal visible={hangupOpen} onRequestClose={() => setHangupOpen(false)}>
+          <View style={[styles.scrim]}>
+            <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
+              <View style={[styles.grabber, { backgroundColor: theme.fill }]} />
+              <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('calls.hangupTitle')}</Text>
+              <Text style={[styles.holdSub, { color: theme.muted, fontSize: 14 }]}>{t('calls.hangupBody')}</Text>
+              <Pressable accessibilityRole="button" onPress={() => { setHangupOpen(false); void act(endCall); }} style={[styles.answerBtn, { backgroundColor: '#D93A3F', height: 56 }]}>
+                <Text style={[styles.answerText, { color: '#FFFFFF', fontSize: 16 }]}>{t('calls.hangupConfirm')}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" onPress={() => setHangupOpen(false)} style={[styles.answerBtn, { backgroundColor: theme.bg, height: 52 }]}>
+                <Text style={[styles.answerText, { color: theme.text, fontSize: 15 }]}>{t('common.cancel')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </SheetModal>
         <SheetModal  visible={addOpen} onRequestClose={() => setAddOpen(false)}>
           <View style={[styles.scrim]}>
             <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
