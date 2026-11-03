@@ -681,7 +681,9 @@
     "callUnavailable": "Not available now",
     "book": "Book",
     "back": "Back",
-    "tabReviews": "Reviews"
+    "tabReviews": "Reviews",
+    "write": "Message",
+    "from": "from {{price}}"
   },
   "serviceDetail": {
     "mine": "This is your service: clients see it like this."
@@ -1188,7 +1190,10 @@
     "availability": "Availability",
     "availableNow": "now",
     "availableOff": "not set",
-    "payments": "Payments"
+    "payments": "Payments",
+    "tabSpace": "My space",
+    "tabSettings": "Settings",
+    "servicesCount": "services"
   },
   "svc": {
     "typeTitle": "What kind of time do you sell?",

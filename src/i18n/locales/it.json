@@ -681,7 +681,9 @@
     "callUnavailable": "Non disponibile ora",
     "book": "Prenota",
     "back": "Indietro",
-    "tabReviews": "Recensioni"
+    "tabReviews": "Recensioni",
+    "write": "Scrivi",
+    "from": "da {{price}}"
   },
   "serviceDetail": {
     "mine": "È un tuo servizio: lo vedono così i clienti."
@@ -1188,7 +1190,10 @@
     "availability": "Disponibilità",
     "availableNow": "ora",
     "availableOff": "da impostare",
-    "payments": "Pagamenti"
+    "payments": "Pagamenti",
+    "tabSpace": "Il mio spazio",
+    "tabSettings": "Impostazioni",
+    "servicesCount": "servizi"
   },
   "svc": {
     "typeTitle": "Che tipo di tempo vendi?",

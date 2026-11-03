@@ -6,14 +6,13 @@ import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
-import { Emoji } from '@/components/Emoji';
 import { Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { loadMyProfile, loadMyStats, type MyProfile, type MyStats } from '@/lib/profile-edit';
 import { useUnreadCount } from '@/lib/notifications';
 import { shareText } from '@/lib/slot-links';
 import { languageNames, supportedLanguages } from '@/i18n';
-import { fonts, pastelFor, useTheme } from '@/theme';
+import { fonts, useTheme } from '@/theme';
 
 export default function ProfileScreen() {
   const { t, i18n } = useTranslation();
@@ -26,6 +25,7 @@ export default function ProfileScreen() {
   const [now, setNow] = useState(0);
   const [langOpen, setLangOpen] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [section, setSection] = useState<'space' | 'settings'>('space');
 
   useEffect(() => {
     if (!userId) return;
@@ -54,70 +54,75 @@ export default function ProfileScreen() {
     setNote(r === 'copied' ? t('slotLinks.copied') : r === 'failed' ? t('errors.generic') : null);
   };
 
-  const rows: { key: string; icon: keyof typeof Ionicons.glyphMap; label: string; value?: string; badge?: boolean; onPress: () => void }[] = [
+  type Row = { key: string; icon: keyof typeof Ionicons.glyphMap; label: string; value?: string; badge?: boolean; danger?: boolean; onPress: () => void };
+  const space: Row[] = [
     { key: 'seller', icon: 'storefront-outline', label: t('home.sellerArea'), onPress: () => router.push('/seller') },
     { key: 'services', icon: 'briefcase-outline', label: t('myServices.title'), value: stats ? String(stats.services) : undefined, onPress: () => router.push('/my-services') },
     { key: 'availability', icon: 'flash-outline', label: t('profile.availability'), value: available ? t('profile.availableNow') : t('profile.availableOff'), onPress: () => router.push('/availability') },
     { key: 'payments', icon: 'card-outline', label: t('profile.payments'), value: 'Stripe', onPress: () => router.push('/earnings') },
     { key: 'notifications', icon: 'notifications-outline', label: t('notifications.title'), badge: unread > 0, value: unread > 0 ? String(unread) : undefined, onPress: () => router.push('/notifications') },
-    { key: 'language', icon: 'language-outline', label: t('settings.language'), value: languageNames[i18n.language] ?? i18n.language, onPress: () => setLangOpen(true) },
-    { key: 'signout', icon: 'log-out-outline', label: t('settings.signOut'), onPress: () => void signOut() },
   ];
+  const settings: Row[] = [
+    { key: 'language', icon: 'language-outline', label: t('settings.language'), value: languageNames[i18n.language] ?? i18n.language, onPress: () => setLangOpen(true) },
+    { key: 'signout', icon: 'log-out-outline', label: t('settings.signOut'), danger: true, onPress: () => void signOut() },
+  ];
+  const rows = section === 'space' ? space : settings;
 
   return (
-    <Screen tabs bare>
-      <View style={[styles.hero, { backgroundColor: pastelFor(userId ?? name) }]}>
-        <View style={styles.heroTop}>
-          <Avatar name={name || '?'} seed={userId ?? name} size={88} round={32} path={mine?.avatar_path} color={theme.ink} />
-          <Pressable accessibilityRole="button" onPress={() => router.push('/profile-edit')} style={styles.edit}>
-            <Text style={[styles.editText, { color: theme.ink }]}>{t('profile.edit')}</Text>
-          </Pressable>
+    <Screen tabs>
+      <View style={styles.top}>
+        <Avatar name={name || '?'} seed={userId ?? name} size={80} round={40} path={mine?.avatar_path} color={theme.ink} />
+        <View style={styles.numbers}>
+          <View style={styles.number}>
+            <Text style={[styles.numBig, { color: theme.text }]}>{String(stats?.moments ?? 0)}</Text>
+            <Text style={[styles.numSmall, { color: theme.muted }]}>{t('profile.moments')}</Text>
+          </View>
+          <View style={styles.number}>
+            <Text style={[styles.numBig, { color: theme.text }]}>{String(stats?.services ?? 0)}</Text>
+            <Text style={[styles.numSmall, { color: theme.muted }]}>{t('profile.servicesCount')}</Text>
+          </View>
+          <View style={styles.number}>
+            <Text style={[styles.numBig, { color: theme.text }]}>{`${num(stats?.hours ?? 0)} h`}</Text>
+            <Text style={[styles.numSmall, { color: theme.muted }]}>{t('profile.withPeople', { count: stats?.people ?? 0 })}</Text>
+          </View>
         </View>
-        <View style={{ gap: 4 }}>
-          <Text style={[styles.name, { color: theme.ink }]}>{first}</Text>
-          <Text style={[styles.handle, { color: theme.ink }]}>{handle ? `timeet.world/u/${handle}` : t('publicProfile.needHandle')}</Text>
-        </View>
-        <View style={styles.heroBtns}>
-          <Pressable accessibilityRole="button" onPress={() => (handle ? router.push({ pathname: '/u/[handle]', params: { handle } }) : router.push('/profile-edit'))} style={[styles.heroBtn, { backgroundColor: theme.ink }]}>
-            <Text style={[styles.heroBtnText, { color: '#FFFFFF' }]}>{t('profile.preview')}</Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => void share()} style={[styles.heroBtn, { backgroundColor: '#FFFFFF' }]}>
-            <Text style={[styles.heroBtnText, { color: theme.ink }]}>{t('profile.share')}</Text>
-          </Pressable>
-        </View>
-        {note ? <Text style={[styles.note, { color: theme.ink }]}>{note}</Text> : null}
       </View>
+      <View style={styles.who}>
+        <Text style={[styles.name, { color: theme.text }]}>{name || first}</Text>
+        <Text style={[styles.handle, { color: theme.muted }]}>{handle ? `timeet.world/u/${handle}` : t('publicProfile.needHandle')}</Text>
+      </View>
+      <View style={styles.btns}>
+        <Pressable accessibilityRole="button" onPress={() => router.push('/profile-edit')} style={[styles.btn, { backgroundColor: theme.surface, flex: 1 }]}>
+          <Text style={[styles.btnText, { color: theme.text }]}>{t('profile.edit')}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={() => void share()} style={[styles.btn, { backgroundColor: theme.surface, flex: 1 }]}>
+          <Text style={[styles.btnText, { color: theme.text }]}>{t('profile.share')}</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('profile.preview')} onPress={() => (handle ? router.push({ pathname: '/u/[handle]', params: { handle } }) : router.push('/profile-edit'))} style={[styles.btn, { backgroundColor: theme.surface, width: 44 }]}>
+          <Ionicons name="eye-outline" size={20} color={theme.text} />
+        </Pressable>
+      </View>
+      {note ? <Text style={[styles.note, { color: theme.muted }]}>{note}</Text> : null}
 
-      <View style={styles.body}>
-        <View style={styles.tiles}>
-          <View style={[styles.tile, { backgroundColor: theme.accent }]}>
-            <Emoji name="heart_hands" size={30} />
-            <View>
-              <Text style={[styles.tileBig, { color: theme.onAccent }]}>{`${num(stats?.hours ?? 0)} h`}</Text>
-              <Text style={[styles.tileSmall, { color: theme.onAccent }]}>{t('profile.withPeople', { count: stats?.people ?? 0 })}</Text>
+      <View style={[styles.tabsRow, { borderBottomColor: theme.fill }]}>
+        {(['space', 'settings'] as const).map((k) => (
+          <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: section === k }} onPress={() => setSection(k)} style={[styles.tabItem, section === k && { borderBottomColor: theme.ink }]}>
+            <Text style={[styles.tabText, { color: section === k ? theme.text : theme.muted, fontFamily: section === k ? fonts.semibold : fonts.medium }]}>{t(k === 'space' ? 'profile.tabSpace' : 'profile.tabSettings')}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <View style={[styles.list, { backgroundColor: theme.surface }]}>
+        {rows.map((r, i) => (
+          <Pressable key={r.key} accessibilityRole="button" onPress={r.onPress} style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.fill }]}>
+            <View style={[styles.icon, { backgroundColor: theme.bg }]}>
+              <Ionicons name={r.icon} size={20} color={r.danger ? theme.danger : theme.ink} />
+              {r.badge ? <View style={[styles.dot, { backgroundColor: theme.accent, borderColor: theme.surface }]} /> : null}
             </View>
-          </View>
-          <View style={[styles.tile, { backgroundColor: theme.surface }]}>
-            <Emoji name="star" size={30} />
-            <View>
-              <Text style={[styles.tileBig, { color: theme.text }]}>{String(stats?.moments ?? 0)}</Text>
-              <Text style={[styles.tileSmall, { color: theme.muted }]}>{t('profile.moments')}</Text>
-            </View>
-          </View>
-        </View>
-        <View style={[styles.list, { backgroundColor: theme.surface }]}>
-          {rows.map((r, i) => (
-            <Pressable key={r.key} accessibilityRole="button" onPress={r.onPress} style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.fill }]}>
-              <View style={[styles.icon, { backgroundColor: theme.bg }]}>
-                <Ionicons name={r.icon} size={20} color={theme.ink} />
-                {r.badge ? <View style={[styles.dot, { backgroundColor: theme.accent, borderColor: theme.surface }]} /> : null}
-              </View>
-              <Text style={[styles.rowLabel, { color: theme.text }]}>{r.label}</Text>
-              {r.value ? <Text style={[styles.rowValue, { color: theme.muted }]}>{r.value}</Text> : null}
-              <Ionicons name="chevron-forward" size={18} color={theme.muted} />
-            </Pressable>
-          ))}
-        </View>
+            <Text style={[styles.rowLabel, { color: r.danger ? theme.danger : theme.text }]}>{r.label}</Text>
+            {r.value ? <Text style={[styles.rowValue, { color: theme.muted }]}>{r.value}</Text> : null}
+            <Ionicons name="chevron-forward" size={18} color={theme.muted} />
+          </Pressable>
+        ))}
       </View>
 
       <SheetModal visible={langOpen}  onRequestClose={() => setLangOpen(false)}>
@@ -141,22 +146,22 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { margin: 8, padding: 18, paddingTop: 56, borderRadius: 40, gap: 22 },
-  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  edit: { height: 44, paddingHorizontal: 16, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.65)', justifyContent: 'center' },
-  editText: { fontFamily: fonts.semibold, fontSize: 15 },
-  name: { fontFamily: fonts.semibold, fontSize: 38, letterSpacing: -1.7, lineHeight: 40 },
-  handle: { fontFamily: fonts.medium, fontSize: 15 },
-  heroBtns: { flexDirection: 'row', gap: 8 },
-  heroBtn: { flex: 1, height: 46, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  heroBtnText: { fontFamily: fonts.semibold, fontSize: 15 },
-  note: { fontFamily: fonts.medium, fontSize: 13 },
-  body: { paddingHorizontal: 16, paddingTop: 2, gap: 10 },
-  tiles: { flexDirection: 'row', gap: 8 },
-  tile: { flex: 1, borderRadius: 26, paddingVertical: 12, paddingHorizontal: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  tileBig: { fontFamily: fonts.semibold, fontSize: 24, letterSpacing: -1 },
-  tileSmall: { fontFamily: fonts.regular, fontSize: 12 },
-  list: { borderRadius: 30, padding: 6 },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 8, paddingHorizontal: 4 },
+  numbers: { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
+  number: { alignItems: 'center', flexShrink: 1 },
+  numBig: { fontFamily: fonts.semibold, fontSize: 20, letterSpacing: -0.6 },
+  numSmall: { fontFamily: fonts.regular, fontSize: 12, textAlign: 'center' },
+  who: { marginTop: 12, paddingHorizontal: 4, gap: 2 },
+  name: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: -0.7 },
+  handle: { fontFamily: fonts.medium, fontSize: 14 },
+  btns: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  btn: { height: 44, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  btnText: { fontFamily: fonts.semibold, fontSize: 15 },
+  note: { fontFamily: fonts.medium, fontSize: 13, marginTop: 8, paddingHorizontal: 4 },
+  tabsRow: { flexDirection: 'row', gap: 22, marginTop: 18, marginHorizontal: 4, borderBottomWidth: 1 },
+  tabItem: { paddingBottom: 9, marginBottom: -1, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabText: { fontSize: 15 },
+  list: { borderRadius: 26, padding: 6, marginTop: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 6 },
   icon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   dot: { position: 'absolute', top: 6, right: 6, width: 10, height: 10, borderRadius: 5, borderWidth: 2 },

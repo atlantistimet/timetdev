@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
-import { Emoji } from '@/components/Emoji';
-import { Body, Button, Card, LoadingView, Pill, Screen, Spacer, Title } from '@/components/ui';
+import { Body, Button, Card, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { PostCard } from '@/components/PostCard';
 import { ReviewReply } from '@/components/ReviewReply';
 import { useAuth } from '@/lib/auth';
@@ -14,6 +15,7 @@ import { followInfo, loadPosts, setFollow, type Post } from '@/lib/feed';
 import { cleanTitle, formatEuro, listSellerServices, type SlotService } from '@/lib/booking';
 import { finalPriceCents, listSellerOffers, validityText, type Offer } from '@/lib/offers';
 import { loadReviews, stars, type Review, type ReviewSummary } from '@/lib/reviews';
+import { shareText } from '@/lib/slot-links';
 import { loadProfileByHandle, type PublicProfile } from '@/lib/public-profile';
 import { loadCategories, loadSellerStats, loadSellers, type Category, type Seller, type SellerStats } from '@/lib/explore';
 import { fonts, pastelFor, radius, useTheme } from '@/theme';
@@ -30,6 +32,20 @@ export default function PublicProfileScreen() {
   const [reloadKey, setReloadKey] = useState(0);
   const [following, setFollowing] = useState<boolean | null>(null);
   const [tab, setTab] = useState<'services' | 'offers' | 'posts' | 'reviews'>('services');
+  const insets = useSafeAreaInsets();
+  const { width: winW } = useWindowDimensions();
+  const coverW = Math.min(winW, 440);
+  const COVER = 300;
+  const BAR = insets.top + 56;
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollY.set(e.contentOffset.y);
+  });
+  const barStyle = useAnimatedStyle(() => ({ opacity: interpolate(scrollY.get(), [COVER - BAR - 60, COVER - BAR], [0, 1], Extrapolation.CLAMP) }));
+  const coverStyle = useAnimatedStyle(() => {
+    const y = scrollY.get();
+    return { transform: [{ translateY: y > 0 ? y * 0.5 : 0 }, { scale: y < 0 ? 1 + -y / COVER : 1 }] };
+  });
 
   useEffect(() => {
     let alive = true;
@@ -66,14 +82,11 @@ export default function PublicProfileScreen() {
     );
   }
 
-  const { profile, seller, stats, categories, services, offers, posts, reviews, summary, follow, nowMs } = loaded;
+  const { profile, seller, stats, services, offers, posts, reviews, summary, follow, nowMs } = loaded;
   const isFollowing = following ?? follow.following;
   const mine = session?.user.id === profile.id;
   const where = [...new Set(services.flatMap((s) => s.places))];
   const callableNow = !!profile.available_until && new Date(profile.available_until).getTime() > nowMs;
-  const firstName = profile.full_name.split(/\s+/)[0] ?? profile.full_name;
-  const lastName = profile.full_name.split(/\s+/).slice(1).join(' ');
-  const emoji = categories.find((c) => c.key === seller?.categories[0])?.emoji ?? null;
   const tint = pastelFor(profile.id);
   const rateService = services.find((s) => s.kind === 'per_minute');
   const bookable = services.filter((s) => s.kind !== 'per_minute');
@@ -100,35 +113,48 @@ export default function PublicProfileScreen() {
   };
   const topOffer = offers[0];
 
-  const footer = !mine ? (
-    <View style={[styles.bar, { backgroundColor: theme.ink }]}>
-      <Pressable accessibilityRole="button" accessibilityLabel={t('chat.write_to')} onPress={() => router.push({ pathname: '/chat/[userId]', params: { userId: profile.id } })} style={[styles.barChat, { backgroundColor: theme.inkSurface2 }]}>
-        <Ionicons name="chatbubble-outline" size={22} color={theme.inkOn} />
-      </Pressable>
+  const fromPrice = bookable.length > 0 ? Math.min(...bookable.map((s) => s.price_cents)) : 0;
+  const shareProfile = () => void shareText(`https://timeet.world/u/${profile.handle ?? handle}`);
+  const toggleFollow = async () => {
+    const next = !isFollowing;
+    setFollowing(next);
+    if (await setFollow(session?.user.id ?? '', profile.id, next)) setFollowing(!next);
+  };
+  const goChat = () => router.push({ pathname: '/chat/[userId]', params: { userId: profile.id } });
+  const statsLine = [
+    `${stats?.sessions_count ?? 0} ${t('publicProfile.statSessions')}`,
+    avg ? `${Number(avg).toFixed(1).replace('.', ',')} ★ (${reviewsCount})` : null,
+    `${hours >= 10 ? Math.round(hours) : hours.toFixed(1).replace('.0', '').replace('.', ',')} h ${t('publicProfile.statHours')}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  const footer = !mine && (bookable.length > 0 || rateService) ? (
+    <View style={styles.bar}>
       {rateService ? (
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel={t('publicProfile.callWithRate', { rate: rateText })}
           disabled={!callableNow}
           onPress={() => router.push({ pathname: '/call-start', params: { serviceId: rateService.id } })}
-          style={[styles.barCall, { backgroundColor: theme.surface, opacity: callableNow ? 1 : 0.55 }]}>
-          <Text style={[styles.barText, { color: theme.text }]}>{callableNow ? t('publicProfile.callWithRate', { rate: rateText }) : t('publicProfile.callUnavailable')}</Text>
-        </Pressable>
-      ) : (
-        <View style={{ flex: 1 }} />
-      )}
-      {bookable.length > 0 ? (
-        <Pressable accessibilityRole="button" onPress={onBook} style={[styles.barBook, { backgroundColor: theme.accent }]}>
-          <Text style={[styles.barText, { color: theme.onAccent }]}>{t('publicProfile.book')}</Text>
+          style={[styles.barCall, { backgroundColor: theme.surface, opacity: callableNow ? 1 : 0.5 }]}>
+          <Ionicons name="call-outline" size={22} color={theme.text} />
         </Pressable>
       ) : null}
+      {bookable.length > 0 ? (
+        <Pressable accessibilityRole="button" onPress={onBook} style={[styles.barBook, { backgroundColor: theme.ink }]}>
+          <Text style={[styles.barText, { color: theme.inkOn }]}>{`${t('publicProfile.book')} · ${t('publicProfile.from', { price: formatEuro(fromPrice, i18n.language) })}`}</Text>
+        </Pressable>
+      ) : (
+        <View style={[styles.barBook, { backgroundColor: theme.ink, opacity: callableNow ? 1 : 0.5 }]}>
+          <Text style={[styles.barText, { color: theme.inkOn }]}>{callableNow ? t('publicProfile.callWithRate', { rate: rateText }) : t('publicProfile.callUnavailable')}</Text>
+        </View>
+      )}
     </View>
-  ) : undefined;
+  ) : null;
 
-  const row = (key: string, tileColor: string, title: string, meta: string, price: string, onPress: () => void) => (
-    <Pressable key={key} accessibilityRole="button" onPress={onPress} style={[styles.row, { backgroundColor: theme.surface }]}>
-      <View style={[styles.rowTile, { backgroundColor: tileColor }]}>
-        <Emoji name={emoji} size={32} />
-      </View>
+  const row = (key: string, title: string, meta: string, price: string, onPress: () => void) => (
+    <Pressable key={key} accessibilityRole="button" onPress={onPress} style={[styles.row, { borderBottomColor: theme.fill }]}>
       <View style={styles.rowBody}>
         <Text numberOfLines={2} style={[styles.rowTitle, { color: theme.text }]}>{title}</Text>
         {meta ? <Text numberOfLines={1} style={[styles.rowMeta, { color: theme.muted }]}>{meta}</Text> : null}
@@ -137,205 +163,172 @@ export default function PublicProfileScreen() {
     </Pressable>
   );
 
+  const roundBtn = (icon: 'chevron-back' | 'share-outline', label: string, onPress: () => void) => (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.roundBtn}>
+      <Ionicons name={icon} size={22} color="#FFFFFF" />
+    </Pressable>
+  );
+
   return (
-    <Screen bare footer={footer}>
-      <View style={[styles.hero, { backgroundColor: tint }]}>
-        <View style={styles.heroTop}>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('publicProfile.back')} onPress={goBack} style={styles.heroBtn}>
-            <Ionicons name="chevron-back" size={22} color={theme.ink} />
-          </Pressable>
-          {mine ? (
-            <Pressable accessibilityRole="button" onPress={() => router.push('/profile-edit')} style={[styles.heroFollow, { backgroundColor: theme.ink }]}>
-              <Text style={[styles.heroFollowText, { color: theme.inkOn }]}>{t('publicProfile.editMine')}</Text>
-            </Pressable>
-          ) : (
-            <Pressable
-              accessibilityRole="button"
-              onPress={async () => {
-                const next = !isFollowing;
-                setFollowing(next);
-                if (await setFollow(session?.user.id ?? '', profile.id, next)) setFollowing(!next);
-              }}
-              style={[styles.heroFollow, { backgroundColor: theme.ink }]}>
-              <Text style={[styles.heroFollowText, { color: theme.inkOn }]}>{t(isFollowing ? 'publicProfile.unfollow' : 'publicProfile.follow')}</Text>
-            </Pressable>
-          )}
-        </View>
-        <View style={styles.heroMain}>
-          <View style={styles.heroText}>
-            {callableNow ? (
-              <View style={[styles.live, { backgroundColor: theme.accent }]}>
-                <View style={[styles.liveDot, { backgroundColor: theme.onAccent }]} />
-                <Text style={[styles.liveText, { color: theme.onAccent }]}>{t('explore.availableNow')}</Text>
-              </View>
-            ) : null}
-            <Text style={[styles.name, { color: theme.ink }]}>
-              {firstName}
-              {lastName ? `\n${lastName}` : ''}
-            </Text>
-            <View style={styles.roleRow}>
-              <Text style={[styles.role, { color: theme.ink }]}>{[profile.role_title, profile.city].filter(Boolean).join(' · ')}</Text>
-              {profile.role_title ? <Emoji name={emoji} size={18} /> : null}
+    <View style={[styles.root, { backgroundColor: theme.bg }]}>
+      <Animated.ScrollView onScroll={onScroll} scrollEventThrottle={16} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 220 }}>
+        <View style={[styles.column, { width: coverW }]}>
+          <View style={[styles.cover, { height: COVER, backgroundColor: tint }]}>
+            <Animated.View style={[styles.coverImg, coverStyle]}>
+              <Avatar name={profile.full_name} seed={profile.id} size={coverW} round={0} path={seller?.avatar_path} />
+            </Animated.View>
+            <View pointerEvents="none" style={styles.coverShade} />
+            <View style={styles.coverText}>
+              {callableNow ? (
+                <View style={[styles.live, { backgroundColor: theme.accent }]}>
+                  <View style={[styles.liveDot, { backgroundColor: theme.onAccent }]} />
+                  <Text style={[styles.liveText, { color: theme.onAccent }]}>{t('explore.availableNow')}</Text>
+                </View>
+              ) : null}
+              <Text numberOfLines={2} style={styles.name}>{profile.full_name}</Text>
+              <Text numberOfLines={1} style={styles.role}>{[profile.role_title, profile.city].filter(Boolean).join(' · ')}</Text>
             </View>
           </View>
-          <View style={styles.heroAvatar}>
-            <Avatar name={profile.full_name} seed={profile.id} size={104} round={36} path={seller?.avatar_path} />
-            {emoji ? (
-              <View style={styles.heroBadge}>
-                <Emoji name={emoji} size={24} />
-              </View>
+
+          <View style={styles.body}>
+            <Text style={[styles.statsLine, { color: theme.muted }]}>{statsLine}</Text>
+            {profile.bio ? <Text style={[styles.bio, { color: theme.text }]}>{profile.bio}</Text> : null}
+            {where.length > 0 ? (
+              <Text style={[styles.placesLine, { color: theme.muted }]}>{where.map((p) => (p === 'sede' && profile.place_type ? profile.place_type : t(`places.${p}`))).join(' · ')}</Text>
             ) : null}
-          </View>
-        </View>
-      </View>
 
-      <View style={styles.body}>
-        <View style={styles.stats}>
-          <View style={[styles.stat, { backgroundColor: theme.accent }]}>
-            <Text style={[styles.statNum, { color: theme.onAccent }]}>{`${hours >= 10 ? Math.round(hours) : hours.toFixed(1).replace('.0', '')} h`}</Text>
-            <Text style={[styles.statLabel, { color: theme.onAccent }]}>{t('publicProfile.statHours')}</Text>
-          </View>
-          <View style={[styles.stat, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.statNum, { color: theme.text }]}>{stats?.sessions_count ?? 0}</Text>
-            <Text style={[styles.statLabel, { color: theme.muted }]}>{t('publicProfile.statSessions')}</Text>
-          </View>
-          <View style={[styles.stat, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.statNum, { color: theme.text }]}>{avg ? Number(avg).toFixed(1).replace('.', ',') : '–'}</Text>
-            <Text style={[styles.statLabel, { color: theme.muted }]}>{t('reviews.count', { count: reviewsCount })}</Text>
-          </View>
-        </View>
+            <View style={styles.actions}>
+              {mine ? (
+                <Pressable accessibilityRole="button" onPress={() => router.push('/profile-edit')} style={[styles.action, { backgroundColor: theme.surface }]}>
+                  <Text style={[styles.actionText, { color: theme.text }]}>{t('publicProfile.editMine')}</Text>
+                </Pressable>
+              ) : (
+                <>
+                  <Pressable accessibilityRole="button" onPress={goChat} style={[styles.action, { backgroundColor: theme.surface }]}>
+                    <Text style={[styles.actionText, { color: theme.text }]}>{t('publicProfile.write')}</Text>
+                  </Pressable>
+                  <Pressable accessibilityRole="button" onPress={() => void toggleFollow()} style={[styles.action, { backgroundColor: isFollowing ? theme.surface : theme.ink }]}>
+                    <Text style={[styles.actionText, { color: isFollowing ? theme.text : theme.inkOn }]}>{t(isFollowing ? 'publicProfile.unfollow' : 'publicProfile.follow')}</Text>
+                  </Pressable>
+                </>
+              )}
+            </View>
 
-        {stats && stats.reviewers_count > 0 ? (
-          <View style={[styles.faces, { backgroundColor: theme.surface }]}>
-            <View style={styles.facesRow}>
-              {stats.reviewers.slice(0, 3).map((r, i) => (
-                <View key={r.id} style={[styles.face, { borderColor: theme.surface, marginLeft: i === 0 ? 0 : -9 }]}>
-                  <Avatar name={r.full_name} seed={r.id} size={32} path={r.avatar_path} />
-                </View>
+            <View accessibilityRole="tablist" style={[styles.tabs, { borderBottomColor: theme.fill }]}>
+              {tabs.map((x) => (
+                <Pressable key={x.key} accessibilityRole="tab" accessibilityState={{ selected: tab === x.key }} onPress={() => setTab(x.key)} style={[styles.tab, tab === x.key && { borderBottomColor: theme.ink }]}>
+                  <Text style={[styles.tabText, { color: tab === x.key ? theme.text : theme.muted, fontFamily: tab === x.key ? fonts.semibold : fonts.medium }]}>{x.label}</Text>
+                </Pressable>
               ))}
             </View>
-            <Text style={[styles.facesText, { color: theme.muted }]}>
-              <Text style={{ color: theme.text, fontFamily: fonts.semibold }}>{t('publicProfile.reviewedBy', { count: stats.reviewers_count })}</Text>
-            </Text>
-            <Emoji name="heart_hands" size={24} />
-          </View>
-        ) : null}
 
-        {profile.bio ? <Text style={[styles.bio, { color: theme.text }]}>{profile.bio}</Text> : null}
-        {where.length > 0 ? (
-          <View style={styles.places}>
-            {where.map((p) => (
-              <Pill key={p} label={p === 'sede' && profile.place_type ? profile.place_type : t(`places.${p}`)} />
-            ))}
+            {tab === 'posts' ? (
+              <>
+                {posts.length === 0 ? <Body muted>{t('publicProfile.noPosts')}</Body> : null}
+                {posts.map((post) => (
+                  <PostCard key={post.id} post={post} userId={session?.user.id ?? ''} nowMs={nowMs} onDeleted={() => setReloadKey((k) => k + 1)} />
+                ))}
+              </>
+            ) : tab === 'services' ? (
+              <>
+                {topOffer ? (
+                  <Pressable accessibilityRole="button" onPress={() => setTab('offers')} style={[styles.offerBanner, { backgroundColor: theme.accent }]}>
+                    <Text numberOfLines={1} style={[styles.offerTitle, { color: theme.onAccent }]}>{t('publicProfile.offerBanner', { title: topOffer.service_title, price: formatEuro(finalPriceCents(topOffer), i18n.language) })}</Text>
+                    <Ionicons name="chevron-forward" size={18} color={theme.onAccent} />
+                  </Pressable>
+                ) : null}
+                {services.length === 0 ? <Body muted>{t('publicProfile.noServices')}</Body> : null}
+                {services.map((s) => row(s.id, cleanTitle(s.title), metaText(s), priceText(s), () => router.push({ pathname: '/service/[id]', params: { id: s.id } })))}
+              </>
+            ) : tab === 'reviews' ? (
+              <>
+                {reviews.length === 0 ? <Body muted>{t('reviews.none')}</Body> : null}
+                {reviews.map((r) => (
+                  <Card key={r.id}>
+                    <Body>{`${stars(r.rating)} · ${r.author_name}`}</Body>
+                    {r.body ? <Body muted>{r.body}</Body> : null}
+                    <Body muted>{new Date(r.created_at).toLocaleDateString(i18n.language)}</Body>
+                    <ReviewReply reviewId={r.id} reply={r.reply} sellerName={profile.full_name} canReply={mine} onDone={() => setReloadKey((k) => k + 1)} />
+                  </Card>
+                ))}
+              </>
+            ) : (
+              <>
+                {offers.length === 0 ? <Body muted>{t('publicProfile.noOffers')}</Body> : null}
+                {offers.map((o) =>
+                  row(
+                    o.id,
+                    cleanTitle(o.service_title),
+                    `${o.discount_pct ? `−${o.discount_pct}% · ` : ''}${validityText(o.validity, i18n.language, t)}`,
+                    formatEuro(finalPriceCents(o), i18n.language),
+                    () => router.push({ pathname: '/book', params: { serviceId: o.service_id, offerId: o.id } }),
+                  ),
+                )}
+              </>
+            )}
           </View>
-        ) : null}
-
-        <View accessibilityRole="tablist" style={[styles.tabs, { backgroundColor: theme.surface }]}>
-          {tabs.map((x) => (
-            <Pressable key={x.key} accessibilityRole="tab" accessibilityState={{ selected: tab === x.key }} onPress={() => setTab(x.key)} style={[styles.tab, tab === x.key && { backgroundColor: theme.ink }]}>
-              <Text style={[styles.tabText, { color: tab === x.key ? theme.inkOn : theme.text, fontFamily: tab === x.key ? fonts.semibold : fonts.medium }]}>{x.label}</Text>
-            </Pressable>
-          ))}
         </View>
+      </Animated.ScrollView>
 
-        {tab === 'posts' ? (
-          <>
-            {posts.length === 0 ? <Body muted>{t('publicProfile.noPosts')}</Body> : null}
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} userId={session?.user.id ?? ''} nowMs={nowMs} onDeleted={() => setReloadKey((k) => k + 1)} />
-            ))}
-          </>
-        ) : tab === 'services' ? (
-          <>
-            {topOffer ? (
-              <Pressable accessibilityRole="button" onPress={() => setTab('offers')} style={[styles.offerBanner, { backgroundColor: theme.accent }]}>
-                <Emoji name="party_popper" size={34} />
-                <View style={styles.rowBody}>
-                  <Text style={[styles.offerTitle, { color: theme.onAccent }]}>{t('publicProfile.offerBanner', { title: topOffer.service_title, price: formatEuro(finalPriceCents(topOffer), i18n.language) })}</Text>
-                  <Text style={[styles.offerSub, { color: theme.onAccent }]}>{validityText(topOffer.validity, i18n.language, t)}</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={20} color={theme.onAccent} />
-              </Pressable>
-            ) : null}
-            {services.length === 0 ? <Body muted>{t('publicProfile.noServices')}</Body> : null}
-            {services.map((s) =>
-              row(s.id, pastelFor(s.id), cleanTitle(s.title), metaText(s), priceText(s), () => router.push({ pathname: '/service/[id]', params: { id: s.id } })),
-            )}
-          </>
-        ) : tab === 'reviews' ? (
-          <>
-            {reviews.length === 0 ? <Body muted>{t('reviews.none')}</Body> : null}
-            {reviews.map((r) => (
-              <Card key={r.id}>
-                <Body>{`${stars(r.rating)} · ${r.author_name}`}</Body>
-                {r.body ? <Body muted>{r.body}</Body> : null}
-                <Body muted>{new Date(r.created_at).toLocaleDateString(i18n.language)}</Body>
-                <ReviewReply reviewId={r.id} reply={r.reply} sellerName={profile.full_name} canReply={mine} onDone={() => setReloadKey((k) => k + 1)} />
-              </Card>
-            ))}
-          </>
-        ) : (
-          <>
-            {offers.length === 0 ? <Body muted>{t('publicProfile.noOffers')}</Body> : null}
-            {offers.map((o) =>
-              row(
-                o.id,
-                pastelFor(o.id),
-                cleanTitle(o.service_title),
-                `${o.discount_pct ? `−${o.discount_pct}% · ` : ''}${validityText(o.validity, i18n.language, t)}`,
-                formatEuro(finalPriceCents(o), i18n.language),
-                () => router.push({ pathname: '/book', params: { serviceId: o.service_id, offerId: o.id } }),
-              ),
-            )}
-          </>
-        )}
+      <View pointerEvents="box-none" style={[styles.topWrap, { height: BAR }]}>
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: theme.bg, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.fill }, barStyle]}>
+          <View style={[styles.barTitleWrap, { paddingTop: insets.top }]}>
+            <Text numberOfLines={1} style={[styles.barTitle, { color: theme.text }]}>{profile.full_name}</Text>
+          </View>
+        </Animated.View>
+        <View pointerEvents="box-none" style={[styles.topRow, { top: insets.top + 6 }]}>
+          {roundBtn('chevron-back', t('publicProfile.back'), goBack)}
+          {roundBtn('share-outline', t('profile.share'), shareProfile)}
+        </View>
       </View>
-    </Screen>
+
+      {footer ? (
+        <View pointerEvents="box-none" style={styles.footerWrap}>
+          <View style={styles.footerColumn}>{footer}</View>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: { margin: 8, borderRadius: 38, paddingHorizontal: 16, paddingTop: 20, paddingBottom: 20, gap: 22 },
-  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  heroBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center' },
-  heroFollow: { height: 44, paddingHorizontal: 20, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
-  heroFollowText: { fontFamily: fonts.medium, fontSize: 15 },
-  heroMain: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 },
-  heroText: { flex: 1, gap: 8 },
-  live: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', height: 30, paddingHorizontal: 12, borderRadius: radius.pill },
+  root: { flex: 1 },
+  column: { alignSelf: 'center' },
+  cover: { overflow: 'hidden', justifyContent: 'flex-end' },
+  coverImg: { ...StyleSheet.absoluteFill },
+  coverShade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 150, backgroundColor: 'rgba(0,0,0,0.38)' },
+  coverText: { paddingHorizontal: 18, paddingBottom: 16, gap: 4 },
+  live: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', height: 28, paddingHorizontal: 12, borderRadius: radius.pill, marginBottom: 4 },
   liveDot: { width: 7, height: 7, borderRadius: 4 },
   liveText: { fontFamily: fonts.semibold, fontSize: 13 },
-  name: { fontFamily: fonts.semibold, fontSize: 44, lineHeight: 42, letterSpacing: -2 },
-  roleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  role: { fontFamily: fonts.medium, fontSize: 15, flexShrink: 1 },
-  heroAvatar: { width: 104, height: 104 },
-  heroBadge: { position: 'absolute', right: -6, bottom: -6, width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
-  body: { paddingHorizontal: 16, paddingTop: 8, gap: 10 },
-  stats: { flexDirection: 'row', gap: 8 },
-  stat: { flex: 1, borderRadius: 24, paddingVertical: 12, paddingHorizontal: 14 },
-  statNum: { fontFamily: fonts.semibold, fontSize: 28, letterSpacing: -1.1 },
-  statLabel: { fontFamily: fonts.medium, fontSize: 12 },
-  faces: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 24, paddingVertical: 12, paddingHorizontal: 14 },
-  facesRow: { flexDirection: 'row' },
-  face: { borderWidth: 2, borderRadius: 20 },
-  facesText: { flex: 1, fontFamily: fonts.medium, fontSize: 14 },
-  bio: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, paddingHorizontal: 4 },
-  places: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  tabs: { flexDirection: 'row', padding: 4, borderRadius: radius.pill, marginTop: 4 },
-  tab: { flex: 1, height: 40, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
-  tabText: { fontSize: 14 },
-  offerBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: radius.card, paddingVertical: 12, paddingHorizontal: 14 },
-  offerTitle: { fontFamily: fonts.semibold, fontSize: 15 },
-  offerSub: { fontFamily: fonts.medium, fontSize: 12 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: radius.card, padding: 10 },
-  rowTile: { width: 56, height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  name: { fontFamily: fonts.semibold, fontSize: 32, letterSpacing: -1.2, color: '#FFFFFF' },
+  role: { fontFamily: fonts.medium, fontSize: 15, color: 'rgba(255,255,255,0.88)' },
+  body: { paddingHorizontal: 16, paddingTop: 14, gap: 10 },
+  statsLine: { fontFamily: fonts.medium, fontSize: 14 },
+  bio: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21 },
+  placesLine: { fontFamily: fonts.medium, fontSize: 13 },
+  actions: { flexDirection: 'row', gap: 8, marginTop: 2 },
+  action: { flex: 1, height: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  actionText: { fontFamily: fonts.semibold, fontSize: 15 },
+  tabs: { flexDirection: 'row', gap: 22, marginTop: 6, borderBottomWidth: 1 },
+  tab: { paddingBottom: 9, marginBottom: -1, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabText: { fontSize: 15 },
+  offerBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14 },
+  offerTitle: { flex: 1, fontFamily: fonts.semibold, fontSize: 14 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth },
   rowBody: { flex: 1, gap: 1 },
   rowTitle: { fontFamily: fonts.semibold, fontSize: 16 },
   rowMeta: { fontFamily: fonts.medium, fontSize: 13 },
-  rowPrice: { fontFamily: fonts.semibold, fontSize: 18, paddingRight: 6 },
-  bar: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 6, borderRadius: radius.pill },
-  barChat: { width: 54, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
-  barCall: { flex: 1, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
-  barBook: { flex: 1, height: 54, borderRadius: 27, alignItems: 'center', justifyContent: 'center' },
-  barText: { fontFamily: fonts.semibold, fontSize: 15 },
+  rowPrice: { fontFamily: fonts.semibold, fontSize: 17 },
+  topWrap: { position: 'absolute', top: 0, left: 0, right: 0 },
+  topRow: { position: 'absolute', left: 12, right: 12, flexDirection: 'row', justifyContent: 'space-between' },
+  roundBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.38)', alignItems: 'center', justifyContent: 'center' },
+  barTitleWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 70 },
+  barTitle: { fontFamily: fonts.semibold, fontSize: 17 },
+  footerWrap: { position: 'absolute', left: 12, right: 12, bottom: 108, alignItems: 'center' },
+  footerColumn: { width: '100%', maxWidth: 440 },
+  bar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  barCall: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  barBook: { flex: 1, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  barText: { fontFamily: fonts.semibold, fontSize: 16 },
 });
