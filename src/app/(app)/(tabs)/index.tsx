@@ -26,6 +26,7 @@ export default function Home() {
   const [scope, setScope] = useState<'all' | 'following'>('all');
   const [loaded, setLoaded] = useState<{ posts: Post[]; errorKey: string | null; nowMs: number; scope: string } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [hour] = useState(() => new Date().getHours());
   const [me, setMe] = useState<{ name: string; avatar: string | null } | null>(null);
   useEffect(() => {
     if (!userId) return;
@@ -79,28 +80,34 @@ export default function Home() {
     <Screen tabs flush>
       <View style={styles.top}>
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel={t('tabs.profile')} onPress={() => router.push('/profile')} style={styles.hello}>
-          <Avatar name={me?.name || '?'} seed={userId} size={46} round={18} path={me?.avatar} />
-          <Text accessibilityRole="header" numberOfLines={1} style={[styles.helloText, { color: theme.text }]}>
-            {t('feed.hello', { name: (me?.name ?? '').split(' ')[0] })}
-          </Text>
-          <Emoji name="waving_hand" size={26} />
-        </Pressable>
+        <View style={styles.hello}>
+          <Text style={[styles.greet, { color: theme.muted }]}>{t(hour < 13 ? 'feed.greetMorning' : hour < 18 ? 'feed.greetAfternoon' : 'feed.greetEvening')}</Text>
+          <View style={styles.nameRow}>
+            <Text accessibilityRole="header" numberOfLines={1} style={[styles.helloText, { color: theme.text }]}>{(me?.name ?? '').split(' ')[0]}</Text>
+            <Emoji name="waving_hand" size={30} />
+          </View>
+        </View>
         <View style={styles.headerBtns}>
           <Pressable accessibilityRole="button" accessibilityLabel={t('notifications.title')} onPress={() => router.push('/notifications')} style={[styles.round, { backgroundColor: theme.surface }]}>
             <Ionicons name="notifications-outline" size={22} color={theme.text} />
             {unread > 0 ? <View style={[styles.dot, { backgroundColor: theme.accent, borderColor: theme.ink }]} /> : null}
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('create.title')} onPress={() => setCreating(true)} style={[styles.round, { backgroundColor: theme.ink }]}>
-            <Ionicons name="add" size={28} color={theme.inkOn} />
+          <Pressable accessibilityRole="button" accessibilityLabel={t('tabs.profile')} onPress={() => router.push('/profile')}>
+            <Avatar name={me?.name || '?'} seed={userId} size={46} path={me?.avatar} />
           </Pressable>
         </View>
       </View>
       </View>
       <CreateSheet visible={creating} onClose={() => setCreating(false)} />
 
-      {people.length > 0 ? (
+      {(
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.people}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('create.title')} onPress={() => setCreating(true)} style={styles.person}>
+            <View style={[styles.addCircle, { backgroundColor: theme.accent }]}>
+              <Ionicons name="add" size={30} color={theme.onAccent} />
+            </View>
+            <Text numberOfLines={1} style={[styles.personName, { color: theme.text }]}>{t('feed.create')}</Text>
+          </Pressable>
           {people.map((p) => (
             <Pressable key={p.id} accessibilityRole="button" onPress={() => p.handle && router.push({ pathname: '/u/[handle]', params: { handle: p.handle } })} style={styles.person}>
               <View style={[styles.ring, p.live && { borderColor: theme.ink }]}>
@@ -110,7 +117,7 @@ export default function Home() {
             </Pressable>
           ))}
         </ScrollView>
-      ) : null}
+      )}
 
       <View style={styles.scopeWrap}>
       <View onLayout={(e) => setScopeW(e.nativeEvent.layout.width)} style={[styles.scope, { backgroundColor: theme.bg }]}>
@@ -145,8 +152,11 @@ const styles = StyleSheet.create({
   pad: { paddingHorizontal: 20, paddingVertical: 12 },
   scopeWrap: { paddingHorizontal: 20 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  hello: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, marginRight: 8 },
-  helloText: { flexShrink: 1, fontFamily: fonts.semibold, fontSize: 24, letterSpacing: -0.8 },
+  hello: { flex: 1, marginRight: 8 },
+  greet: { fontFamily: fonts.medium, fontSize: 14 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  helloText: { flexShrink: 1, fontFamily: fonts.semibold, fontSize: 34, lineHeight: 38, letterSpacing: -1.3 },
+  addCircle: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center' },
   headerBtns: { flexDirection: 'row', gap: 8 },
   round: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   dot: { position: 'absolute', top: 10, right: 11, width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },

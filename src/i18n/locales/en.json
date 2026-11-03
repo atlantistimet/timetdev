@@ -347,7 +347,11 @@
     "filterSold": "Sold",
     "roleBought": "Bought",
     "roleSold": "Sold",
-    "tabCancelled": "Cancelled"
+    "tabCancelled": "Cancelled",
+    "emptyPastTitle": "No past\nsessions",
+    "emptyPastBody": "Completed sessions show up here.",
+    "emptyCancelledTitle": "No cancelled\nsessions",
+    "emptyCancelledBody": "Cancelled sessions show up here."
   },
   "tabs": {
     "feed": "Feed",
@@ -800,7 +804,11 @@
     "menuInviteSub": "Accept to show the post on your profile.",
     "menuRemoveSub": "The post disappears from your profile.",
     "menuDelete": "Delete post",
-    "hello": "Hi {{name}}"
+    "hello": "Hi {{name}}",
+    "greetMorning": "Good morning",
+    "greetAfternoon": "Good afternoon",
+    "greetEvening": "Good evening",
+    "create": "Create"
   },
   "explore": {
     "search": "Search people or services",

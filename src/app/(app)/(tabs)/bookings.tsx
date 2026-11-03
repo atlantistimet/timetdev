@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
@@ -10,7 +10,7 @@ import { Emoji } from '@/components/Emoji';
 import { ErrorText, LoadingView, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { listMyBookings, type MyBooking } from '@/lib/booking';
-import { fonts, pastelFor, useTheme } from '@/theme';
+import { fonts, useTheme } from '@/theme';
 
 type Tab = 'upcoming' | 'past' | 'cancelled';
 type Filter = 'all' | 'bought' | 'sold';
@@ -68,25 +68,23 @@ export default function BookingsScreen() {
   const mineOf = (b: MyBooking) => b.client_id === userId;
   const otherOf = (b: MyBooking) => (mineOf(b) ? { id: b.seller_id, name: b.seller_name ?? '—', avatar: b.seller_avatar } : { id: b.client_id, name: b.client_name ?? '—', avatar: b.client_avatar });
   const timeFmt = new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' });
-  const dayShort = new Intl.DateTimeFormat(i18n.language, { weekday: 'short' });
-  const minutesOf = (b: MyBooking) => Math.round((new Date(b.ends_at).getTime() - new Date(b.starts_at).getTime()) / 60_000);
-  const meta = (b: MyBooking) => `${timeFmt.format(new Date(b.starts_at))} · ${minutesOf(b)} min · ${t(`bookings.placeShort.${b.place}`)}`;
   const open = (b: MyBooking) => router.push({ pathname: '/session/[id]', params: { id: b.id } });
 
-  const countdown = (b: MyBooking) => {
-    const ms = new Date(b.starts_at).getTime() - now;
-    if (ms <= 0) return t('bookings.inProgress');
-    const mins = Math.ceil(ms / 60_000);
-    const d = Math.floor(mins / 1440);
-    const h = Math.floor((mins % 1440) / 60);
-    const m = mins % 60;
-    if (d >= 1) return `${d} g ${h} h`;
-    if (h >= 1) return `${h} h ${String(m).padStart(2, '0')}'`;
-    return `${m}'`;
-  };
-
-  const featured = tab === 'upcoming' ? shown[0] : undefined;
-  const rest = tab === 'upcoming' ? shown.slice(1) : shown;
+  const dayLabel = new Intl.DateTimeFormat(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' });
+  const groups = (() => {
+    const out: { key: string; label: string; items: MyBooking[] }[] = [];
+    for (const b of shown) {
+      const d = new Date(b.starts_at);
+      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+      const last = out[out.length - 1];
+      if (last?.key === key) last.items.push(b);
+      else {
+        const text = dayLabel.format(d);
+        out.push({ key, label: text.charAt(0).toUpperCase() + text.slice(1), items: [b] });
+      }
+    }
+    return out;
+  })();
   const empty = shown.length === 0 && pending.length === 0;
   const toggles: [Tab, string][] = [['upcoming', t('bookings.tabUpcoming')], ['past', t('bookings.tabPast')], ['cancelled', t('bookings.tabCancelled')]];
   const filters: [Filter, string][] = [['all', t('bookings.filterAll')], ['bought', t('bookings.filterBought')], ['sold', t('bookings.filterSold')]];
@@ -96,23 +94,21 @@ export default function BookingsScreen() {
 
   return (
     <Screen tabs>
-      <View style={styles.titleRow}>
-        <Text style={[styles.title, { color: theme.text }]}>{t('tabs.agenda')}</Text>
-        <View style={[styles.toggle, { backgroundColor: theme.surface }]}>
-          {toggles.map(([key, label]) => (
-            <Pressable key={key} accessibilityRole="button" onPress={() => setTab(key)} style={[styles.toggleItem, tab === key && { backgroundColor: theme.ink }]}>
-              <Text style={[styles.toggleText, { color: tab === key ? '#FFFFFF' : theme.text, fontFamily: tab === key ? fonts.semibold : fonts.medium }]}>{label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-        {filters.map(([key, label]) => (
-          <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: filter === key }} onPress={() => setFilter(key)} style={[styles.filter, { backgroundColor: filter === key ? theme.accent : theme.surface }]}>
-            <Text style={[styles.filterText, { color: filter === key ? theme.onAccent : theme.text }]}>{label}</Text>
+      <Text style={[styles.title, { color: theme.text }]}>{t('tabs.agenda')}</Text>
+      <View style={[styles.tabsRow, { borderBottomColor: theme.fill }]}>
+        {toggles.map(([key, label]) => (
+          <Pressable key={key} accessibilityRole="tab" accessibilityState={{ selected: tab === key }} onPress={() => setTab(key)} style={[styles.tabItem, tab === key && { borderBottomColor: theme.ink }]}>
+            <Text style={[styles.tabText, { color: tab === key ? theme.text : theme.muted, fontFamily: tab === key ? fonts.semibold : fonts.medium }]}>{label}</Text>
           </Pressable>
         ))}
-      </ScrollView>
+      </View>
+      <View style={styles.filters}>
+        {filters.map(([key, label]) => (
+          <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: filter === key }} onPress={() => setFilter(key)} style={[styles.filter, { backgroundColor: filter === key ? theme.accent : theme.surface }]}>
+            <Text style={[styles.filterText, { color: filter === key ? theme.onAccent : theme.text, fontFamily: filter === key ? fonts.semibold : fonts.medium }]}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
       {listError ? <ErrorText>{t(listError)}</ErrorText> : null}
 
       {pending.map((b) => (
@@ -126,66 +122,40 @@ export default function BookingsScreen() {
         </Pressable>
       ))}
 
-      {featured ? (
-        <View style={[styles.next, { backgroundColor: pastelFor(otherOf(featured).id) }]}>
-          <View style={styles.nextTop}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text style={[styles.nextSmall, { color: theme.ink }]}>{t('bookings.nextIn')}</Text>
-              <Text style={[styles.nextBig, { color: theme.ink }]}>{countdown(featured)}</Text>
-            </View>
-            <Avatar name={otherOf(featured).name} seed={otherOf(featured).id} size={72} round={26} path={otherOf(featured).avatar} />
-          </View>
-          <View>
-            <Text numberOfLines={2} style={[styles.nextTitle, { color: theme.ink }]}>{featured.service_title}</Text>
-            <Text style={[styles.nextSub, { color: theme.ink }]}>{`${role(featured)} · ${t('bookings.withShort', { name: otherOf(featured).name.split(' ')[0] })} · ${dayShort.format(new Date(featured.starts_at))} ${new Date(featured.starts_at).getDate()} · ${meta(featured)}`}</Text>
-          </View>
-          <View style={styles.nextButtons}>
-            <Pressable accessibilityRole="button" onPress={() => open(featured)} style={[styles.nextMain, { backgroundColor: theme.ink }]}>
-              <Text style={[styles.nextMainText, { color: '#FFFFFF' }]}>{t('bookings.openSession')}</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel={t('bookings.writeTo', { name: otherOf(featured).name })} onPress={() => router.push({ pathname: '/chat/[userId]', params: { userId: otherOf(featured).id } })} style={[styles.nextChat, { backgroundColor: theme.surface }]}>
-              <Ionicons name="chatbubble-ellipses-outline" size={22} color={theme.ink} />
-            </Pressable>
-          </View>
-        </View>
-      ) : null}
-
-      {rest.length > 0 ? (
-        <>
-          {featured ? <Text style={[styles.h2, { color: theme.text }]}>{t('bookings.later')}</Text> : null}
+      {groups.map((g) => (
+        <View key={g.key}>
+          <Text style={[styles.dayHeader, { color: theme.muted }]}>{g.label}</Text>
           <View style={[styles.list, { backgroundColor: theme.surface }]}>
-            {rest.map((b, i) => {
+            {g.items.map((b, i) => {
               const o = otherOf(b);
-              const d = new Date(b.starts_at);
-              const sub = tab !== 'upcoming' ? `${role(b)} · ${new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'short' }).format(d)} · ${t(`bookings.status.${b.status}`)}` : `${role(b)} · ${meta(b)}${b.package_id ? ` · ${t('bookings.package')}` : ''}`;
+              const sub = `${timeFmt.format(new Date(b.starts_at))} · ${o.name.split(' ')[0]} · ${role(b)}${tab === 'upcoming' ? '' : ` · ${t(`bookings.status.${b.status}`)}`}${b.package_id ? ` · ${t('bookings.package')}` : ''}`;
               return (
                 <Pressable key={b.id} accessibilityRole="button" onPress={() => open(b)} style={[styles.item, i > 0 && { borderTopWidth: 1, borderTopColor: theme.fill }]}>
-                  <View style={[styles.dateTile, { backgroundColor: theme.bg }]}>
-                    <Text style={[styles.dateSmall, { color: theme.muted }]}>{dayShort.format(d)}</Text>
-                    <Text style={[styles.dateBig, { color: theme.text }]}>{d.getDate()}</Text>
-                  </View>
+                  <Avatar name={o.name} seed={o.id} size={44} path={o.avatar} />
                   <View style={{ flex: 1 }}>
                     <Text numberOfLines={1} style={[styles.itemTitle, { color: theme.text }]}>{b.service_title}</Text>
                     <Text numberOfLines={1} style={[styles.itemSub, { color: theme.muted }]}>{sub}</Text>
                   </View>
-                  <Avatar name={o.name} seed={o.id} size={40} path={o.avatar} />
+                  <Ionicons name="chevron-forward" size={18} color={theme.muted} />
                 </Pressable>
               );
             })}
           </View>
-        </>
-      ) : null}
+        </View>
+      ))}
 
       {empty ? (
         <View style={[styles.empty, { backgroundColor: theme.surface }]}>
           <View style={[styles.emptyIcon, { backgroundColor: theme.bg }]}>
             <Emoji name="stopwatch" size={60} />
           </View>
-          <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('bookings.emptyTitle')}</Text>
-          <Text style={[styles.emptyBody, { color: theme.muted }]}>{t('bookings.emptyBody')}</Text>
-          <Pressable accessibilityRole="button" onPress={() => router.replace('/services')} style={[styles.emptyBtn, { backgroundColor: theme.ink }]}>
-            <Text style={[styles.nextMainText, { color: '#FFFFFF' }]}>{t('bookings.emptyCta')}</Text>
-          </Pressable>
+          <Text style={[styles.emptyTitle, { color: theme.text }]}>{t(tab === 'upcoming' ? 'bookings.emptyTitle' : tab === 'past' ? 'bookings.emptyPastTitle' : 'bookings.emptyCancelledTitle')}</Text>
+          <Text style={[styles.emptyBody, { color: theme.muted }]}>{t(tab === 'upcoming' ? 'bookings.emptyBody' : tab === 'past' ? 'bookings.emptyPastBody' : 'bookings.emptyCancelledBody')}</Text>
+          {tab === 'upcoming' ? (
+            <Pressable accessibilityRole="button" onPress={() => router.replace('/services')} style={[styles.emptyBtn, { backgroundColor: theme.ink }]}>
+              <Text style={[styles.nextMainText, { color: '#FFFFFF' }]}>{t('bookings.emptyCta')}</Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
 
@@ -205,33 +175,20 @@ export default function BookingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 },
-  title: { fontFamily: fonts.semibold, fontSize: 30, letterSpacing: -1.2, paddingHorizontal: 4 },
-  toggle: { flexDirection: 'row', padding: 4, borderRadius: 999, flexShrink: 1 },
-  toggleItem: { height: 36, paddingHorizontal: 10, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  filters: { gap: 8, paddingBottom: 8, paddingRight: 8 },
-  filter: { height: 34, paddingHorizontal: 14, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  filterText: { fontFamily: fonts.medium, fontSize: 13 },
-  toggleText: { fontSize: 13 },
+  title: { fontFamily: fonts.semibold, fontSize: 32, letterSpacing: -1.2, marginTop: 8, paddingHorizontal: 4 },
+  tabsRow: { flexDirection: 'row', gap: 22, marginTop: 10, marginHorizontal: 4, borderBottomWidth: 1 },
+  tabItem: { paddingBottom: 9, marginBottom: -1, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabText: { fontSize: 15 },
+  filters: { flexDirection: 'row', gap: 8, marginVertical: 14, paddingHorizontal: 4 },
+  filter: { height: 36, paddingHorizontal: 14, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  filterText: { fontSize: 14 },
+  dayHeader: { fontFamily: fonts.medium, fontSize: 13, marginTop: 10, marginBottom: 6, marginLeft: 6 },
   pending: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 32, padding: 16, marginBottom: 12 },
   pendingTitle: { fontFamily: fonts.semibold, fontSize: 16 },
   pendingSub: { fontFamily: fonts.medium, fontSize: 13 },
-  next: { borderRadius: 38, padding: 18, gap: 14, marginBottom: 8 },
-  nextTop: { flexDirection: 'row', alignItems: 'flex-start' },
-  nextSmall: { fontFamily: fonts.medium, fontSize: 14 },
-  nextBig: { fontFamily: fonts.semibold, fontSize: 56, lineHeight: 56, letterSpacing: -3.3 },
-  nextTitle: { fontFamily: fonts.semibold, fontSize: 18 },
-  nextSub: { fontFamily: fonts.medium, fontSize: 14, marginTop: 2 },
-  nextButtons: { flexDirection: 'row', gap: 8 },
-  nextMain: { flex: 1, height: 50, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   nextMainText: { fontFamily: fonts.semibold, fontSize: 16 },
-  nextChat: { width: 50, height: 50, borderRadius: 25, alignItems: 'center', justifyContent: 'center' },
-  h2: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: -0.45, marginTop: 8, marginBottom: 8, paddingHorizontal: 4 },
-  list: { borderRadius: 30, padding: 6 },
+  list: { borderRadius: 26, padding: 6 },
   item: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10 },
-  dateTile: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  dateSmall: { fontFamily: fonts.regular, fontSize: 11 },
-  dateBig: { fontFamily: fonts.semibold, fontSize: 20 },
   itemTitle: { fontFamily: fonts.semibold, fontSize: 16 },
   itemSub: { fontFamily: fonts.regular, fontSize: 13, marginTop: 1 },
   empty: { borderRadius: 40, paddingVertical: 36, paddingHorizontal: 22, alignItems: 'center', gap: 20, marginTop: 8 },
