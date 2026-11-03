@@ -1,11 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Modal, StyleSheet, useWindowDimensions } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 import { useTheme } from '@/theme';
 
 /**
- * Finestra dal basso: lo sfondo scuro sfuma (non scorre), il foglio sale con una molla morbida e scende veloce.
+ * Finestra dal basso: lo sfondo scuro sfuma (non scorre), il foglio sale con una curva dolce, senza rimbalzo, e scende veloce.
  * Dentro vanno, come prima, un'area che chiude al tocco (trasparente) e il foglio in basso.
  */
 export function SheetModal({ visible, onRequestClose, children }: { visible: boolean; onRequestClose: () => void; children: ReactNode }) {
@@ -20,10 +20,10 @@ export function SheetModal({ visible, onRequestClose, children }: { visible: boo
 
   useEffect(() => {
     if (visible) {
-      progress.set(withSpring(1, { damping: 26, stiffness: 260, mass: 0.9 }));
+      progress.set(withTiming(1, { duration: 340, easing: Easing.bezier(0.22, 1, 0.36, 1) }));
     } else {
       progress.set(
-        withTiming(0, { duration: 220, easing: Easing.in(Easing.cubic) }, (finished) => {
+        withTiming(0, { duration: 240, easing: Easing.bezier(0.4, 0, 0.8, 0.4) }, (finished) => {
           'worklet';
           if (finished) scheduleOnRN(setMounted, false);
         }),

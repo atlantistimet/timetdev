@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
@@ -28,7 +28,7 @@ export default function Home() {
   const pill = useSharedValue(0);
   const pillStyle = useAnimatedStyle(() => ({ transform: [{ translateX: pill.get() * Math.max(scopeW - 8, 0) / 2 }] }));
   useEffect(() => {
-    pill.set(withSpring(scope === 'all' ? 0 : 1, { damping: 18, stiffness: 260 }));
+    pill.set(withTiming(scope === 'all' ? 0 : 1, { duration: 260, easing: Easing.bezier(0.22, 1, 0.36, 1) }));
   }, [scope, pill]);
 
   useEffect(() => {

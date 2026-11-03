@@ -1,6 +1,6 @@
 import { forwardRef } from 'react';
 import { Pressable as RNPressable, type GestureResponderEvent, type PressableProps, type StyleProp, type View, type ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 const AnimatedPressable = Animated.createAnimatedComponent(RNPressable);
 
@@ -53,11 +53,11 @@ export const Pressable = forwardRef<View, Props>(function Pressable({ style, sca
       ref={ref}
       {...rest}
       onPressIn={(e: GestureResponderEvent) => {
-        scale.value = withSpring(scaleTo, { damping: 18, stiffness: 420 });
+        scale.value = withTiming(scaleTo, { duration: 110, easing: Easing.out(Easing.quad) });
         onPressIn?.(e);
       }}
       onPressOut={(e: GestureResponderEvent) => {
-        scale.value = withSpring(1, { damping: 11, stiffness: 320 });
+        scale.value = withTiming(1, { duration: 200, easing: Easing.out(Easing.cubic) });
         onPressOut?.(e);
       }}
       onPress={(e: GestureResponderEvent) => {

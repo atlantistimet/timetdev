@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SheetModal } from '@/components/SheetModal';
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { Pressable, buzz } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
@@ -78,7 +78,7 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false,
   const toggleLike = async () => {
     const next = !liked;
     if (next) {
-      heart.set(withSequence(withSpring(1.45, { damping: 8, stiffness: 500 }), withSpring(1, { damping: 10, stiffness: 300 })));
+      heart.set(withSequence(withTiming(1.22, { duration: 120, easing: Easing.out(Easing.quad) }), withTiming(1, { duration: 200, easing: Easing.out(Easing.cubic) })));
       buzz('light');
     }
     setLiked(next);

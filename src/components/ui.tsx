@@ -4,6 +4,7 @@ import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { reportScroll } from '@/lib/chrome';
 import { fonts, radius, type as typo, useTheme } from '@/theme';
 
 /** Contenitore di schermata: area sicura, tastiera che non copre i campi, contenuto centrato e largo al massimo 440. */
@@ -38,6 +39,8 @@ export function Screen({ children, tabs, wide, bare, footer, back, flush }: { ch
         <ScrollView
           contentContainerStyle={[styles.screenContent, tabs && styles.screenTabs, (bare || flush) && styles.screenBare, footer ? styles.screenFooter : null, flush ? { paddingTop: insets.top } : null]}
           keyboardShouldPersistTaps="handled"
+          scrollEventThrottle={16}
+          onScroll={tabs ? (e) => reportScroll(e.nativeEvent.contentOffset.y) : undefined}
           showsVerticalScrollIndicator={false}>
           <View style={[styles.screenColumn, wide && styles.screenColumnWide]}>{children}</View>
         </ScrollView>
