@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { BlurView } from 'expo-blur';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fonts, radius, type as typo, useTheme } from '@/theme';
 
@@ -49,7 +48,7 @@ export function Screen({ children, tabs, wide, bare, footer, back, flush }: { ch
           <View style={styles.footerColumn}>{footer}</View>
         </View>
       ) : null}
-      {flush ? <BlurView pointerEvents="none" intensity={90} tint="systemUltraThinMaterial" style={[styles.statusVeil, { height: insets.top }]} /> : null}
+      {flush ? <View pointerEvents="none" style={[styles.statusVeil, { height: insets.top, backgroundColor: 'rgba(255,255,255,0.55)' }]} /> : null}
     </Root>
   );
 }
