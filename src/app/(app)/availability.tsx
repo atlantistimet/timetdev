@@ -109,8 +109,6 @@ export default function AvailabilityScreen() {
   return (
     <Screen back>
       <Title>{t('availability.title')}</Title>
-      <Body muted>{t('availability.intro')}</Body>
-      <Spacer />
       {userId ? <AvailableNowCard userId={userId} /> : null}
       <Spacer />
       <Title>{t('availability.generalTitle')}</Title>

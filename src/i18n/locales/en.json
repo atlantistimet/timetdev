@@ -772,7 +772,8 @@
     "seeAll": "All",
     "filters": "Filters",
     "onlyNow": "Only available now",
-    "apply": "Show results"
+    "apply": "Show results",
+    "today": "Today"
   },
   "comments": {
     "none": "No comments yet.",
