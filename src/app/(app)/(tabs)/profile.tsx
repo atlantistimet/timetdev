@@ -57,7 +57,6 @@ export default function ProfileScreen() {
   const rows: { key: string; icon: keyof typeof Ionicons.glyphMap; label: string; value?: string; badge?: boolean; onPress: () => void }[] = [
     { key: 'seller', icon: 'storefront-outline', label: t('home.sellerArea'), onPress: () => router.push('/seller') },
     { key: 'services', icon: 'briefcase-outline', label: t('myServices.title'), value: stats ? String(stats.services) : undefined, onPress: () => router.push('/my-services') },
-    { key: 'sessions', icon: 'time-outline', label: t('sessions.title'), onPress: () => router.push('/sessions') },
     { key: 'availability', icon: 'flash-outline', label: t('profile.availability'), value: available ? t('profile.availableNow') : t('profile.availableOff'), onPress: () => router.push('/availability') },
     { key: 'payments', icon: 'card-outline', label: t('profile.payments'), value: 'Stripe', onPress: () => router.push('/earnings') },
     { key: 'notifications', icon: 'notifications-outline', label: t('notifications.title'), badge: unread > 0, value: unread > 0 ? String(unread) : undefined, onPress: () => router.push('/notifications') },

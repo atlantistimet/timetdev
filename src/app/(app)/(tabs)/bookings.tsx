@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
@@ -12,7 +12,8 @@ import { useAuth } from '@/lib/auth';
 import { listMyBookings, type MyBooking } from '@/lib/booking';
 import { fonts, pastelFor, useTheme } from '@/theme';
 
-type Tab = 'upcoming' | 'received' | 'past';
+type Tab = 'upcoming' | 'past';
+type Filter = 'all' | 'bought' | 'sold' | 'cancelled';
 
 export default function BookingsScreen() {
   const { t, i18n } = useTranslation();
@@ -24,6 +25,7 @@ export default function BookingsScreen() {
   const [now, setNow] = useState(0);
   const [reloadKey, setReloadKey] = useState(0);
   const [tab, setTab] = useState<Tab>('upcoming');
+  const [filter, setFilter] = useState<Filter>('all');
   const [outcomeFor, setOutcomeFor] = useState<MyBooking | null>(null);
 
   useEffect(() => {
@@ -50,10 +52,11 @@ export default function BookingsScreen() {
     const upcoming = (b: MyBooking) => b.status === 'confirmed' && new Date(b.ends_at).getTime() > now;
     const byStart = (a: MyBooking, b: MyBooking) => a.starts_at.localeCompare(b.starts_at);
     const pendingOutcome = list.filter((b) => b.status === 'confirmed' && b.seller_id === userId && new Date(b.ends_at).getTime() <= now);
-    const shownList =
-      tab === 'past' ? list.filter((b) => !upcoming(b) && !pendingOutcome.includes(b)) : tab === 'received' ? list.filter((b) => b.seller_id === userId && upcoming(b)).sort(byStart) : list.filter(upcoming).sort(byStart);
+    const inFilter = (b: MyBooking) =>
+      filter === 'bought' ? b.client_id === userId : filter === 'sold' ? b.seller_id === userId : filter === 'cancelled' ? b.status === 'cancelled' : true;
+    const shownList = (tab === 'past' ? list.filter((b) => !upcoming(b) && !pendingOutcome.includes(b)) : list.filter(upcoming).sort(byStart)).filter(inFilter);
     return { shown: shownList, pending: pendingOutcome };
-  }, [bookings, tab, now, userId]);
+  }, [bookings, tab, filter, now, userId]);
 
   if (!bookings) return <LoadingView />;
 
@@ -80,7 +83,9 @@ export default function BookingsScreen() {
   const featured = tab === 'upcoming' ? shown[0] : undefined;
   const rest = tab === 'upcoming' ? shown.slice(1) : shown;
   const empty = shown.length === 0 && pending.length === 0;
-  const toggles: [Tab, string][] = [['upcoming', t('bookings.tabUpcoming')], ['received', t('bookings.tabReceived')], ['past', t('bookings.tabPast')]];
+  const toggles: [Tab, string][] = [['upcoming', t('bookings.tabUpcoming')], ['past', t('bookings.tabPast')]];
+  const filters: [Filter, string][] = [['all', t('bookings.filterAll')], ['bought', t('bookings.filterBought')], ['sold', t('bookings.filterSold')], ...(tab === 'past' ? ([['cancelled', t('bookings.filterCancelled')]] as [Filter, string][]) : [])];
+  const role = (b: MyBooking) => t(mineOf(b) ? 'bookings.roleBought' : 'bookings.roleSold');
 
   const sheetWho = (b: MyBooking) => ({ id: b.id, title: b.service_title, startsAt: b.starts_at, otherName: otherOf(b).name, otherAvatar: otherOf(b).avatar, otherSeed: otherOf(b).id });
 
@@ -89,11 +94,18 @@ export default function BookingsScreen() {
       <Text style={[styles.title, { color: theme.text }]}>{t('tabs.agenda')}</Text>
       <View style={[styles.toggle, { backgroundColor: theme.surface }]}>
         {toggles.map(([key, label]) => (
-          <Pressable key={key} accessibilityRole="button" onPress={() => setTab(key)} style={[styles.toggleItem, tab === key && { backgroundColor: theme.ink }]}>
+          <Pressable key={key} accessibilityRole="button" onPress={() => { setTab(key); if (key === 'upcoming' && filter === 'cancelled') setFilter('all'); }} style={[styles.toggleItem, tab === key && { backgroundColor: theme.ink }]}>
             <Text style={[styles.toggleText, { color: tab === key ? '#FFFFFF' : theme.text, fontFamily: tab === key ? fonts.semibold : fonts.medium }]}>{label}</Text>
           </Pressable>
         ))}
       </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+        {filters.map(([key, label]) => (
+          <Pressable key={key} accessibilityRole="button" accessibilityState={{ selected: filter === key }} onPress={() => setFilter(key)} style={[styles.filter, { backgroundColor: filter === key ? theme.accent : theme.surface }]}>
+            <Text style={[styles.filterText, { color: filter === key ? theme.onAccent : theme.text }]}>{label}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
       {listError ? <ErrorText>{t(listError)}</ErrorText> : null}
 
       {pending.map((b) => (
@@ -118,7 +130,7 @@ export default function BookingsScreen() {
           </View>
           <View>
             <Text numberOfLines={2} style={[styles.nextTitle, { color: theme.ink }]}>{featured.service_title}</Text>
-            <Text style={[styles.nextSub, { color: theme.ink }]}>{`${t('bookings.withShort', { name: otherOf(featured).name.split(' ')[0] })} · ${dayShort.format(new Date(featured.starts_at))} ${new Date(featured.starts_at).getDate()} · ${meta(featured)}`}</Text>
+            <Text style={[styles.nextSub, { color: theme.ink }]}>{`${role(featured)} · ${t('bookings.withShort', { name: otherOf(featured).name.split(' ')[0] })} · ${dayShort.format(new Date(featured.starts_at))} ${new Date(featured.starts_at).getDate()} · ${meta(featured)}`}</Text>
           </View>
           <View style={styles.nextButtons}>
             <Pressable accessibilityRole="button" onPress={() => open(featured)} style={[styles.nextMain, { backgroundColor: theme.ink }]}>
@@ -138,7 +150,7 @@ export default function BookingsScreen() {
             {rest.map((b, i) => {
               const o = otherOf(b);
               const d = new Date(b.starts_at);
-              const sub = tab === 'past' ? `${new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'short' }).format(d)} · ${t(`bookings.status.${b.status}`)}` : meta(b) + (b.package_id ? ` · ${t('bookings.package')}` : '');
+              const sub = tab === 'past' ? `${role(b)} · ${new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'short' }).format(d)} · ${t(`bookings.status.${b.status}`)}` : `${role(b)} · ${meta(b)}${b.package_id ? ` · ${t('bookings.package')}` : ''}`;
               return (
                 <Pressable key={b.id} accessibilityRole="button" onPress={() => open(b)} style={[styles.item, i > 0 && { borderTopWidth: 1, borderTopColor: theme.fill }]}>
                   <View style={[styles.dateTile, { backgroundColor: theme.bg }]}>
@@ -189,6 +201,9 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.semibold, fontSize: 36, letterSpacing: -1.4, marginTop: 8, paddingHorizontal: 4 },
   toggle: { flexDirection: 'row', padding: 4, borderRadius: 999, alignSelf: 'flex-start', marginVertical: 8 },
   toggleItem: { height: 38, paddingHorizontal: 14, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  filters: { gap: 8, paddingBottom: 8, paddingRight: 8 },
+  filter: { height: 34, paddingHorizontal: 14, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  filterText: { fontFamily: fonts.medium, fontSize: 13 },
   toggleText: { fontSize: 14 },
   pending: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 32, padding: 16, marginBottom: 12 },
   pendingTitle: { fontFamily: fonts.semibold, fontSize: 16 },

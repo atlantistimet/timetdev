@@ -228,7 +228,7 @@ export default function BookScreen() {
             </View>
           </View>
           <View style={[styles.doneCard, { backgroundColor: theme.surface }]}>
-            <Pressable accessibilityRole="button" onPress={() => router.replace('/sessions')} style={styles.doneRow}>
+            <Pressable accessibilityRole="button" onPress={() => router.replace('/bookings')} style={styles.doneRow}>
               <Emoji name="calendar" size={32} />
               <Text style={[styles.doneRowText, { color: theme.text }]}>{t('book.doneAgenda')}</Text>
               <Ionicons name="chevron-forward" size={18} color={theme.muted} />
@@ -247,7 +247,7 @@ export default function BookScreen() {
             <Pressable accessibilityRole="button" onPress={() => router.replace('/services')} style={[styles.doneBtn, { backgroundColor: theme.surface }]}>
               <Text style={[styles.doneBtnText, { color: theme.text }]}>{t('book.doneExplore')}</Text>
             </Pressable>
-            <Pressable accessibilityRole="button" onPress={() => router.replace('/sessions')} style={[styles.doneBtn, { backgroundColor: theme.ink }]}>
+            <Pressable accessibilityRole="button" onPress={() => router.replace('/bookings')} style={[styles.doneBtn, { backgroundColor: theme.ink }]}>
               <Text style={[styles.doneBtnText, { color: '#FFFFFF' }]}>{t('book.doneSession')}</Text>
             </Pressable>
           </View>

@@ -292,7 +292,6 @@
       "not_finished": "La sessione non è ancora finita."
     },
     "tabUpcoming": "Prossime",
-    "tabReceived": "Ricevute",
     "tabPast": "Passate",
     "withSeller": "con {{name}}",
     "fromClient": "Cliente: {{name}}",
@@ -342,7 +341,13 @@
     "moveSub": "{{name}} ha altri orari liberi",
     "moveCta": "Prenota",
     "backAgenda": "Torna all'agenda",
-    "bookingStatus": "Confermata · pagata"
+    "bookingStatus": "Confermata · pagata",
+    "filterAll": "Tutte",
+    "filterBought": "Acquistate",
+    "filterSold": "Vendute",
+    "filterCancelled": "Annullate",
+    "roleBought": "Acquistata",
+    "roleSold": "Venduta"
   },
   "tabs": {
     "feed": "Feed",
@@ -912,14 +917,6 @@
     },
     "contactCard": "Contatto Timeet",
     "slotCard": "slot da scegliere"
-  },
-  "sessions": {
-    "title": "Le mie sessioni",
-    "hint": "Tutte le sessioni: passate, future e slot singoli",
-    "booked": "Prenotate",
-    "received": "Ricevute",
-    "links": "Slot singoli",
-    "open": "Dettagli sessione"
   },
   "session": {
     "notFound": "Sessione non trovata",
