@@ -75,11 +75,12 @@ export async function requestInvoice(bookingId: string, requesterId: string, kin
   return error.code === '23505' ? 'session.requestExists' : 'errors.generic';
 }
 
-export async function createTipPayment(target: string | { callId: string }, amountCents: number): Promise<{ payment: { client_secret: string; stripe_account: string; amount_cents: number } | null; errorKey: string | null }> {
-  const { data, error } = await supabase.functions.invoke<{ client_secret: string; stripe_account: string; amount_cents: number }>('create-tip-payment', {
+export async function createTipPayment(target: string | { callId: string }, amountCents: number): Promise<{ payment: { client_secret: string; stripe_account: string; amount_cents: number } | null; paid?: boolean; errorKey: string | null }> {
+  const { data, error } = await supabase.functions.invoke<{ client_secret?: string; stripe_account?: string; amount_cents: number; paid?: boolean }>('create-tip-payment', {
     body: typeof target === 'string' ? { booking_id: target, amount_cents: amountCents } : { call_id: target.callId, amount_cents: amountCents },
   });
-  if (!error && data) return { payment: data, errorKey: null };
+  if (!error && data?.paid) return { payment: null, paid: true, errorKey: null };
+  if (!error && data?.client_secret && data.stripe_account) return { payment: { client_secret: data.client_secret, stripe_account: data.stripe_account, amount_cents: data.amount_cents }, errorKey: null };
   if (error instanceof FunctionsHttpError) {
     const body = (await error.context.json().catch(() => null)) as { error?: string } | null;
     if (body?.error === 'bad_amount' || body?.error === 'not_completed' || body?.error === 'seller_not_ready') return { payment: null, errorKey: `session.tipErrors.${body.error}` };

@@ -1,6 +1,6 @@
 // Mancia per il venditore di una sessione conclusa (addebito diretto sull'account del venditore, nessuna commissione Timeet).
 // Corpo: { booking_id | call_id, amount_cents } con importo da 1 € a 200 €. Solo il cliente della prenotazione o della chiamata, solo se è conclusa.
-// Risposta: { client_secret, stripe_account, amount_cents }. Il pagamento si registra in `payments` con tip_booking_id o tip_call_id.
+// Risposta: { paid: true, amount_cents } se per una chiamata si è addebitata la carta già salvata; altrimenti { client_secret, stripe_account, amount_cents } per il modulo di pagamento. Il pagamento si registra in `payments` con tip_booking_id o tip_call_id.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, json } from '../_shared/http.ts';
 import { stripeRequest, StripeError } from '../_shared/stripe.ts';
@@ -44,6 +44,31 @@ Deno.serve(async (req) => {
   if (!account?.charges_enabled) return json({ error: 'seller_not_ready' }, 409);
 
   try {
+    // Chiamata: la carta usata per la chiamata è già salvata sull'account del venditore → mancia con un solo tocco, senza reinserirla.
+    if (body.call_id) {
+      const { data: first } = await admin.from('payments').select('stripe_payment_intent_id').eq('call_id', target.id).eq('call_block', 0).maybeSingle();
+      if (first) {
+        try {
+          const prev = await stripeRequest<{ payment_method: string | null; customer: string | null }>('GET', `/v1/payment_intents/${first.stripe_payment_intent_id}`, undefined, { stripeAccount: account.stripe_account_id });
+          if (prev.payment_method && prev.customer) {
+            const saved = await stripeRequest<{ id: string; status: string }>('POST', '/v1/payment_intents', {
+              amount: amount!, currency: 'eur', customer: prev.customer, payment_method: prev.payment_method, off_session: true, confirm: true,
+              description: `Mancia: ${target.title ?? ''}`,
+              metadata: { tip_call_id: target.id, payer_id: user.id, seller_id: target.seller_id },
+            }, { idempotencyKey: `timeet-tip-saved-${target.id}-${crypto.randomUUID()}`, stripeAccount: account.stripe_account_id });
+            if (saved.status === 'succeeded') {
+              await admin.from('payments').insert({
+                payer_id: user.id, seller_id: target.seller_id, stripe_account_id: account.stripe_account_id, stripe_payment_intent_id: saved.id,
+                status: 'pending', amount_cents: amount!, application_fee_cents: 0, tip_call_id: target.id,
+              });
+              return json({ paid: true, amount_cents: amount });
+            }
+          }
+        } catch (error) {
+          console.error('Mancia con carta salvata non riuscita, si passa al modulo', error instanceof StripeError ? JSON.stringify(error.body) : error);
+        }
+      }
+    }
     const pi = await stripeRequest<PI>('POST', '/v1/payment_intents', {
       amount: amount!,
       currency: 'eur',

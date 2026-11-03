@@ -1,5 +1,6 @@
 import '@/i18n';
 import { useEffect } from 'react';
+import { LogBox } from 'react-native';
 import {
   InterTight_300Light,
   InterTight_400Regular,
@@ -10,6 +11,9 @@ import {
 import { Stack, router, usePathname, type Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+
+// LiveKit scrive questo errore ogni volta che la linea cade un attimo; si ricollega da solo, quindi non serve il riquadro rosso di sviluppo.
+LogBox.ignoreLogs(['error reading from signal stream']);
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, LoadingView, Screen, Spacer, Title } from '@/components/ui';

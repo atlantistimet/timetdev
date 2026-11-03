@@ -190,6 +190,7 @@ export default function CallScreen() {
     if (tip > 0) {
       const r = await createTipPayment({ callId: call.id }, tip);
       setSending(false);
+      if (r.paid) return leave();
       if (r.payment) setTipPay(r.payment);
       else setSendError(r.errorKey);
       return;
