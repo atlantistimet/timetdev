@@ -12,8 +12,8 @@ import { useAuth } from '@/lib/auth';
 import { listMyBookings, type MyBooking } from '@/lib/booking';
 import { fonts, pastelFor, useTheme } from '@/theme';
 
-type Tab = 'upcoming' | 'past';
-type Filter = 'all' | 'bought' | 'sold' | 'cancelled';
+type Tab = 'upcoming' | 'past' | 'cancelled';
+type Filter = 'all' | 'bought' | 'sold';
 
 export default function BookingsScreen() {
   const { t, i18n } = useTranslation();
@@ -52,9 +52,14 @@ export default function BookingsScreen() {
     const upcoming = (b: MyBooking) => b.status === 'confirmed' && new Date(b.ends_at).getTime() > now;
     const byStart = (a: MyBooking, b: MyBooking) => a.starts_at.localeCompare(b.starts_at);
     const pendingOutcome = list.filter((b) => b.status === 'confirmed' && b.seller_id === userId && new Date(b.ends_at).getTime() <= now);
-    const inFilter = (b: MyBooking) =>
-      filter === 'bought' ? b.client_id === userId : filter === 'sold' ? b.seller_id === userId : filter === 'cancelled' ? b.status === 'cancelled' : true;
-    const shownList = (tab === 'past' ? list.filter((b) => !upcoming(b) && !pendingOutcome.includes(b)) : list.filter(upcoming).sort(byStart)).filter(inFilter);
+    const inFilter = (b: MyBooking) => (filter === 'bought' ? b.client_id === userId : filter === 'sold' ? b.seller_id === userId : true);
+    const base =
+      tab === 'cancelled'
+        ? list.filter((b) => b.status === 'cancelled')
+        : tab === 'past'
+          ? list.filter((b) => b.status !== 'cancelled' && !upcoming(b) && !pendingOutcome.includes(b))
+          : list.filter(upcoming).sort(byStart);
+    const shownList = base.filter(inFilter);
     return { shown: shownList, pending: pendingOutcome };
   }, [bookings, tab, filter, now, userId]);
 
@@ -83,8 +88,8 @@ export default function BookingsScreen() {
   const featured = tab === 'upcoming' ? shown[0] : undefined;
   const rest = tab === 'upcoming' ? shown.slice(1) : shown;
   const empty = shown.length === 0 && pending.length === 0;
-  const toggles: [Tab, string][] = [['upcoming', t('bookings.tabUpcoming')], ['past', t('bookings.tabPast')]];
-  const filters: [Filter, string][] = [['all', t('bookings.filterAll')], ['bought', t('bookings.filterBought')], ['sold', t('bookings.filterSold')], ...(tab === 'past' ? ([['cancelled', t('bookings.filterCancelled')]] as [Filter, string][]) : [])];
+  const toggles: [Tab, string][] = [['upcoming', t('bookings.tabUpcoming')], ['past', t('bookings.tabPast')], ['cancelled', t('bookings.tabCancelled')]];
+  const filters: [Filter, string][] = [['all', t('bookings.filterAll')], ['bought', t('bookings.filterBought')], ['sold', t('bookings.filterSold')]];
   const role = (b: MyBooking) => t(mineOf(b) ? 'bookings.roleBought' : 'bookings.roleSold');
 
   const sheetWho = (b: MyBooking) => ({ id: b.id, title: b.service_title, startsAt: b.starts_at, otherName: otherOf(b).name, otherAvatar: otherOf(b).avatar, otherSeed: otherOf(b).id });
@@ -94,7 +99,7 @@ export default function BookingsScreen() {
       <Text style={[styles.title, { color: theme.text }]}>{t('tabs.agenda')}</Text>
       <View style={[styles.toggle, { backgroundColor: theme.surface }]}>
         {toggles.map(([key, label]) => (
-          <Pressable key={key} accessibilityRole="button" onPress={() => { setTab(key); if (key === 'upcoming' && filter === 'cancelled') setFilter('all'); }} style={[styles.toggleItem, tab === key && { backgroundColor: theme.ink }]}>
+          <Pressable key={key} accessibilityRole="button" onPress={() => setTab(key)} style={[styles.toggleItem, tab === key && { backgroundColor: theme.ink }]}>
             <Text style={[styles.toggleText, { color: tab === key ? '#FFFFFF' : theme.text, fontFamily: tab === key ? fonts.semibold : fonts.medium }]}>{label}</Text>
           </Pressable>
         ))}
@@ -150,7 +155,7 @@ export default function BookingsScreen() {
             {rest.map((b, i) => {
               const o = otherOf(b);
               const d = new Date(b.starts_at);
-              const sub = tab === 'past' ? `${role(b)} · ${new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'short' }).format(d)} · ${t(`bookings.status.${b.status}`)}` : `${role(b)} · ${meta(b)}${b.package_id ? ` · ${t('bookings.package')}` : ''}`;
+              const sub = tab !== 'upcoming' ? `${role(b)} · ${new Intl.DateTimeFormat(i18n.language, { day: 'numeric', month: 'short' }).format(d)} · ${t(`bookings.status.${b.status}`)}` : `${role(b)} · ${meta(b)}${b.package_id ? ` · ${t('bookings.package')}` : ''}`;
               return (
                 <Pressable key={b.id} accessibilityRole="button" onPress={() => open(b)} style={[styles.item, i > 0 && { borderTopWidth: 1, borderTopColor: theme.fill }]}>
                   <View style={[styles.dateTile, { backgroundColor: theme.bg }]}>

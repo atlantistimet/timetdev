@@ -345,9 +345,9 @@
     "filterAll": "Tutte",
     "filterBought": "Acquistate",
     "filterSold": "Vendute",
-    "filterCancelled": "Annullate",
     "roleBought": "Acquistata",
-    "roleSold": "Venduta"
+    "roleSold": "Venduta",
+    "tabCancelled": "Annullate"
   },
   "tabs": {
     "feed": "Feed",
