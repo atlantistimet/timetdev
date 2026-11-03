@@ -1,4 +1,4 @@
-import { forwardRef, type ReactNode } from 'react';
+import { forwardRef, useRef, useState, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -22,8 +22,17 @@ export function Screen({ children, tabs, wide, bare, footer, back, flush }: { ch
   const insets = useSafeAreaInsets();
   // a tutto schermo: il contenuto scorre fino ai bordi (sotto l'orologio e sotto la barra in basso), come su Instagram
   const Root = flush ? View : SafeAreaView;
+  // Se un contenitore sopra la schermata la fa partire sotto l'orologio, la riporta in cima (misura dove parte davvero).
+  const rootRef = useRef<View>(null);
+  const [shift, setShift] = useState(0);
+  const measure = () => {
+    if (!flush) return;
+    rootRef.current?.measureInWindow((_x, y) => {
+      if (Number.isFinite(y) && Math.abs(y) > 0.5) setShift((s) => s + Math.round(y));
+    });
+  };
   return (
-    <Root style={[styles.flex, { backgroundColor: flush ? theme.surface : theme.bg }]}>
+    <Root ref={rootRef} onLayout={measure} style={[styles.flex, { backgroundColor: flush ? theme.surface : theme.bg }, flush && shift > 0 ? { marginTop: -shift } : null]}>
       {back ? (
         <View style={[styles.screenColumn, wide && styles.screenColumnWide, styles.backBar]}>
           <Pressable
