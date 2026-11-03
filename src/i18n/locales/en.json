@@ -148,7 +148,7 @@
       "reviews_other": "{{count}} reviews",
       "paid": "Paid",
       "free": "Free time?",
-      "sendSlot": "Send slot"
+      "sendSlot": "Single slot"
     }
   },
   "book": {
@@ -413,7 +413,7 @@
     "statPackages": "{{count}} packages sold",
     "pastCount": "Past · {{count}}",
     "newOffer": "New offer",
-    "newSlot": "Send slot",
+    "newSlot": "Single slot",
     "hub": "Services, offers and links"
   },
   "offers": {
@@ -562,16 +562,16 @@
     }
   },
   "slotLinks": {
-    "title": "Custom slots",
-    "link": "Custom slot",
+    "title": "Single slots",
+    "link": "Single slot",
     "intro": "An invitation made for one person: choose what to offer and when, then share the link. Whoever receives it picks a time and pays. It doesn't appear on your profile or in the feed.",
-    "empty": "You have no custom slots yet.",
+    "empty": "You have no single slots yet.",
     "expired": "expired",
     "share": "Share the slot",
     "copied": "Link copied to the clipboard.",
     "delete": "Delete",
     "new": "New slot",
-    "newTitle": "New custom slot",
+    "newTitle": "New single slot",
     "needService": "To offer one of your services you need a service first: you can also create a slot just for this.",
     "price": "Slot price in euros",
     "priceHint": "Full service price: {{amount}}. You can change it for this link only.",
@@ -618,7 +618,7 @@
     "customDescription": "Description (optional)",
     "customPriceHint": "Full price: the discount, if you choose one, applies on top and the recipient sees it.",
     "customTitleError": "Give the slot a title.",
-    "sendTitle": "Send slot",
+    "sendTitle": "Single slot",
     "sendIntro": "Create a booking link to send to anyone.",
     "chooseAmong": "The client picks from",
     "noDiscount": "None",
@@ -695,12 +695,12 @@
     "kind": {
       "update": "Update",
       "offer": "Offer",
-      "slots": "Custom slot"
+      "slots": "Single slot"
     },
     "seeSlots": "See times",
     "delete": "Delete",
     "newTitle": "New content",
-    "newHint": "A post shows in your followers' feed. Offer and Custom slot have their own form.",
+    "newHint": "A post shows in your followers' feed. Offer and Single slot have their own form.",
     "bodyLabel": "Text",
     "bodyPlaceholder": "What would you like to share?",
     "publish": "Publish",
@@ -742,7 +742,7 @@
     "noOffers": "You have no active offers yet.",
     "createOffer": "Create an offer",
     "pickLink": "Choose the slot to publish",
-    "noLinks": "You have no custom slots yet.",
+    "noLinks": "You have no single slots yet.",
     "createLink": "Create a slot"
   },
   "explore": {
@@ -846,7 +846,7 @@
       "contact": "Contact",
       "slot": "Slot",
       "contactTitle": "Share a contact",
-      "slotTitle": "Custom slot",
+      "slotTitle": "Single slot",
       "noContacts": "You have no other conversations to share yet.",
       "noSlots": "You have no active slot links yet.",
       "newSlot": "Create a new slot"
@@ -1089,7 +1089,7 @@
     "postHint": "Shows in your followers' feed, with photos, videos and tagged people.",
     "offer": "New offer",
     "offerHint": "A public discount on one of your services, shown on your profile.",
-    "slot": "New custom slot",
+    "slot": "New single slot",
     "slotHint": "A private invitation for one person, sent as a link: it never shows on your profile or in the feed."
   },
   "earnings": {

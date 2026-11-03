@@ -30,7 +30,7 @@ function RootNavigator() {
     if (!isLoading) SplashScreen.hideAsync().catch(() => {});
   }, [isLoading]);
 
-  // Dopo l'accesso, porta dove l'utente voleva andare (es. al link di Invia slot).
+  // Dopo l'accesso, porta dove l'utente voleva andare (es. al link di Slot singolo).
   useEffect(() => {
     if (!ready) return;
     const target = takePendingPath();

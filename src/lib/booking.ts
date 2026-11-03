@@ -80,7 +80,7 @@ export async function loadOpenSlots(sellerId: string, serviceId: string, offerId
   return toSlots(startsInWindows(windows, durationMin, now), durationMin);
 }
 
-/** Link "Invia slot" con giorni e fasce propri: non usa la disponibilità, ma toglie gli orari già occupati. */
+/** Link "Slot singolo" con giorni e fasce propri: non usa la disponibilità, ma toglie gli orari già occupati. */
 export async function loadLinkSlots(sellerId: string, days: string[], ranges: { from: string; to: string }[], durationMin: number): Promise<OpenSlot[]> {
   const now = Date.now();
   const mine = days.flatMap((day) => ranges.map((r) => ({ from: romeToDate(day, r.from).getTime(), to: romeToDate(day, r.to).getTime() }))).filter((w) => w.to > now && w.to > w.from);

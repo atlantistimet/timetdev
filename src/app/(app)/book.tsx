@@ -58,7 +58,7 @@ export default function BookScreen() {
   useEffect(() => {
     let active = true;
     (async () => {
-      // da link "Invia slot" (codice) oppure da servizio/offerta
+      // da link "Slot singolo" (codice) oppure da servizio/offerta
       const link = code ? await loadLinkByCode(code) : null;
       const linkServiceId = link?.service_id ?? null;
       const service = code ? (linkServiceId ? await loadLinkService(code) : null) : serviceId ? await loadSlotService(serviceId) : null;

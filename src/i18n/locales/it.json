@@ -148,7 +148,7 @@
       "reviews_other": "{{count}} recensioni",
       "paid": "Pagata",
       "free": "Tempo libero?",
-      "sendSlot": "Invia slot"
+      "sendSlot": "Slot singolo"
     }
   },
   "book": {
@@ -413,7 +413,7 @@
     "statPackages": "{{count}} pacchetti venduti",
     "pastCount": "Passati · {{count}}",
     "newOffer": "Nuova offerta",
-    "newSlot": "Invia slot",
+    "newSlot": "Slot singolo",
     "hub": "Servizi, offerte e link"
   },
   "offers": {
@@ -562,16 +562,16 @@
     }
   },
   "slotLinks": {
-    "title": "Slot personalizzati",
-    "link": "Slot personalizzato",
+    "title": "Slot singoli",
+    "link": "Slot singolo",
     "intro": "Un invito fatto apposta per una persona: scegli cosa proporre e quando, poi condividi il link. Chi lo riceve sceglie l'orario e paga. Non compare nel profilo né nel feed.",
-    "empty": "Non hai ancora slot personalizzati.",
+    "empty": "Non hai ancora slot singoli.",
     "expired": "scaduto",
     "share": "Condividi lo slot",
     "copied": "Link copiato negli appunti.",
     "delete": "Elimina",
     "new": "Nuovo slot",
-    "newTitle": "Nuovo slot personalizzato",
+    "newTitle": "Nuovo slot singolo",
     "needService": "Per proporre un tuo servizio serve prima un servizio: puoi anche creare uno slot apposta.",
     "price": "Prezzo dello slot in euro",
     "priceHint": "Prezzo pieno del servizio: {{amount}}. Puoi cambiarlo solo per questo link.",
@@ -618,7 +618,7 @@
     "customDescription": "Descrizione (facoltativa)",
     "customPriceHint": "Prezzo pieno: lo sconto, se lo scegli, si applica sopra e chi riceve lo slot lo vede.",
     "customTitleError": "Dai un titolo allo slot.",
-    "sendTitle": "Invia slot",
+    "sendTitle": "Slot singolo",
     "sendIntro": "Crea un link di prenotazione da mandare a chi vuoi.",
     "chooseAmong": "Il cliente sceglie tra",
     "noDiscount": "Nessuno",
@@ -695,12 +695,12 @@
     "kind": {
       "update": "Aggiornamento",
       "offer": "Offerta",
-      "slots": "Slot personalizzato"
+      "slots": "Slot singolo"
     },
     "seeSlots": "Vedi gli orari",
     "delete": "Elimina",
     "newTitle": "Nuovo contenuto",
-    "newHint": "Un post compare nel feed di chi ti segue. Offerta e Slot personalizzato hanno la loro scheda.",
+    "newHint": "Un post compare nel feed di chi ti segue. Offerta e Slot singolo hanno la loro scheda.",
     "bodyLabel": "Testo",
     "bodyPlaceholder": "Cosa vuoi condividere?",
     "publish": "Pubblica",
@@ -742,7 +742,7 @@
     "noOffers": "Non hai ancora offerte attive.",
     "createOffer": "Crea un'offerta",
     "pickLink": "Scegli lo slot da pubblicare",
-    "noLinks": "Non hai ancora slot personalizzati.",
+    "noLinks": "Non hai ancora slot singoli.",
     "createLink": "Crea uno slot"
   },
   "explore": {
@@ -846,7 +846,7 @@
       "contact": "Contatto",
       "slot": "Slot",
       "contactTitle": "Condividi un contatto",
-      "slotTitle": "Slot personalizzato",
+      "slotTitle": "Slot singolo",
       "noContacts": "Non hai ancora altre conversazioni da condividere.",
       "noSlots": "Non hai ancora link slot attivi.",
       "newSlot": "Crea un nuovo slot"
@@ -864,10 +864,10 @@
   },
   "sessions": {
     "title": "Le mie sessioni",
-    "hint": "Tutte le sessioni: passate, future e slot inviati",
+    "hint": "Tutte le sessioni: passate, future e slot singoli",
     "booked": "Prenotate",
     "received": "Ricevute",
-    "links": "Slot inviati",
+    "links": "Slot singoli",
     "open": "Dettagli sessione"
   },
   "session": {
@@ -1089,7 +1089,7 @@
     "postHint": "Compare nel feed di chi ti segue, con foto, video e persone taggate.",
     "offer": "Nuova offerta",
     "offerHint": "Uno sconto pubblico su un tuo servizio, visibile nel tuo profilo.",
-    "slot": "Nuovo slot personalizzato",
+    "slot": "Nuovo slot singolo",
     "slotHint": "Un invito privato per una persona, con un link: non compare in profilo né nel feed."
   },
   "earnings": {
