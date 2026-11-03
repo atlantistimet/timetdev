@@ -12,13 +12,14 @@ import { Stack, router, usePathname, type Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 
-// LiveKit scrive questo errore ogni volta che la linea cade un attimo; si ricollega da solo, quindi non serve il riquadro rosso di sviluppo.
-LogBox.ignoreLogs(['error reading from signal stream']);
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { AuthProvider, useAuth } from '@/lib/auth';
 import { takePendingPath } from '@/lib/pending-link';
+
+// LiveKit scrive questo errore ogni volta che la linea cade un attimo; si ricollega da solo, quindi non serve il riquadro rosso di sviluppo.
+LogBox.ignoreLogs(['error reading from signal stream']);
 
 // Lo splash resta visibile finché non sappiamo se c'è una sessione: niente lampi di schermate sbagliate.
 SplashScreen.preventAutoHideAsync().catch(() => {});
