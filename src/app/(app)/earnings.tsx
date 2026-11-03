@@ -65,7 +65,7 @@ export default function EarningsScreen() {
     <Screen bare>
       <View style={[styles.hero, { backgroundColor: theme.ink }]}>
         <View style={styles.top}>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => router.back()} style={[styles.round, { backgroundColor: theme.inkSurface2 }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={[styles.round, { backgroundColor: theme.inkSurface2 }]}>
             <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
           </Pressable>
           <View style={[styles.toggle, { backgroundColor: theme.inkSurface2 }]}>

@@ -110,7 +110,7 @@ export default function NewPostScreen() {
   return (
     <Screen>
       <View style={styles.top}>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={[styles.pill, { backgroundColor: theme.surface }]}>
+        <Pressable accessibilityRole="button" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={[styles.pill, { backgroundColor: theme.surface }]}>
           <Text style={[styles.pillText, { color: theme.text }]}>{t('feed.cancel')}</Text>
         </Pressable>
         <Text style={[styles.topTitle, { color: theme.text }]}>{t('feed.newTitle')}</Text>
