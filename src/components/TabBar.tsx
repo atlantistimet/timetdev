@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
 import { useUnreadCount } from '@/lib/notifications';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { useTheme } from '@/theme';
 
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
@@ -39,11 +40,18 @@ export function TabBar() {
   const [lastTab, setLastTab] = useState<TabKey>('index');
   const here = ROOTS[pathname];
   if (here && here !== lastTab) setLastTab(here);
-  if (HIDDEN.some((re) => re.test(pathname))) return null;
   const active = here ?? lastTab;
+  const index = TABS.findIndex((x) => x.key === active);
+  const slot = useSharedValue(index);
+  const circle = useAnimatedStyle(() => ({ transform: [{ translateX: slot.get() * 60 }] }));
+  useEffect(() => {
+    slot.set(withSpring(index, { damping: 16, stiffness: 240 }));
+  }, [index, slot]);
+  if (HIDDEN.some((re) => re.test(pathname))) return null;
   return (
     <View pointerEvents="box-none" style={[styles.wrap, { bottom: Math.max(insets.bottom - 6, 16) }]}>
       <View style={[styles.bar, { backgroundColor: theme.ink }]}>
+        <Animated.View pointerEvents="none" style={[styles.circle, { backgroundColor: theme.accent }, circle]} />
         {TABS.map((tab) => {
           const focused = tab.key === active;
           return (
@@ -55,7 +63,7 @@ export function TabBar() {
               accessibilityLabel={t(tab.label)}
               accessibilityState={{ selected: focused }}
               onPress={() => router.navigate(tab.href)}
-              style={[styles.item, focused && { backgroundColor: theme.accent }]}>
+              style={styles.item}>
               <Ionicons name={tab.icon} size={24} color={focused ? theme.onAccent : theme.inkMuted} />
               {tab.key === 'profile' && unread > 0 ? <View style={[styles.badge, { backgroundColor: theme.accent, borderColor: theme.ink }]} /> : null}
             </Pressable>
@@ -82,6 +90,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
+  circle: { position: 'absolute', left: 6, top: 6, width: 54, height: 54, borderRadius: 999 },
   item: { width: 54, height: 54, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', top: 12, right: 12, width: 10, height: 10, borderRadius: 5, borderWidth: 2 },
 });

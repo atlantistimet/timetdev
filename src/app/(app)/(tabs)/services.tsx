@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SheetModal } from '@/components/SheetModal';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
@@ -235,8 +236,8 @@ export default function ServicesScreen() {
         );
       })}
 
-      <Modal visible={filtersOpen} transparent animationType="slide" onRequestClose={() => setFiltersOpen(false)}>
-        <Pressable style={[styles.scrim, { backgroundColor: theme.scrim }]} onPress={() => setFiltersOpen(false)} accessibilityLabel={t('common.close')} />
+      <SheetModal visible={filtersOpen}  onRequestClose={() => setFiltersOpen(false)}>
+        <Pressable style={[styles.scrim]} onPress={() => setFiltersOpen(false)} accessibilityLabel={t('common.close')} />
         <View style={[styles.sheet, { backgroundColor: theme.bg }]}>
           <Text style={[type.section, { color: theme.text }]}>{t('explore.filters')}</Text>
           <Spacer size={12} />
@@ -244,7 +245,7 @@ export default function ServicesScreen() {
           <Spacer />
           <Button title={t('explore.apply')} onPress={() => setFiltersOpen(false)} />
         </View>
-      </Modal>
+      </SheetModal>
     </Screen>
   );
 }

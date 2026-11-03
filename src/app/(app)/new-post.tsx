@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SheetModal } from '@/components/SheetModal';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -330,8 +331,8 @@ export default function NewPostScreen() {
 
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
 
-      <Modal visible={sheet !== null} transparent animationType="slide" onRequestClose={() => setSheet(null)}>
-        <Pressable style={[styles.backdrop, { backgroundColor: theme.scrim }]} onPress={() => setSheet(null)} />
+      <SheetModal visible={sheet !== null}  onRequestClose={() => setSheet(null)}>
+        <Pressable style={[styles.backdrop]} onPress={() => setSheet(null)} />
         <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
           <View style={[styles.grab, { backgroundColor: theme.fill }]} />
           <Text style={[styles.topTitle, { color: theme.text, fontSize: 20 }]}>{sheet === 'review' ? t('feed.secReview') : sheet === 'promote' ? t('feed.promoteTitle') : sheet === 'collab' ? t('feed.collabTitle') : sheet === 'service' ? t('feed.secServices') : sheet === 'offer' ? t('feed.secOffers') : t('feed.secSlots')}</Text>
@@ -384,7 +385,7 @@ export default function NewPostScreen() {
             {sheet === 'slot' ? section(t('feed.secSlots'), 'stopwatch', lists.links.map((l) => { const a = asLinkAttach(l); return { id: l.id, title: a.title, sub: a.sub, on: attach?.id === l.id, press: () => { setAttach(attach?.id === l.id ? null : a); setSheet(null); } }; }), t('feed.newSlot'), () => createNew('slot'), t('feed.noLinks')) : null}
           </ScrollView>
         </View>
-      </Modal>
+      </SheetModal>
     </Screen>
   );
 }

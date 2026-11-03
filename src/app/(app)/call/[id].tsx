@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { SheetModal } from '@/components/SheetModal';
 import { Pressable } from '@/components/Pressable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -304,8 +305,8 @@ export default function CallScreen() {
             <LoadingView />
           ) : null}
         </View>
-        <Modal transparent animationType="slide" visible={addOpen} onRequestClose={() => setAddOpen(false)}>
-          <View style={[styles.scrim, { backgroundColor: theme.scrim }]}>
+        <SheetModal  visible={addOpen} onRequestClose={() => setAddOpen(false)}>
+          <View style={[styles.scrim]}>
             <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
               <View style={[styles.grabber, { backgroundColor: theme.fill }]} />
               <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('calls.addTitle')}</Text>
@@ -324,7 +325,7 @@ export default function CallScreen() {
               </Pressable>
             </View>
           </View>
-        </Modal>
+        </SheetModal>
       </SafeAreaView>
     );
   }

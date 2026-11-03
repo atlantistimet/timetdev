@@ -1,4 +1,5 @@
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { SheetModal } from '@/components/SheetModal';
 import { Pressable } from '@/components/Pressable';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -18,8 +19,8 @@ export function CreateSheet({ visible, onClose }: { visible: boolean; onClose: (
     { key: 'slot', path: '/slot-link-edit' as const },
   ];
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable accessibilityLabel={t('common.close')} style={[styles.scrim, { backgroundColor: theme.scrim }]} onPress={onClose} />
+    <SheetModal visible={visible}  onRequestClose={onClose}>
+      <Pressable accessibilityLabel={t('common.close')} style={[styles.scrim]} onPress={onClose} />
       <View style={styles.sheetWrap} pointerEvents="box-none">
         <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
           <View style={[styles.handle, { backgroundColor: theme.fill }]} />
@@ -36,7 +37,7 @@ export function CreateSheet({ visible, onClose }: { visible: boolean; onClose: (
           ))}
         </View>
       </View>
-    </Modal>
+    </SheetModal>
   );
 }
 

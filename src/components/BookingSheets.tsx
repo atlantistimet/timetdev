@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { SheetModal } from '@/components/SheetModal';
 import { Pressable } from '@/components/Pressable';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
@@ -14,14 +15,14 @@ type Who = { id: string; title: string; startsAt: string; otherName: string; oth
 function SheetShell({ visible, onClose, children }: { visible: boolean; onClose: () => void; children: React.ReactNode }) {
   const theme = useTheme();
   return (
-    <Modal transparent animationType="slide" visible={visible} onRequestClose={onClose}>
-      <View style={[styles.scrim, { backgroundColor: theme.scrim }]}>
+    <SheetModal  visible={visible} onRequestClose={onClose}>
+      <View style={[styles.scrim]}>
         <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
           <View style={[styles.grabber, { backgroundColor: theme.fill }]} />
           {children}
         </View>
       </View>
-    </Modal>
+    </SheetModal>
   );
 }
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SheetModal } from '@/components/SheetModal';
 import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring } from 'react-native-reanimated';
 import { Pressable, buzz } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -222,8 +223,8 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false,
       ) : null}
       {shareNote ? <Body muted>{shareNote}</Body> : null}
       {showComments ? <CommentsSection postId={post.id} userId={userId} postAuthorId={post.author_id} onChanged={setCommentCount} /> : null}
-      <Modal visible={menu !== null} transparent animationType="slide" onRequestClose={() => setMenu(null)}>
-        <Pressable style={[styles.backdrop, { backgroundColor: theme.scrim }]} onPress={() => setMenu(null)} />
+      <SheetModal visible={menu !== null}  onRequestClose={() => setMenu(null)}>
+        <Pressable style={[styles.backdrop]} onPress={() => setMenu(null)} />
         <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
           <View style={[styles.grab, { backgroundColor: theme.fill }]} />
           <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 8 }}>
@@ -253,7 +254,7 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false,
             ) : null}
           </ScrollView>
         </View>
-      </Modal>
+      </SheetModal>
     </View>
   );
 }

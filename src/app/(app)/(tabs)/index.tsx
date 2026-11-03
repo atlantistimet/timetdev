@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
@@ -24,6 +24,12 @@ export default function Home() {
   const [scope, setScope] = useState<'all' | 'following'>('all');
   const [loaded, setLoaded] = useState<{ posts: Post[]; errorKey: string | null; nowMs: number; scope: string } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [scopeW, setScopeW] = useState(0);
+  const pill = useSharedValue(0);
+  const pillStyle = useAnimatedStyle(() => ({ transform: [{ translateX: pill.get() * Math.max(scopeW - 8, 0) / 2 }] }));
+  useEffect(() => {
+    pill.set(withSpring(scope === 'all' ? 0 : 1, { damping: 18, stiffness: 260 }));
+  }, [scope, pill]);
 
   useEffect(() => {
     if (!userId) return;
@@ -90,9 +96,10 @@ export default function Home() {
       ) : null}
 
       <View style={styles.scopeWrap}>
-      <View style={[styles.scope, { backgroundColor: theme.bg }]}>
+      <View onLayout={(e) => setScopeW(e.nativeEvent.layout.width)} style={[styles.scope, { backgroundColor: theme.bg }]}>
+        {scopeW > 0 ? <Animated.View pointerEvents="none" style={[styles.pill, { width: (scopeW - 8) / 2, backgroundColor: theme.ink }, pillStyle]} /> : null}
         {(['all', 'following'] as const).map((s) => (
-          <Pressable key={s} accessibilityRole="tab" accessibilityState={{ selected: scope === s }} onPress={() => setScope(s)} style={[styles.scopeBtn, scope === s && { backgroundColor: theme.ink }]}>
+          <Pressable key={s} accessibilityRole="tab" accessibilityState={{ selected: scope === s }} onPress={() => setScope(s)} style={styles.scopeBtn}>
             <Text style={[styles.scopeText, { color: scope === s ? theme.inkOn : theme.text, fontFamily: scope === s ? fonts.semibold : fonts.medium }]}>{t(s === 'all' ? 'feed.all' : 'feed.following')}</Text>
           </Pressable>
         ))}
@@ -129,6 +136,7 @@ const styles = StyleSheet.create({
   ring: { padding: 3, borderRadius: 40, borderWidth: 2.5, borderColor: 'transparent' },
   personName: { fontFamily: fonts.medium, fontSize: 12 },
   scope: { flexDirection: 'row', padding: 4, borderRadius: radius.pill, marginBottom: 14 },
+  pill: { position: 'absolute', left: 4, top: 4, height: 38, borderRadius: radius.pill },
   scopeBtn: { flex: 1, height: 38, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   scopeText: { fontSize: 14 },
 });

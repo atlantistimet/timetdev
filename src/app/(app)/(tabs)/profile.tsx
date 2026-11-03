@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { SheetModal } from '@/components/SheetModal';
 import { Pressable } from '@/components/Pressable';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -120,8 +121,8 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <Modal visible={langOpen} transparent animationType="slide" onRequestClose={() => setLangOpen(false)}>
-        <Pressable style={[styles.backdrop, { backgroundColor: theme.scrim }]} onPress={() => setLangOpen(false)} />
+      <SheetModal visible={langOpen}  onRequestClose={() => setLangOpen(false)}>
+        <Pressable style={[styles.backdrop]} onPress={() => setLangOpen(false)} />
         <View style={[styles.sheet, { backgroundColor: theme.bg }]}>
           <View style={[styles.grab, { backgroundColor: theme.fill }]} />
           <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('settings.language')}</Text>
@@ -135,7 +136,7 @@ export default function ProfileScreen() {
             );
           })}
         </View>
-      </Modal>
+      </SheetModal>
     </Screen>
   );
 }

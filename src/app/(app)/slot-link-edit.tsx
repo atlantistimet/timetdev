@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SheetModal } from '@/components/SheetModal';
 import { Pressable } from '@/components/Pressable';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -235,8 +236,8 @@ export default function SlotLinkEditScreen() {
           </View>
           {shareNote ? <Text style={[styles.note, { color: theme.muted }]}>{shareNote}</Text> : null}
         </View>
-        <Modal visible={chatOpen} transparent animationType="slide" onRequestClose={() => setChatOpen(false)}>
-          <Pressable style={[styles.backdrop, { backgroundColor: theme.scrim }]} onPress={() => setChatOpen(false)} />
+        <SheetModal visible={chatOpen}  onRequestClose={() => setChatOpen(false)}>
+          <Pressable style={[styles.backdrop]} onPress={() => setChatOpen(false)} />
           <View style={[styles.sheet, { backgroundColor: theme.bg }]}>
             <View style={[styles.grab, { backgroundColor: theme.fill }]} />
             <Text style={[styles.sheetTitle, { color: theme.text }]}>{t('slotLinks.chooseChat')}</Text>
@@ -256,7 +257,7 @@ export default function SlotLinkEditScreen() {
               </View>
             </ScrollView>
           </View>
-        </Modal>
+        </SheetModal>
       </Screen>
     );
   }

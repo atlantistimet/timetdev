@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SheetModal } from '@/components/SheetModal';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -303,8 +304,8 @@ export default function BookScreen() {
           <Text style={[styles.noteText, { color: theme.muted }]}>{t('book.noteCancel')}</Text>
         </View>
         <TierLines tiers={tiers} />
-        <Modal transparent animationType="slide" visible={declined} onRequestClose={() => setDeclined(false)}>
-          <View style={[styles.scrim, { backgroundColor: theme.scrim }]}>
+        <SheetModal  visible={declined} onRequestClose={() => setDeclined(false)}>
+          <View style={[styles.scrim]}>
             <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
               <View style={[styles.grabber, { backgroundColor: theme.fill }]} />
               <View style={[styles.alertIcon, { backgroundColor: '#FEE4E2' }]}>
@@ -324,7 +325,7 @@ export default function BookScreen() {
               </Pressable>
             </View>
           </View>
-        </Modal>
+        </SheetModal>
       </Screen>
     );
   }

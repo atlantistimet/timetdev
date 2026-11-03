@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Modal, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { SheetModal } from '@/components/SheetModal';
 import { Pressable } from '@/components/Pressable';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -193,8 +194,8 @@ export default function MyServicesScreen() {
         ) : null}
       </View>
 
-      <Modal visible={!!target} transparent animationType="slide" onRequestClose={() => setMenu(null)}>
-        <Pressable style={[styles.backdrop, { backgroundColor: theme.scrim }]} onPress={() => setMenu(null)} />
+      <SheetModal visible={!!target}  onRequestClose={() => setMenu(null)}>
+        <Pressable style={[styles.backdrop]} onPress={() => setMenu(null)} />
         <View style={[styles.sheet, { backgroundColor: theme.bg }]}>
           <View style={[styles.grab, { backgroundColor: theme.fill }]} />
           <Text numberOfLines={1} style={[styles.sheetTitle, { color: theme.text }]}>{service?.title ?? offer?.service_title ?? link?.service_title ?? ''}</Text>
@@ -221,7 +222,7 @@ export default function MyServicesScreen() {
             </>
           ) : null}
         </View>
-      </Modal>
+      </SheetModal>
     </Screen>
   );
 }
