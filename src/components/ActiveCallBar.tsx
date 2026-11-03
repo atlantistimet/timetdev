@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, Text, View } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +20,10 @@ export function ActiveCallBar() {
   const me = session?.user.id ?? null;
   const pathname = usePathname();
   const [call, setCall] = useState<CallRow | null>(null);
+  const pathRef = useRef(pathname);
+  useEffect(() => {
+    pathRef.current = pathname;
+  }, [pathname]);
 
   useEffect(() => {
     if (!me || !callsSupported) return;
@@ -32,7 +36,8 @@ export function ActiveCallBar() {
       setCall(mine);
       if (mine && mine.status === 'active' && !openedOnce) {
         openedOnce = true;
-        router.push({ pathname: '/call/[id]', params: { id: mine.id } });
+        // se la chiamata è già aperta (anche appena risposta) non se ne apre una seconda: due schermate = stessa identità due volte nella stanza
+        if (!pathRef.current.startsWith('/call/')) router.push({ pathname: '/call/[id]', params: { id: mine.id } });
       }
     };
     void check();

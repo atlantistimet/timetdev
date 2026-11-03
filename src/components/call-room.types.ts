@@ -4,7 +4,7 @@ export type CallRoomProps = {
   serverUrl: string;
   token: string;
   /** La linea è caduta (non è stato premuto «Chiudi»): la chiamata resta aperta e ci si ricollega. */
-  onDisconnected: () => void;
+  onDisconnected: (reason?: number) => void;
   /** Tasto rosso premuto: chiude la chiamata per tutti. */
   onHangup: () => void;
   /** Aspetto da mockup (solo telefono): chi c'è dall'altra parte e il riquadro dei minuti, che sta tra video e comandi. */

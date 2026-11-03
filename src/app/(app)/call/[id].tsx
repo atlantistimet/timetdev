@@ -145,7 +145,8 @@ export default function CallScreen() {
   const ringLeft = call.ring_expires_at ? Math.max(0, Math.floor((Date.parse(call.ring_expires_at) - now) / 1000)) : 0;
 
   /** La linea è caduta: la chiamata resta aperta sul server (che la chiude da solo se nessuno torna) e ci si ricollega con un nuovo token. */
-  const reconnect = () => {
+  const reconnect = (reason?: number) => {
+    if (reason === 2) return; // identità doppia: la stanza è aperta da un'altra schermata o dispositivo, ricollegarsi li farebbe espellere a vicenda
     setRoom(null);
     tokenRequested.current = false;
     setTimeout(() => setReconnects((n) => n + 1), 1500);
