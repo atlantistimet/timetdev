@@ -538,7 +538,7 @@
   },
   "profileEdit": {
     "title": "Profilo venditore",
-    "link": "Profilo e luogo",
+    "link": "Link",
     "handle": "Nome utente",
     "handleHint": "3–30 caratteri: lettere minuscole, numeri, _ e .",
     "roleTitle": "Professione",
@@ -558,7 +558,8 @@
     },
     "photoAdd": "Aggiungi foto",
     "photoChange": "Cambia foto",
-    "photoRemove": "Togli foto"
+    "photoRemove": "Togli foto",
+    "linkHint": "Il tuo sito o portfolio, se vuoi."
   },
   "photos": {
     "title": "Foto",
@@ -683,7 +684,14 @@
     "back": "Indietro",
     "tabReviews": "Recensioni",
     "write": "Scrivi",
-    "from": "da {{price}}"
+    "from": "da {{price}}",
+    "statReviews": "recensioni",
+    "followers": "follower",
+    "followingLabel": "seguiti",
+    "reviewsTitle": "Recensioni",
+    "reviewsCount_one": "{{count}} recensione",
+    "reviewsCount_other": "{{count}} recensioni",
+    "replyBy": "Risposta di {{name}}"
   },
   "serviceDetail": {
     "mine": "È un tuo servizio: lo vedono così i clienti."

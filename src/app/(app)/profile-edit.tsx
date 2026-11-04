@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth';
 import { centsToEuroText } from '@/lib/my-services';
 import { loadCategories, loadMyCategories, saveMyCategories, setAvailableNow, MAX_CATEGORIES, type Category } from '@/lib/explore';
 import { loadMyProfile, saveMyProfile } from '@/lib/profile-edit';
+import { loadProfileLink, saveProfileLink } from '@/lib/public-profile';
 
 export default function ProfileEditScreen() {
   const { t, i18n } = useTranslation();
@@ -21,6 +22,7 @@ export default function ProfileEditScreen() {
   const [roleTitle, setRoleTitle] = useState('');
   const [city, setCity] = useState('');
   const [bio, setBio] = useState('');
+  const [link, setLink] = useState('');
   const [placeType, setPlaceType] = useState('');
   const [placeAddress, setPlaceAddress] = useState('');
   const [serviceArea, setServiceArea] = useState('');
@@ -43,6 +45,7 @@ export default function ProfileEditScreen() {
       setUntil(p?.available_until ?? null);
       setAvatarPath(p?.avatar_path ?? null);
       setFullName(profile?.full_name ?? '');
+      setLink((await loadProfileLink(userId)) ?? '');
       setNow(Date.now());
       if (p) {
         setHandle(p.handle ?? '');
@@ -96,7 +99,7 @@ export default function ProfileEditScreen() {
     if (!userId) return;
     setSaving(true);
     setErrorKey(null);
-    const failure = (await saveMyProfile(userId, { handle, roleTitle, city, bio, placeType, placeAddress, serviceArea, travelFee })) ?? (await saveMyCategories(userId, picked));
+    const failure = (await saveMyProfile(userId, { handle, roleTitle, city, bio, placeType, placeAddress, serviceArea, travelFee })) ?? (await saveProfileLink(userId, link)) ?? (await saveMyCategories(userId, picked));
     setSaving(false);
     if (failure) setErrorKey(failure);
     else router.replace('/seller');
@@ -116,6 +119,7 @@ export default function ProfileEditScreen() {
       <TextField label={t('profileEdit.roleTitle')} value={roleTitle} onChangeText={setRoleTitle} maxLength={60} />
       <TextField label={t('profileEdit.city')} value={city} onChangeText={setCity} maxLength={60} />
       <TextField label={t('profileEdit.bio')} value={bio} onChangeText={setBio} multiline maxLength={500} />
+      <TextField label={t('profileEdit.link')} value={link} onChangeText={setLink} autoCapitalize="none" autoCorrect={false} keyboardType="url" maxLength={200} hint={t('profileEdit.linkHint')} />
       <Spacer size={8} />
       <TextField label={t('profileEdit.placeType')} value={placeType} onChangeText={setPlaceType} maxLength={40} hint={t('profileEdit.placeTypeHint')} />
       <TextField label={t('profileEdit.placeAddress')} value={placeAddress} onChangeText={setPlaceAddress} maxLength={160} hint={t('profileEdit.placeAddressHint')} />

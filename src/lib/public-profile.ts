@@ -28,6 +28,19 @@ export async function loadProfileById(id: string): Promise<PublicProfile | null>
   return (data as PublicProfile | null) ?? null;
 }
 
+/** Link in bio: colonna separata, così l'app funziona anche prima della migrazione 0036. */
+export async function loadProfileLink(id: string): Promise<string | null> {
+  const { data, error } = await supabase.from('profiles').select('link').eq('id', id).maybeSingle();
+  if (error) return null;
+  return (data as { link: string | null } | null)?.link ?? null;
+}
+
+export async function saveProfileLink(id: string, link: string): Promise<string | null> {
+  const v = link.trim();
+  const { error } = await supabase.from('profiles').update({ link: v ? v : null }).eq('id', id);
+  return error ? 'errors.generic' : null;
+}
+
 export const initials = (name: string) =>
   name
     .split(/\s+/)

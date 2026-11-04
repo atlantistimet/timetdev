@@ -1,26 +1,27 @@
-import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
-import { Emoji } from '@/components/Emoji';
-import { Body, Button, Card, LoadingView, Screen, Spacer, Title } from '@/components/ui';
+import { Body, Button, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { PostCard } from '@/components/PostCard';
 import { ReviewReply } from '@/components/ReviewReply';
 import { useAuth } from '@/lib/auth';
 import { followInfo, loadPosts, setFollow, type Post } from '@/lib/feed';
 import { cleanTitle, formatEuro, listSellerServices, type SlotService } from '@/lib/booking';
 import { finalPriceCents, listSellerOffers, validityText, type Offer } from '@/lib/offers';
-import { loadReviews, stars, type Review, type ReviewSummary } from '@/lib/reviews';
+import { loadReviews, type Review, type ReviewSummary } from '@/lib/reviews';
 import { shareText } from '@/lib/slot-links';
-import { loadProfileByHandle, type PublicProfile } from '@/lib/public-profile';
+import { loadProfileByHandle, loadProfileLink, type PublicProfile } from '@/lib/public-profile';
 import { loadCategories, loadSellerStats, loadSellers, type Category, type Seller, type SellerStats } from '@/lib/explore';
 import { fonts, pastelFor, radius, useTheme } from '@/theme';
 
+const GREEN = '#34C759';
+
 type Follow = { following: boolean; followers: number; followingCount: number };
-type Loaded = { profile: PublicProfile; seller: Seller | null; stats: SellerStats | null; categories: Category[]; services: SlotService[]; offers: Offer[]; posts: Post[]; reviews: Review[]; summary: ReviewSummary; follow: Follow; nowMs: number } | 'missing';
+type Loaded = { link: string | null; profile: PublicProfile; seller: Seller | null; stats: SellerStats | null; categories: Category[]; services: SlotService[]; offers: Offer[]; posts: Post[]; reviews: Review[]; summary: ReviewSummary; follow: Follow; nowMs: number } | 'missing';
 
 export default function PublicProfileScreen() {
   const { t, i18n } = useTranslation();
@@ -31,6 +32,8 @@ export default function PublicProfileScreen() {
   const [reloadKey, setReloadKey] = useState(0);
   const [following, setFollowing] = useState<boolean | null>(null);
   const [tab, setTab] = useState<'services' | 'offers' | 'posts' | 'reviews'>('services');
+  const scrollRef = useRef<ScrollView>(null);
+  const tabsY = useRef(0);
 
   useEffect(() => {
     let alive = true;
@@ -46,8 +49,8 @@ export default function PublicProfileScreen() {
           followInfo(me, profile.id),
           loadReviews(profile.id),
         ]);
-        const [stats, sellers, categories] = await Promise.all([loadSellerStats([profile.id]), loadSellers([profile.id]), loadCategories(i18n.language)]);
-        result = { profile, seller: sellers[profile.id] ?? null, stats: stats[profile.id] ?? null, categories, services, offers, posts: postsResult.posts, reviews: rev.reviews, summary: rev.summary, follow, nowMs: Date.now() };
+        const [stats, sellers, categories, link] = await Promise.all([loadSellerStats([profile.id]), loadSellers([profile.id]), loadCategories(i18n.language), loadProfileLink(profile.id)]);
+        result = { link, profile, seller: sellers[profile.id] ?? null, stats: stats[profile.id] ?? null, categories, services, offers, posts: postsResult.posts, reviews: rev.reviews, summary: rev.summary, follow, nowMs: Date.now() };
       }
       if (alive) setLoaded(result);
     })();
@@ -67,7 +70,7 @@ export default function PublicProfileScreen() {
     );
   }
 
-  const { profile, seller, stats, categories, services, offers, posts, reviews, summary, follow, nowMs } = loaded;
+  const { link, profile, seller, stats, services, offers, posts, reviews, summary, follow, nowMs } = loaded;
   const isFollowing = following ?? follow.following;
   const mine = session?.user.id === profile.id;
   const where = [...new Set(services.flatMap((s) => s.places))];
@@ -75,7 +78,6 @@ export default function PublicProfileScreen() {
   const rateService = services.find((s) => s.kind === 'per_minute');
   const bookable = services.filter((s) => s.kind !== 'per_minute');
   const avg = stats?.rating_avg ?? (summary.count > 0 ? summary.average : null);
-  const reviewsCount = stats?.reviews_count ?? summary.count;
   const hours = stats?.hours_shared ?? 0;
   const rateText = rateService ? t('explore.perMin', { price: formatEuro(rateService.rate_cents_per_min ?? 0, i18n.language) }) : null;
   const priceText = (s: SlotService) =>
@@ -97,6 +99,16 @@ export default function PublicProfileScreen() {
   };
   const topOffer = offers[0];
 
+  const goReviews = () => {
+    setTab('reviews');
+    scrollRef.current?.scrollTo({ y: Math.max(tabsY.current - 8, 0), animated: true });
+  };
+  const openLink = (raw: string) => {
+    const url = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    if (Platform.OS === 'web') window.open(url, '_blank', 'noopener');
+    else void Linking.openURL(url);
+  };
+  const dist = [5, 4, 3, 2, 1].map((n) => reviews.filter((r) => Math.round(r.rating) === n).length);
   const shareProfile = () => void shareText(`https://timeet.world/u/${profile.handle ?? handle}`);
   const toggleFollow = async () => {
     const next = !isFollowing;
@@ -104,7 +116,6 @@ export default function PublicProfileScreen() {
     if (await setFollow(session?.user.id ?? '', profile.id, next)) setFollowing(!next);
   };
   const goChat = () => router.push({ pathname: '/chat/[userId]', params: { userId: profile.id } });
-  const emoji = categories.find((c) => c.key === seller?.categories[0])?.emoji ?? null;
   const hoursText = `${hours >= 10 ? Math.round(hours) : hours.toFixed(1).replace('.0', '').replace('.', ',')} h`;
 
   const row = (key: string, color: string, title: string, meta: string, price: string, onPress: () => void) => (
@@ -120,7 +131,7 @@ export default function PublicProfileScreen() {
   const list = (rows: React.ReactNode[]) => (rows.length > 0 ? <View style={[styles.card, { backgroundColor: theme.surface }]}>{rows}</View> : null);
 
   return (
-    <Screen bare>
+    <Screen bare scrollRef={scrollRef}>
       <View style={styles.body}>
         <View style={styles.topRow}>
           <Pressable accessibilityRole="button" accessibilityLabel={t('publicProfile.back')} onPress={goBack} style={styles.iconBtn}>
@@ -133,62 +144,47 @@ export default function PublicProfileScreen() {
         </View>
 
         <View style={styles.head}>
-          <View style={[styles.ring, { borderColor: callableNow ? theme.accent : theme.ink }]}>
-            <View style={[styles.ringGap, { backgroundColor: theme.bg }]}>
-              <Avatar name={profile.full_name} seed={profile.id} size={88} round={44} path={seller?.avatar_path} />
-            </View>
-            {emoji ? (
-              <View style={[styles.badge, { backgroundColor: theme.accent, borderColor: theme.bg }]}>
-                <Emoji name={emoji} size={20} />
-              </View>
-            ) : null}
+          <View style={[styles.ring, callableNow && { borderColor: GREEN }]}>
+            <Avatar name={profile.full_name} seed={profile.id} size={callableNow ? 96 : 108} round={callableNow ? 48 : 54} path={seller?.avatar_path} />
           </View>
           <View style={styles.headRight}>
-            <Text numberOfLines={1} style={[styles.name, { color: theme.text }]}>{profile.full_name}</Text>
-            {callableNow ? (
-              <View style={[styles.live, { backgroundColor: theme.accent }]}>
-                <View style={[styles.liveDot, { backgroundColor: theme.onAccent }]} />
-                <Text style={[styles.liveText, { color: theme.onAccent }]}>{t('explore.availableNow')}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={[styles.name, { color: theme.text }]}>{profile.full_name}</Text>
+            {profile.role_title || profile.city ? <Text numberOfLines={1} style={[styles.sub, { color: theme.muted }]}>{[profile.role_title, profile.city].filter(Boolean).join(' · ')}</Text> : null}
+            <View style={styles.counters}>
+              <View style={styles.counter}>
+                <Text numberOfLines={1} style={[styles.numBig, { color: theme.text }]}>{String(stats?.sessions_count ?? 0)}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[styles.numSmall, { color: theme.muted }]}>{t('publicProfile.statSessions')}</Text>
               </View>
-            ) : null}
-            <View style={styles.numbers}>
-              <View>
-                <Text style={[styles.numBig, { color: theme.text }]}>{String(stats?.sessions_count ?? 0)}</Text>
-                <Text style={[styles.numSmall, { color: theme.muted }]}>{t('publicProfile.statSessions')}</Text>
-              </View>
-              <View>
-                <Text style={[styles.numBig, { color: theme.text }]}>{avg ? `${Number(avg).toFixed(1).replace('.', ',')} ★` : '–'}</Text>
-                <Text style={[styles.numSmall, { color: theme.muted }]}>{t('reviews.count', { count: reviewsCount })}</Text>
-              </View>
-              <View>
-                <Text style={[styles.numBig, { color: theme.text }]}>{hoursText}</Text>
-                <Text style={[styles.numSmall, { color: theme.muted }]}>{t('publicProfile.statHours')}</Text>
+              <Pressable accessibilityRole="button" onPress={goReviews} style={styles.counter}>
+                <Text numberOfLines={1} style={[styles.numBig, { color: theme.text }]}>{avg ? `${Number(avg).toFixed(1).replace('.', ',')} ★` : '–'}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[styles.numSmall, styles.underlined, { color: theme.muted }]}>{t('publicProfile.statReviews')}</Text>
+              </Pressable>
+              <View style={styles.counter}>
+                <Text numberOfLines={1} style={[styles.numBig, { color: theme.text }]}>{hoursText}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[styles.numSmall, { color: theme.muted }]}>{t('publicProfile.statHours')}</Text>
               </View>
             </View>
           </View>
         </View>
 
         <View style={styles.who}>
-          {profile.role_title || profile.city ? <Text style={[styles.sub, { color: theme.muted }]}>{[profile.role_title, profile.city].filter(Boolean).join(' · ')}</Text> : null}
           {profile.bio ? <Text style={[styles.bio, { color: theme.text }]}>{profile.bio}</Text> : null}
+          {link ? (
+            <Pressable accessibilityRole="link" onPress={() => openLink(link)} style={styles.linkRow}>
+              <Ionicons name="link-outline" size={16} color={theme.text} />
+              <Text numberOfLines={1} style={[styles.linkText, { color: theme.text }]}>{link.replace(/^https?:\/\//i, '').replace(/\/$/, '')}</Text>
+            </Pressable>
+          ) : null}
           {where.length > 0 ? (
             <Text style={[styles.placesLine, { color: theme.muted }]}>{where.map((p) => (p === 'sede' && profile.place_type ? profile.place_type : t(`places.${p}`))).join(' · ')}</Text>
           ) : null}
+          <Text style={[styles.placesLine, { color: theme.muted }]}>
+            <Text style={{ color: theme.text, fontFamily: fonts.semibold }}>{follow.followers + (following === null || following === follow.following ? 0 : following ? 1 : -1)}</Text>
+            {` ${t('publicProfile.followers')} · `}
+            <Text style={{ color: theme.text, fontFamily: fonts.semibold }}>{follow.followingCount}</Text>
+            {` ${t('publicProfile.followingLabel')}`}
+          </Text>
         </View>
-
-        {stats && stats.reviewers_count > 0 ? (
-          <View style={styles.faces}>
-            <View style={styles.facesRow}>
-              {stats.reviewers.slice(0, 3).map((r, i) => (
-                <View key={r.id} style={[styles.face, { borderColor: theme.bg, marginLeft: i === 0 ? 0 : -10 }]}>
-                  <Avatar name={r.full_name} seed={r.id} size={30} path={r.avatar_path} />
-                </View>
-              ))}
-            </View>
-            <Text style={[styles.facesText, { color: theme.text, fontFamily: fonts.semibold }]}>{t('publicProfile.reviewedBy', { count: stats.reviewers_count })}</Text>
-            <Emoji name="heart_hands" size={22} />
-          </View>
-        ) : null}
 
         <View style={styles.actions}>
           {mine ? (
@@ -229,7 +225,7 @@ export default function PublicProfileScreen() {
           )}
         </View>
 
-        <View accessibilityRole="tablist" style={[styles.tabs, { borderBottomColor: theme.fill }]}>
+        <View accessibilityRole="tablist" onLayout={(e) => { tabsY.current = e.nativeEvent.layout.y; }} style={[styles.tabs, { borderBottomColor: theme.fill }]}>
           {tabs.map((x) => (
             <Pressable key={x.key} accessibilityRole="tab" accessibilityState={{ selected: tab === x.key }} onPress={() => setTab(x.key)} style={[styles.tab, tab === x.key && { borderBottomColor: theme.accent }]}>
               <Text style={[styles.tabText, { color: tab === x.key ? theme.text : theme.muted, fontFamily: tab === x.key ? fonts.semibold : fonts.medium }]}>{x.label}</Text>
@@ -258,13 +254,39 @@ export default function PublicProfileScreen() {
         ) : tab === 'reviews' ? (
           <>
             {reviews.length === 0 ? <Body muted>{t('reviews.none')}</Body> : null}
+            {reviews.length > 0 ? (
+              <View style={[styles.sumCard, { backgroundColor: theme.surface }]}>
+                <View style={styles.sumLeft}>
+                  <Text style={[styles.sumBig, { color: theme.text }]}>{Number(summary.average).toFixed(1).replace('.', ',')}</Text>
+                  <Text style={[styles.sumStars, { color: theme.text }]}>{'★'.repeat(Math.round(summary.average))}</Text>
+                  <Text style={[styles.numSmall, { color: theme.muted }]}>{t('publicProfile.reviewsCount', { count: summary.count })}</Text>
+                </View>
+                <View style={styles.sumBars}>
+                  {dist.map((n, i) => (
+                    <View key={i} style={styles.barRow}>
+                      <Text style={[styles.barLabel, { color: theme.muted }]}>{5 - i}</Text>
+                      <View style={[styles.barTrack, { backgroundColor: theme.fill }]}>
+                        <View style={[styles.barFill, { backgroundColor: theme.ink, width: `${summary.count ? (n / summary.count) * 100 : 0}%` }]} />
+                      </View>
+                      <Text style={[styles.barCount, { color: theme.muted }]}>{n}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ) : null}
             {reviews.map((r) => (
-              <Card key={r.id}>
-                <Body>{`${stars(r.rating)} · ${r.author_name}`}</Body>
-                {r.body ? <Body muted>{r.body}</Body> : null}
-                <Body muted>{new Date(r.created_at).toLocaleDateString(i18n.language)}</Body>
+              <View key={r.id} style={[styles.review, { backgroundColor: theme.surface }]}>
+                <View style={styles.reviewHead}>
+                  <Avatar name={r.author_name || '?'} seed={r.author_name} size={36} round={18} />
+                  <View style={styles.rowBody}>
+                    <Text numberOfLines={1} style={[styles.rowTitle, { color: theme.text, fontSize: 15 }]}>{r.author_name}</Text>
+                    <Text style={[styles.rowMeta, { color: theme.muted }]}>{new Date(r.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short' })}</Text>
+                  </View>
+                  <Text style={[styles.reviewStars, { color: theme.text }]}>{'★'.repeat(Math.round(r.rating))}</Text>
+                </View>
+                {r.body ? <Text style={[styles.reviewBody, { color: theme.text }]}>{r.body}</Text> : null}
                 <ReviewReply reviewId={r.id} reply={r.reply} sellerName={profile.full_name} canReply={mine} onDone={() => setReloadKey((k) => k + 1)} />
-              </Card>
+              </View>
             ))}
           </>
         ) : (
@@ -295,22 +317,21 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   handleTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.semibold, fontSize: 17, letterSpacing: -0.3 },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 4 },
-  ring: { width: 108, height: 108, borderRadius: 54, borderWidth: 4, alignItems: 'center', justifyContent: 'center' },
-  ringGap: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center' },
-  badge: { position: 'absolute', right: -6, bottom: -4, width: 36, height: 36, borderRadius: 18, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
-  headRight: { flex: 1, gap: 6 },
-  live: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', height: 24, paddingHorizontal: 10, borderRadius: radius.pill },
-  liveDot: { width: 6, height: 6, borderRadius: 3 },
-  liveText: { fontFamily: fonts.semibold, fontSize: 12 },
-  numbers: { flexDirection: 'row', justifyContent: 'space-between' },
-  numBig: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: -0.9 },
-  numSmall: { fontFamily: fonts.medium, fontSize: 12 },
-  who: { paddingHorizontal: 4, gap: 2, marginTop: 4 },
-  name: { fontFamily: fonts.semibold, fontSize: 24, letterSpacing: -1 },
-  sub: { fontFamily: fonts.semibold, fontSize: 14 },
-  bio: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, marginTop: 2 },
-  placesLine: { fontFamily: fonts.medium, fontSize: 13, marginTop: 2 },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 2 },
+  ring: { width: 112, height: 112, borderRadius: 56, borderWidth: 4, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center' },
+  headRight: { flex: 1, minWidth: 0, gap: 2 },
+  counters: { flexDirection: 'row', marginTop: 8, gap: 6 },
+  counter: { flex: 1, minWidth: 0 },
+  numBig: { fontFamily: fonts.semibold, fontSize: 16, letterSpacing: -0.4 },
+  numSmall: { fontFamily: fonts.medium, fontSize: 11 },
+  underlined: { textDecorationLine: 'underline' },
+  who: { paddingHorizontal: 4, gap: 4, marginTop: 4 },
+  name: { fontFamily: fonts.semibold, fontSize: 20, letterSpacing: -0.7 },
+  sub: { fontFamily: fonts.medium, fontSize: 13 },
+  bio: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21 },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  linkText: { fontFamily: fonts.semibold, fontSize: 14, textDecorationLine: 'underline', flexShrink: 1 },
+  placesLine: { fontFamily: fonts.medium, fontSize: 13 },
   faces: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4 },
   facesRow: { flexDirection: 'row' },
   face: { borderWidth: 2, borderRadius: 20 },
@@ -321,6 +342,20 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', gap: 22, marginTop: 6, marginHorizontal: 4, borderBottomWidth: 1 },
   tab: { paddingBottom: 9, marginBottom: -1, borderBottomWidth: 3, borderBottomColor: 'transparent' },
   tabText: { fontSize: 15 },
+  sumCard: { flexDirection: 'row', alignItems: 'center', gap: 16, borderRadius: 22, padding: 14 },
+  sumLeft: { alignItems: 'center' },
+  sumBig: { fontFamily: fonts.semibold, fontSize: 38, letterSpacing: -1.6, lineHeight: 42 },
+  sumStars: { fontSize: 15, letterSpacing: 1 },
+  sumBars: { flex: 1, gap: 5 },
+  barRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  barLabel: { width: 10, fontFamily: fonts.medium, fontSize: 11 },
+  barTrack: { flex: 1, height: 6, borderRadius: 3, overflow: 'hidden' },
+  barFill: { height: 6, borderRadius: 3 },
+  barCount: { width: 14, textAlign: 'right', fontFamily: fonts.medium, fontSize: 11 },
+  review: { borderRadius: 22, padding: 14, gap: 8 },
+  reviewHead: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  reviewStars: { fontSize: 14 },
+  reviewBody: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21 },
   offerBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14 },
   offerTitle: { flex: 1, fontFamily: fonts.semibold, fontSize: 14 },
   card: { borderRadius: 22, paddingHorizontal: 12 },

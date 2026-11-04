@@ -1,4 +1,4 @@
-import { forwardRef, useRef, useState, type ReactNode } from 'react';
+import { forwardRef, useRef, useState, type ReactNode, type Ref } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -8,7 +8,7 @@ import { reportScroll } from '@/lib/chrome';
 import { fonts, radius, type as typo, useTheme } from '@/theme';
 
 /** Contenitore di schermata: area sicura, tastiera che non copre i campi, contenuto centrato e largo al massimo 440. */
-export function Screen({ children, tabs, wide, bare, footer, back, flush }: { children: ReactNode; tabs?: boolean; wide?: boolean; bare?: boolean; footer?: ReactNode; back?: boolean; flush?: boolean }) {
+export function Screen({ children, tabs, wide, bare, footer, back, flush, scrollRef }: { children: ReactNode; tabs?: boolean; wide?: boolean; bare?: boolean; footer?: ReactNode; back?: boolean; flush?: boolean; scrollRef?: Ref<ScrollView> }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   // a tutto schermo: il contenuto scorre fino ai bordi (sotto l'orologio e sotto la barra in basso), come su Instagram
@@ -37,6 +37,7 @@ export function Screen({ children, tabs, wide, bare, footer, back, flush }: { ch
       ) : null}
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={[styles.screenContent, tabs && styles.screenTabs, (bare || flush) && styles.screenBare, footer ? styles.screenFooter : null, flush ? { paddingTop: insets.top } : null]}
           keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
