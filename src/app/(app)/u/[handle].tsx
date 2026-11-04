@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { Emoji } from '@/components/Emoji';
 import { Body, Button, Card, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { PostCard } from '@/components/PostCard';
 import { ReviewReply } from '@/components/ReviewReply';
@@ -66,7 +67,7 @@ export default function PublicProfileScreen() {
     );
   }
 
-  const { profile, seller, stats, services, offers, posts, reviews, summary, follow, nowMs } = loaded;
+  const { profile, seller, stats, categories, services, offers, posts, reviews, summary, follow, nowMs } = loaded;
   const isFollowing = following ?? follow.following;
   const mine = session?.user.id === profile.id;
   const where = [...new Set(services.flatMap((s) => s.places))];
@@ -103,6 +104,7 @@ export default function PublicProfileScreen() {
     if (await setFollow(session?.user.id ?? '', profile.id, next)) setFollowing(!next);
   };
   const goChat = () => router.push({ pathname: '/chat/[userId]', params: { userId: profile.id } });
+  const emoji = categories.find((c) => c.key === seller?.categories[0])?.emoji ?? null;
   const hoursText = `${hours >= 10 ? Math.round(hours) : hours.toFixed(1).replace('.0', '').replace('.', ',')} h`;
 
   const row = (key: string, color: string, title: string, meta: string, price: string, onPress: () => void) => (
@@ -124,52 +126,84 @@ export default function PublicProfileScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel={t('publicProfile.back')} onPress={goBack} style={styles.iconBtn}>
             <Ionicons name="chevron-back" size={26} color={theme.text} />
           </Pressable>
+          <Text numberOfLines={1} style={[styles.handleTitle, { color: theme.text }]}>{profile.handle ? `@${profile.handle}` : ''}</Text>
           <Pressable accessibilityRole="button" accessibilityLabel={t('profile.share')} onPress={shareProfile} style={styles.iconBtn}>
             <Ionicons name="share-outline" size={24} color={theme.text} />
           </Pressable>
         </View>
 
         <View style={styles.head}>
-          <Avatar name={profile.full_name} seed={profile.id} size={76} round={38} path={seller?.avatar_path} />
-          <View style={styles.numbers}>
-            <View style={styles.number}>
-              <Text style={[styles.numBig, { color: theme.text }]}>{String(stats?.sessions_count ?? 0)}</Text>
-              <Text style={[styles.numSmall, { color: theme.muted }]}>{t('publicProfile.statSessions')}</Text>
+          <View style={[styles.ring, { borderColor: callableNow ? theme.accent : theme.ink }]}>
+            <View style={[styles.ringGap, { backgroundColor: theme.bg }]}>
+              <Avatar name={profile.full_name} seed={profile.id} size={88} round={44} path={seller?.avatar_path} />
             </View>
-            <View style={styles.number}>
-              <Text style={[styles.numBig, { color: theme.text }]}>{avg ? `${Number(avg).toFixed(1).replace('.', ',')} ★` : '–'}</Text>
-              <Text style={[styles.numSmall, { color: theme.muted }]}>{t('reviews.count', { count: reviewsCount })}</Text>
-            </View>
-            <View style={styles.number}>
-              <Text style={[styles.numBig, { color: theme.text }]}>{hoursText}</Text>
-              <Text style={[styles.numSmall, { color: theme.muted }]}>{t('publicProfile.statHours')}</Text>
+            {emoji ? (
+              <View style={[styles.badge, { backgroundColor: theme.accent, borderColor: theme.bg }]}>
+                <Emoji name={emoji} size={20} />
+              </View>
+            ) : null}
+          </View>
+          <View style={styles.headRight}>
+            <Text numberOfLines={1} style={[styles.name, { color: theme.text }]}>{profile.full_name}</Text>
+            {callableNow ? (
+              <View style={[styles.live, { backgroundColor: theme.accent }]}>
+                <View style={[styles.liveDot, { backgroundColor: theme.onAccent }]} />
+                <Text style={[styles.liveText, { color: theme.onAccent }]}>{t('explore.availableNow')}</Text>
+              </View>
+            ) : null}
+            <View style={styles.numbers}>
+              <View>
+                <Text style={[styles.numBig, { color: theme.text }]}>{String(stats?.sessions_count ?? 0)}</Text>
+                <Text style={[styles.numSmall, { color: theme.muted }]}>{t('publicProfile.statSessions')}</Text>
+              </View>
+              <View>
+                <Text style={[styles.numBig, { color: theme.text }]}>{avg ? `${Number(avg).toFixed(1).replace('.', ',')} ★` : '–'}</Text>
+                <Text style={[styles.numSmall, { color: theme.muted }]}>{t('reviews.count', { count: reviewsCount })}</Text>
+              </View>
+              <View>
+                <Text style={[styles.numBig, { color: theme.text }]}>{hoursText}</Text>
+                <Text style={[styles.numSmall, { color: theme.muted }]}>{t('publicProfile.statHours')}</Text>
+              </View>
             </View>
           </View>
         </View>
 
         <View style={styles.who}>
-          <Text style={[styles.name, { color: theme.text }]}>{profile.full_name}</Text>
-          <Text style={[styles.sub, { color: theme.muted }]}>{[profile.role_title, profile.city, callableNow ? t('explore.availableNow') : null].filter(Boolean).join(' · ')}</Text>
+          {profile.role_title || profile.city ? <Text style={[styles.sub, { color: theme.muted }]}>{[profile.role_title, profile.city].filter(Boolean).join(' · ')}</Text> : null}
           {profile.bio ? <Text style={[styles.bio, { color: theme.text }]}>{profile.bio}</Text> : null}
           {where.length > 0 ? (
             <Text style={[styles.placesLine, { color: theme.muted }]}>{where.map((p) => (p === 'sede' && profile.place_type ? profile.place_type : t(`places.${p}`))).join(' · ')}</Text>
           ) : null}
         </View>
 
+        {stats && stats.reviewers_count > 0 ? (
+          <View style={styles.faces}>
+            <View style={styles.facesRow}>
+              {stats.reviewers.slice(0, 3).map((r, i) => (
+                <View key={r.id} style={[styles.face, { borderColor: theme.bg, marginLeft: i === 0 ? 0 : -10 }]}>
+                  <Avatar name={r.full_name} seed={r.id} size={30} path={r.avatar_path} />
+                </View>
+              ))}
+            </View>
+            <Text style={[styles.facesText, { color: theme.text, fontFamily: fonts.semibold }]}>{t('publicProfile.reviewedBy', { count: stats.reviewers_count })}</Text>
+            <Emoji name="heart_hands" size={22} />
+          </View>
+        ) : null}
+
         <View style={styles.actions}>
           {mine ? (
             <>
-              <Pressable accessibilityRole="button" onPress={() => router.push('/profile-edit')} style={[styles.action, { backgroundColor: theme.accent, flex: 1.4 }]}>
+              <Pressable accessibilityRole="button" onPress={() => router.push('/profile-edit')} style={[styles.action, { backgroundColor: theme.accent, flex: 1 }]}>
                 <Text style={[styles.actionText, { color: theme.onAccent }]}>{t('publicProfile.editMine')}</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={shareProfile} style={[styles.action, { backgroundColor: theme.surface, flex: 1 }]}>
-                <Text style={[styles.actionText, { color: theme.text }]}>{t('profile.share')}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('profile.share')} onPress={shareProfile} style={[styles.action, { backgroundColor: theme.surface, width: 48 }]}>
+                <Ionicons name="share-outline" size={21} color={theme.text} />
               </Pressable>
             </>
           ) : (
             <>
               {bookable.length > 0 ? (
-                <Pressable accessibilityRole="button" onPress={onBook} style={[styles.action, { backgroundColor: theme.accent, flex: 1.4 }]}>
+                <Pressable accessibilityRole="button" onPress={onBook} style={[styles.action, { backgroundColor: theme.accent, flex: 1.5 }]}>
                   <Text style={[styles.actionText, { color: theme.onAccent }]}>{t('publicProfile.book')}</Text>
                 </Pressable>
               ) : rateService ? (
@@ -177,15 +211,19 @@ export default function PublicProfileScreen() {
                   accessibilityRole="button"
                   disabled={!callableNow}
                   onPress={() => router.push({ pathname: '/call-start', params: { serviceId: rateService.id } })}
-                  style={[styles.action, { backgroundColor: theme.accent, flex: 1.4, opacity: callableNow ? 1 : 0.5 }]}>
+                  style={[styles.action, { backgroundColor: theme.accent, flex: 1.5, opacity: callableNow ? 1 : 0.5 }]}>
                   <Text style={[styles.actionText, { color: theme.onAccent }]}>{callableNow ? t('publicProfile.callWithRate', { rate: rateText }) : t('publicProfile.callUnavailable')}</Text>
                 </Pressable>
               ) : null}
-              <Pressable accessibilityRole="button" onPress={goChat} style={[styles.action, { backgroundColor: theme.surface, flex: 1 }]}>
-                <Text style={[styles.actionText, { color: theme.text }]}>{t('publicProfile.write')}</Text>
+              <Pressable accessibilityRole="button" onPress={goChat} style={[styles.action, { backgroundColor: theme.ink, flex: 1 }]}>
+                <Text style={[styles.actionText, { color: theme.inkOn }]}>{t('publicProfile.write')}</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => void toggleFollow()} style={[styles.action, { backgroundColor: isFollowing ? theme.ink : theme.surface, flex: 1 }]}>
-                <Text style={[styles.actionText, { color: isFollowing ? theme.inkOn : theme.text }]}>{t(isFollowing ? 'publicProfile.unfollow' : 'publicProfile.follow')}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t(isFollowing ? 'publicProfile.unfollow' : 'publicProfile.follow')}
+                onPress={() => void toggleFollow()}
+                style={[styles.action, { backgroundColor: isFollowing ? theme.accent : theme.surface, width: 48 }]}>
+                <Ionicons name={isFollowing ? 'checkmark' : 'person-add-outline'} size={21} color={isFollowing ? theme.onAccent : theme.text} />
               </Pressable>
             </>
           )}
@@ -193,7 +231,7 @@ export default function PublicProfileScreen() {
 
         <View accessibilityRole="tablist" style={[styles.tabs, { borderBottomColor: theme.fill }]}>
           {tabs.map((x) => (
-            <Pressable key={x.key} accessibilityRole="tab" accessibilityState={{ selected: tab === x.key }} onPress={() => setTab(x.key)} style={[styles.tab, tab === x.key && { borderBottomColor: theme.ink }]}>
+            <Pressable key={x.key} accessibilityRole="tab" accessibilityState={{ selected: tab === x.key }} onPress={() => setTab(x.key)} style={[styles.tab, tab === x.key && { borderBottomColor: theme.accent }]}>
               <Text style={[styles.tabText, { color: tab === x.key ? theme.text : theme.muted, fontFamily: tab === x.key ? fonts.semibold : fonts.medium }]}>{x.label}</Text>
             </Pressable>
           ))}
@@ -256,21 +294,32 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 10 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  handleTitle: { flex: 1, textAlign: 'center', fontFamily: fonts.semibold, fontSize: 17, letterSpacing: -0.3 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 4 },
-  numbers: { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
-  number: { alignItems: 'center', flexShrink: 1 },
-  numBig: { fontFamily: fonts.semibold, fontSize: 18, letterSpacing: -0.5 },
-  numSmall: { fontFamily: fonts.regular, fontSize: 12, textAlign: 'center' },
-  who: { paddingHorizontal: 4, gap: 2 },
-  name: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: -0.7 },
-  sub: { fontFamily: fonts.medium, fontSize: 14 },
-  bio: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, marginTop: 4 },
+  ring: { width: 108, height: 108, borderRadius: 54, borderWidth: 4, alignItems: 'center', justifyContent: 'center' },
+  ringGap: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center' },
+  badge: { position: 'absolute', right: -6, bottom: -4, width: 36, height: 36, borderRadius: 18, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
+  headRight: { flex: 1, gap: 6 },
+  live: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', height: 24, paddingHorizontal: 10, borderRadius: radius.pill },
+  liveDot: { width: 6, height: 6, borderRadius: 3 },
+  liveText: { fontFamily: fonts.semibold, fontSize: 12 },
+  numbers: { flexDirection: 'row', justifyContent: 'space-between' },
+  numBig: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: -0.9 },
+  numSmall: { fontFamily: fonts.medium, fontSize: 12 },
+  who: { paddingHorizontal: 4, gap: 2, marginTop: 4 },
+  name: { fontFamily: fonts.semibold, fontSize: 24, letterSpacing: -1 },
+  sub: { fontFamily: fonts.semibold, fontSize: 14 },
+  bio: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, marginTop: 2 },
   placesLine: { fontFamily: fonts.medium, fontSize: 13, marginTop: 2 },
-  actions: { flexDirection: 'row', gap: 8 },
-  action: { height: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-  actionText: { fontFamily: fonts.semibold, fontSize: 15 },
+  faces: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 4 },
+  facesRow: { flexDirection: 'row' },
+  face: { borderWidth: 2, borderRadius: 20 },
+  facesText: { flex: 1, fontSize: 14 },
+  actions: { flexDirection: 'row', gap: 8, marginTop: 2 },
+  action: { height: 48, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  actionText: { fontFamily: fonts.semibold, fontSize: 16 },
   tabs: { flexDirection: 'row', gap: 22, marginTop: 6, marginHorizontal: 4, borderBottomWidth: 1 },
-  tab: { paddingBottom: 9, marginBottom: -1, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tab: { paddingBottom: 9, marginBottom: -1, borderBottomWidth: 3, borderBottomColor: 'transparent' },
   tabText: { fontSize: 15 },
   offerBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14 },
   offerTitle: { flex: 1, fontFamily: fonts.semibold, fontSize: 14 },
