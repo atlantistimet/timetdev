@@ -1257,6 +1257,9 @@
     "addPhotosSub": "Gestisci le foto e i video",
     "goServices": "Vai ai miei servizi",
     "weekPreview": "Anteprima della settimana",
-    "category": "Categoria"
+    "category": "Categoria",
+    "categoryTitle": "Di cosa si occupa?",
+    "priceTitle": "Durata e prezzo",
+    "rateTitle": "Quanto costa al minuto"
   }
 }

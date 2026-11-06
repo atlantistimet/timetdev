@@ -24,7 +24,7 @@ import { shareText } from '@/lib/slot-links';
 import { fonts, useTheme } from '@/theme';
 
 type Kind = 'slot' | 'package' | 'per_minute';
-type Step = 'type' | 'details' | 'where' | 'rules' | 'when' | 'include';
+type Step = 'type' | 'details' | 'category' | 'price' | 'where' | 'rules' | 'when' | 'include';
 
 const PLACE_ICON: Record<Place, keyof typeof Ionicons.glyphMap> = { online: 'videocam-outline', sede: 'storefront-outline', domicilio: 'home-outline' };
 
@@ -97,7 +97,7 @@ export default function ServiceEditScreen() {
 
   if (!ready) return <LoadingView />;
 
-  const steps: Step[] = kind === 'per_minute' ? ['type', 'details', 'include'] : ['type', 'details', 'where', 'rules', 'when'];
+  const steps: Step[] = kind === 'per_minute' ? ['type', 'details', 'category', 'price', 'include'] : ['type', 'details', 'category', 'price', 'where', 'rules', 'when'];
   const idx = Math.min(stepIdx, steps.length - 1);
   const step = steps[idx];
   const isLast = idx === steps.length - 1;
@@ -106,8 +106,8 @@ export default function ServiceEditScreen() {
   const defaultTiers: Tier[] = defaultPolicy?.tiers ?? STANDARD_TIERS;
 
   const validate = (s: Step): string | null => {
-    if (s === 'details') {
-      if (!title.trim()) return 'myServices.errors.title';
+    if (s === 'details' && !title.trim()) return 'myServices.errors.title';
+    if (s === 'price') {
       if (kind === 'per_minute') {
         const r = parseEuroToCents(rate);
         if (r === null || r < CALL_MIN_RATE_CENTS) return 'calls.errors.rate';
@@ -255,6 +255,7 @@ export default function ServiceEditScreen() {
 
   return (
     <Screen footer={footer}>
+      <View style={styles.stack}>
       <View style={styles.top}>
         {idx === 0 && !id ? (
           <Pressable accessibilityRole="button" onPress={back} style={[styles.pill, { backgroundColor: theme.surface }]}>
@@ -305,9 +306,14 @@ export default function ServiceEditScreen() {
               <TextInput value={description} onChangeText={setDescription} multiline maxLength={500} style={[styles.inputDesc, { color: theme.text }]} placeholderTextColor={theme.muted} />
             </View>
           </View>
+        </>
+      ) : null}
+
+      {step === 'category' ? (
+        <>
+          <Text style={[styles.h1, { color: theme.text }]}>{t('svc.categoryTitle')}</Text>
           {categories.length > 0 ? (
             <View style={[styles.card, { backgroundColor: theme.surface }]}>
-              <Text style={[styles.rowTitle, { color: theme.text, fontSize: 15 }]}>{t('svc.category')}</Text>
               <View style={styles.chips}>
                 {categories.map((c) => {
                   const on = categoryKey === c.key;
@@ -321,6 +327,12 @@ export default function ServiceEditScreen() {
               </View>
             </View>
           ) : null}
+        </>
+      ) : null}
+
+      {step === 'price' ? (
+        <>
+          <Text style={[styles.h1, { color: theme.text }]}>{t(kind === 'per_minute' ? 'svc.rateTitle' : 'svc.priceTitle')}</Text>
           {kind === 'per_minute' ? (
             <View style={[styles.tile, { backgroundColor: theme.accent }]}>
               <Text style={[styles.label, { color: theme.onAccent }]}>{t('svc.fieldRate')}</Text>
@@ -481,6 +493,7 @@ export default function ServiceEditScreen() {
           </Pressable>
         </>
       ) : null}
+      </View>
     </Screen>
   );
 
@@ -545,6 +558,7 @@ export default function ServiceEditScreen() {
 }
 
 const styles = StyleSheet.create({
+  stack: { gap: 22 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   pill: { height: 44, paddingHorizontal: 16, borderRadius: 999, justifyContent: 'center' },
   pillText: { fontFamily: fonts.medium, fontSize: 15 },
@@ -559,15 +573,15 @@ const styles = StyleSheet.create({
   kindSub: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 19 },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   radioIn: { width: 10, height: 10, borderRadius: 5 },
-  card: { borderRadius: 28, padding: 16, gap: 10 },
+  card: { borderRadius: 28, padding: 18, gap: 12 },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cardTitle: { fontFamily: fonts.semibold, fontSize: 17 },
-  field: { paddingVertical: 10, gap: 2 },
+  field: { paddingVertical: 14, gap: 4 },
   label: { fontFamily: fonts.semibold, fontSize: 12 },
   inputTitle: { fontFamily: fonts.semibold, fontSize: 17, padding: 0 },
-  inputDesc: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 21, minHeight: 64, padding: 0, textAlignVertical: 'top' },
-  two: { flexDirection: 'row', gap: 8 },
-  tile: { borderRadius: 26, paddingVertical: 12, paddingHorizontal: 14, gap: 6 },
+  inputDesc: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 21, minHeight: 96, padding: 0, textAlignVertical: 'top' },
+  two: { flexDirection: 'row', gap: 12 },
+  tile: { borderRadius: 26, paddingVertical: 16, paddingHorizontal: 16, gap: 8 },
   stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   stepBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   stepTxt: { fontFamily: fonts.regular, fontSize: 20 },

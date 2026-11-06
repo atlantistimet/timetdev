@@ -1257,6 +1257,9 @@
     "addPhotosSub": "Manage photos and videos",
     "goServices": "Go to my services",
     "weekPreview": "Week preview",
-    "category": "Category"
+    "category": "Category",
+    "categoryTitle": "What is it about?",
+    "priceTitle": "Duration and price",
+    "rateTitle": "Price per minute"
   }
 }
