@@ -884,10 +884,12 @@
     "showResults": "Show {{count}} results"
   },
   "comments": {
-    "none": "No comments yet.",
+    "none": "No comments yet. Be the first.",
     "write": "Write a comment",
-    "send": "Comment",
-    "empty": "Write something before sending."
+    "send": "Send comment",
+    "empty": "Write something before sending.",
+    "title": "Comments",
+    "placeholder": "Add a comment…"
   },
   "reviews": {
     "title": "Reviews",

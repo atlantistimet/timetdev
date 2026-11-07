@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { CommentsSection } from '@/components/CommentsSection';
+import { timeAgo } from '@/lib/time';
 import { Emoji } from '@/components/Emoji';
 import { MediaCover } from '@/components/MediaView';
 import { Body } from '@/components/ui';
@@ -20,20 +21,6 @@ import { stars } from '@/lib/reviews';
 import { postUrl, shareLink } from '@/lib/share';
 import { discountedCents } from '@/lib/validity';
 import { fonts, radius, useTheme } from '@/theme';
-
-// Intl.RelativeTimeFormat non esiste nel motore JS del telefono (Hermes): formato a mano.
-function timeAgo(iso: string, language: string, nowMs: number): string {
-  const it = language.startsWith('it');
-  const diff = (new Date(iso).getTime() - nowMs) / 1000;
-  const abs = Math.abs(diff);
-  if (abs < 60) return it ? 'adesso' : 'now';
-  const [n, unit] =
-    abs < 3600 ? [Math.round(abs / 60), it ? 'min' : 'min'] :
-    abs < 86_400 ? [Math.round(abs / 3600), it ? 'h' : 'h'] :
-    [Math.round(abs / 86_400), it ? 'g' : 'd'];
-  if (diff > 0) return it ? `tra ${n} ${unit}` : `in ${n} ${unit}`;
-  return it ? `${n} ${unit} fa` : `${n} ${unit} ago`;
-}
 
 /** "Marco Rossi" → "Marco R." */
 const shortName = (full: string) => {
