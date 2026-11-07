@@ -181,12 +181,21 @@ export default function PublicProfileScreen() {
           {where.length > 0 ? (
             <Text style={[styles.placesLine, { color: theme.muted }]}>{where.map((p) => (p === 'sede' && profile.place_type ? profile.place_type : t(`places.${p}`))).join(' · ')}</Text>
           ) : null}
-          <Text style={[styles.placesLine, { color: theme.muted }]}>
-            <Text style={{ color: theme.text, fontFamily: fonts.semibold }}>{follow.followers + (following === null || following === follow.following ? 0 : following ? 1 : -1)}</Text>
-            {` ${t('publicProfile.followers')} · `}
-            <Text style={{ color: theme.text, fontFamily: fonts.semibold }}>{follow.followingCount}</Text>
-            {` ${t('publicProfile.followingLabel')}`}
-          </Text>
+          <View style={styles.followLine}>
+            <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/connections', params: { id: profile.id, tab: 'followers', name: profile.full_name } })}>
+              <Text style={[styles.placesLine, { color: theme.muted }]}>
+                <Text style={{ color: theme.text, fontFamily: fonts.semibold }}>{follow.followers + (following === null || following === follow.following ? 0 : following ? 1 : -1)}</Text>
+                {` ${t('publicProfile.followers')}`}
+              </Text>
+            </Pressable>
+            <Text style={[styles.placesLine, { color: theme.muted }]}>·</Text>
+            <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/connections', params: { id: profile.id, tab: 'following', name: profile.full_name } })}>
+              <Text style={[styles.placesLine, { color: theme.muted }]}>
+                <Text style={{ color: theme.text, fontFamily: fonts.semibold }}>{follow.followingCount}</Text>
+                {` ${t('publicProfile.followingLabel')}`}
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.actions}>
@@ -319,6 +328,7 @@ export default function PublicProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  followLine: { flexDirection: 'row', gap: 6, alignItems: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 10 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

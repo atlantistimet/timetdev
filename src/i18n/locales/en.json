@@ -355,7 +355,13 @@
     "emptyPastTitle": "No past\nsessions",
     "emptyPastBody": "Completed sessions show up here.",
     "emptyCancelledTitle": "No cancelled\nsessions",
-    "emptyCancelledBody": "Cancelled sessions show up here."
+    "emptyCancelledBody": "Cancelled sessions show up here.",
+    "nextSession": "Next session",
+    "nextNow": "Now",
+    "nextInMin": "In {{count}} min",
+    "nextInHours": "In {{h}} h {{m}} min",
+    "nextInDays_one": "In {{count}} day",
+    "nextInDays_other": "In {{count}} days"
   },
   "tabs": {
     "feed": "Feed",
@@ -477,7 +483,7 @@
     "onlyValid": "Valid offer",
     "bookWithOffer": "Book this offer",
     "notValid": "This time is outside the offer's validity.",
-    "notFound": "Offer not available.",
+    "notFound": "This offer no longer exists",
     "publish": "Publish to the feed",
     "publishHint": "Shows in the feed with your message and any photos or videos you add.",
     "daysRestrict": "The chosen dates narrow the offer: it only applies on those days, within the availability.",
@@ -1299,7 +1305,8 @@
     "fieldMaxBlocks": "Blocks bookable in a row",
     "maxBlocksHint": "Up to {{minutes}} minutes in one booking.",
     "perHourHint": "About {{price}} per hour",
-    "perSessionHint": "{{price}} per session"
+    "perSessionHint": "{{price}} per session",
+    "skipForNow": "Skip for now"
   },
   "safety": {
     "report": "Report",
@@ -1372,5 +1379,12 @@
     "deleteRow": "Delete account",
     "exportRow": "Download my data",
     "exportSent": "Request sent: you'll receive a copy of your data by email within 30 days."
+  },
+  "connections": {
+    "title": "People",
+    "followers": "Followers",
+    "following": "Following",
+    "noFollowers": "No followers yet.",
+    "noFollowing": "Not following anyone yet."
   }
 }

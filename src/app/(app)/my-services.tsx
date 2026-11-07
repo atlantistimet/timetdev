@@ -206,6 +206,10 @@ export default function MyServicesScreen() {
           {service ? (
             <>
               {action('create-outline', t('myServices.edit'), () => { setMenu(null); router.push({ pathname: '/service-edit', params: { id: service.id } }); })}
+              {action('share-outline', t('slotLinks.share'), () => {
+                setMenu(null);
+                void shareText(`${service.title}\nhttps://timeet.world/service/${service.id}`).then((r) => setNote(r === 'copied' ? t('slotLinks.copied') : r === 'failed' ? t('errors.generic') : null));
+              })}
               {service.kind === 'slot' ? action('pricetag-outline', t('myServices.createOffer'), () => { setMenu(null); router.push({ pathname: '/offer-edit', params: { serviceId: service.id } }); }) : null}
               <DeleteButton label={t('myServices.delete')} warning={t('myServices.deleteWarning')} loadCount={() => countFutureBookings('service_id', service.id)} onConfirm={async () => { await deleteService(service.id); reload(); }} />
             </>
@@ -213,6 +217,10 @@ export default function MyServicesScreen() {
           {offer ? (
             <>
               {action('create-outline', t('offers.edit'), () => { setMenu(null); router.push({ pathname: '/offer-edit', params: { id: offer.id } }); })}
+              {action('share-outline', t('slotLinks.share'), () => {
+                setMenu(null);
+                void shareText(`${offer.service_title}\nhttps://timeet.world/o/${offer.id}`).then((r) => setNote(r === 'copied' ? t('slotLinks.copied') : r === 'failed' ? t('errors.generic') : null));
+              })}
               <DeleteButton label={t('offers.delete')} warning={t('offers.deleteWarning')} loadCount={() => countFutureBookings('offer_id', offer.id)} onConfirm={async () => { await deleteOffer(offer.id); reload(); }} />
             </>
           ) : null}

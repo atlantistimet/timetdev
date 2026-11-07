@@ -251,7 +251,7 @@ export default function ServiceEditScreen() {
     <View style={{ gap: 8 }}>
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
       <Pressable accessibilityRole="button" disabled={saving} onPress={next} style={[styles.cta, { backgroundColor: theme.ink, opacity: saving ? 0.6 : 1 }]}>
-        <Text style={[styles.ctaText, { color: '#FFFFFF' }]}>{isLast ? t(id ? 'svc.save' : 'svc.publish') : t('svc.continue')}</Text>
+        <Text style={[styles.ctaText, { color: '#FFFFFF' }]}>{isLast ? t(id ? 'svc.save' : 'svc.publish') : step === 'category' && categoryKey === null ? t('svc.skipForNow') : t('svc.continue')}</Text>
       </Pressable>
     </View>
   );

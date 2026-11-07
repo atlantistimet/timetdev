@@ -93,6 +93,16 @@ export default function BookingsScreen() {
 
   const sheetWho = (b: MyBooking) => ({ id: b.id, title: b.service_title, startsAt: b.starts_at, otherName: otherOf(b).name, otherAvatar: otherOf(b).avatar, otherSeed: otherOf(b).id });
 
+  const next = [...(bookings ?? [])].filter((b) => b.status === 'confirmed' && new Date(b.ends_at).getTime() > now).sort((x, y) => x.starts_at.localeCompare(y.starts_at))[0] ?? null;
+  const countdownText = (() => {
+    if (!next) return '';
+    const mins = Math.round((new Date(next.starts_at).getTime() - now) / 60000);
+    if (mins <= 0) return t('bookings.nextNow');
+    if (mins < 60) return t('bookings.nextInMin', { count: mins });
+    if (mins < 24 * 60) return t('bookings.nextInHours', { h: Math.floor(mins / 60), m: mins % 60 });
+    return t('bookings.nextInDays', { count: Math.round(mins / 1440) });
+  })();
+
   return (
     <Screen tabs>
       <Text style={[styles.title, { color: theme.text }]}>{t('tabs.agenda')}</Text>
@@ -111,6 +121,17 @@ export default function BookingsScreen() {
         ))}
       </View>
       {listError ? <ErrorText>{t(listError)}</ErrorText> : null}
+
+      {tab === 'upcoming' && next ? (
+        <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/session/[id]', params: { id: next.id } })} style={[styles.countdown, { backgroundColor: theme.ink }]}>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={[styles.cdLabel, { color: theme.accent }]}>{t('bookings.nextSession')}</Text>
+            <Text style={[styles.cdBig, { color: theme.inkOn }]}>{countdownText}</Text>
+            <Text numberOfLines={1} style={[styles.cdSub, { color: theme.inkOn }]}>{`${next.service_title} · ${otherOf(next).name.split(' ')[0]}`}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color={theme.inkOn} />
+        </Pressable>
+      ) : null}
 
       {pending.map((b) => (
         <Pressable key={b.id} accessibilityRole="button" onPress={() => setOutcomeFor(b)} style={[styles.pending, { backgroundColor: theme.accent }]}>
@@ -176,6 +197,10 @@ export default function BookingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  countdown: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 28, padding: 18 },
+  cdLabel: { fontFamily: fonts.semibold, fontSize: 13 },
+  cdBig: { fontFamily: fonts.semibold, fontSize: 28, letterSpacing: -1 },
+  cdSub: { fontFamily: fonts.regular, fontSize: 14, opacity: 0.8 },
   title: { fontFamily: fonts.semibold, fontSize: 32, letterSpacing: -1.2, marginTop: 8, paddingHorizontal: 4 },
   tabsRow: { flexDirection: 'row', gap: 22, marginTop: 10, marginHorizontal: 4, borderBottomWidth: 1 },
   tabItem: { paddingBottom: 9, marginBottom: -1, borderBottomWidth: 2, borderBottomColor: 'transparent' },
