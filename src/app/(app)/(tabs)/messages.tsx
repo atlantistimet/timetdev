@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { ProfileTap } from '@/components/ProfileTap';
 import { Emoji } from '@/components/Emoji';
 import { LoadingView, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -99,7 +100,7 @@ export default function MessagesScreen() {
           {shown.map((c) => (
             <Pressable key={c.id} accessibilityRole="button" onPress={() => router.push({ pathname: '/chat/[userId]', params: { userId: c.otherId } })} style={styles.row}>
               <View style={[c.availableNow && [styles.ring, { borderColor: theme.ink }]]}>
-                <Avatar name={c.otherName} seed={c.otherId} size={54} path={c.otherAvatar} />
+                <ProfileTap userId={c.otherId}><Avatar name={c.otherName} seed={c.otherId} size={54} path={c.otherAvatar} /></ProfileTap>
                 {c.availableNow ? <View style={[styles.live, { backgroundColor: theme.accent, borderColor: theme.surface }]} /> : null}
               </View>
               <View style={{ flex: 1, gap: 2 }}>

@@ -11,6 +11,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Bubble, Composer, GiftedChat, InputToolbar, Send, type IMessage } from 'react-native-gifted-chat';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { ProfileTap } from '@/components/ProfileTap';
 import { AttachSheet } from '@/components/AttachSheet';
 import { Emoji } from '@/components/Emoji';
 import { VoiceBubble, clock } from '@/components/VoiceBubble';
@@ -268,6 +269,7 @@ export default function ChatScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={headerStyles.back}>
             <Ionicons name="chevron-back" size={22} color={theme.ink} />
           </Pressable>
+          <ProfileTap userId={userId} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
           <Avatar name={name || '?'} seed={userId} size={46} path={avatar} />
           <View style={{ flex: 1 }}>
             <Text numberOfLines={1} style={[headerStyles.name, { color: theme.ink }]}>{name}</Text>
@@ -278,6 +280,7 @@ export default function ChatScreen() {
               </View>
             ) : null}
           </View>
+          </ProfileTap>
           {callServiceId ? (
             <Pressable accessibilityRole="button" accessibilityLabel={t('chat.callName', { name })} onPress={() => router.push({ pathname: '/call-start', params: { serviceId: callServiceId } })} style={[headerStyles.call, { backgroundColor: theme.ink }]}>
               <Ionicons name="call" size={20} color="#FFFFFF" />

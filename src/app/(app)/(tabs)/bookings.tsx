@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { ProfileTap } from '@/components/ProfileTap';
 import { OutcomeSheet } from '@/components/BookingSheets';
 import { Emoji } from '@/components/Emoji';
 import { ErrorText, LoadingView, Screen } from '@/components/ui';
@@ -131,7 +132,7 @@ export default function BookingsScreen() {
               const sub = `${timeFmt.format(new Date(b.starts_at))} · ${o.name.split(' ')[0]} · ${role(b)}${tab === 'upcoming' ? '' : ` · ${t(`bookings.status.${b.status}`)}`}${b.package_id ? ` · ${t('bookings.package')}` : ''}`;
               return (
                 <Pressable key={b.id} accessibilityRole="button" onPress={() => open(b)} style={[styles.item, i > 0 && { borderTopWidth: 1, borderTopColor: theme.fill }]}>
-                  <Avatar name={o.name} seed={o.id} size={44} path={o.avatar} />
+                  <ProfileTap userId={o.id}><Avatar name={o.name} seed={o.id} size={44} path={o.avatar} /></ProfileTap>
                   <View style={{ flex: 1 }}>
                     <Text numberOfLines={1} style={[styles.itemTitle, { color: theme.text }]}>{b.service_title}</Text>
                     <Text numberOfLines={1} style={[styles.itemSub, { color: theme.muted }]}>{sub}</Text>

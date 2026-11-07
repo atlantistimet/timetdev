@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { ProfileTap } from '@/components/ProfileTap';
 import { ErrorText, LoadingView, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { cleanTitle, formatEuro } from '@/lib/booking';
@@ -98,7 +99,7 @@ export default function EarningsScreen() {
           {data && data.movements.length > 0 ? (
             data.movements.map((m, i) => (
               <View key={m.id} style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.fill }]}>
-                <Avatar name={m.payerName} seed={m.payerId} size={40} round={20} path={m.payerAvatar} />
+                <ProfileTap userId={m.payerId}><Avatar name={m.payerName} seed={m.payerId} size={40} round={20} path={m.payerAvatar} /></ProfileTap>
                 <View style={styles.flex}>
                   <Text style={[styles.name, { color: theme.text }]} numberOfLines={1}>
                     {m.payerName}

@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 import { PaymentForm } from '@/components/PaymentForm';
 import { Avatar } from '@/components/Avatar';
+import { ProfileTap } from '@/components/ProfileTap';
 import { Emoji } from '@/components/Emoji';
 import { ServiceHero } from '@/components/ServiceHero';
 import { TierLines } from '@/components/TierLines';
@@ -304,7 +305,7 @@ export default function BookScreen() {
         <Text style={[styles.checkoutTitle, { color: theme.text }]}>{t('book.confirmTitle')}</Text>
         <View style={[styles.panel, { backgroundColor: theme.surface }]}>
           <View style={styles.sumHead}>
-            <Avatar name={seller?.full_name ?? '?'} seed={service.seller_id} size={56} round={20} path={seller?.avatar_path} />
+            <ProfileTap userId={service.seller_id} handle={seller?.handle}><Avatar name={seller?.full_name ?? '?'} seed={service.seller_id} size={56} round={20} path={seller?.avatar_path} /></ProfileTap>
             <View style={styles.sumHeadText}>
               <Text numberOfLines={2} style={[styles.sumTitle, { color: theme.text }]}>{cleanTitle(service.title)}</Text>
               <Text numberOfLines={1} style={[styles.sumSub, { color: theme.muted }]}>{[t('book.withSeller', { name: seller?.full_name ?? '' }), chosen ? t(`places.${chosen}`) : null].filter(Boolean).join(' · ')}</Text>

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SheetModal } from '@/components/SheetModal';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { ServiceCard } from '@/components/ServiceCard';
 import { Emoji } from '@/components/Emoji';
 import { Body, Button, Chip, ChipRow, ErrorText, LoadingView, Pill, Screen, Spacer } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -19,7 +20,7 @@ import {
   type Seller,
   type ServiceRating,
 } from '@/lib/explore';
-import { mediaUrl, type MediaItem } from '@/lib/media';
+import { type MediaItem } from '@/lib/media';
 import { finalPriceCents, listPublicOffers, type Offer } from '@/lib/offers';
 import { listCovers } from '@/lib/service-media';
 import { type Place } from '@/lib/my-services';
@@ -253,32 +254,22 @@ export default function ServicesScreen() {
       <View style={styles.grid}>
         {rows.map((r) => {
           const seller = result.sellers[r.sellerId];
-          const rating = result.ratings[r.serviceId];
-          const emoji = emojiOf(r.sellerId);
-          const cover = result.covers[r.serviceId];
-          const live = isAvailableNow(seller, now);
           return (
-            <Pressable key={r.id} accessibilityRole="button" onPress={r.onPress} style={[styles.card, { backgroundColor: theme.surface }]}>
-              <View style={[styles.cardCover, { backgroundColor: pastelFor(r.serviceId) }]}>
-                {cover && cover.type === 'image' ? <Image source={{ uri: mediaUrl('service-media', cover.path) }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <Emoji name={emoji} size={44} />}
-                {live ? <View style={styles.liveChip}><View style={styles.liveGreen} /><Text style={styles.liveText}>{t('explore.nowShort')}</Text></View> : null}
-                {r.badge ? <View style={[styles.discChip, { backgroundColor: theme.accent }]}><Text style={[styles.liveText, { color: theme.onAccent }]}>{r.badge}</Text></View> : null}
-              </View>
-              <View style={styles.cardBody}>
-                <Text numberOfLines={2} style={[styles.cardTitle, { color: theme.text }]}>{r.title}</Text>
-                <View style={styles.cardWho}>
-                  <Avatar name={seller?.full_name ?? '?'} seed={r.sellerId} size={20} path={seller?.avatar_path} />
-                  <Text numberOfLines={1} style={[type.small, { color: theme.muted, flex: 1 }]}>
-                    {seller?.full_name.split(/\s+/)[0]}
-                    {rating?.rating_avg ? ` · ★ ${Number(rating.rating_avg).toFixed(1).replace('.', ',')}` : ''}
-                  </Text>
-                </View>
-                <View style={styles.cardFoot}>
-                  <View style={[styles.pricePill, { backgroundColor: theme.accent }]}><Text style={[styles.priceText, { color: theme.onAccent }]}>{r.price}</Text></View>
-                  <Text numberOfLines={1} style={[type.small, { color: theme.muted, flexShrink: 1 }]}>{r.durationLabel}</Text>
-                </View>
-              </View>
-            </Pressable>
+            <ServiceCard
+              key={r.id}
+              id={r.serviceId}
+              title={r.title}
+              price={r.price}
+              meta={r.durationLabel}
+              cover={result.covers[r.serviceId]}
+              emoji={emojiOf(r.sellerId)}
+              live={isAvailableNow(seller, now)}
+              badge={r.badge}
+              liveLabel={t('explore.nowShort')}
+              seller={seller ? { id: seller.id, name: seller.full_name, handle: seller.handle, avatar: seller.avatar_path } : null}
+              rating={result.ratings[r.serviceId]?.rating_avg}
+              onPress={r.onPress}
+            />
           );
         })}
       </View>
@@ -379,18 +370,6 @@ const styles = StyleSheet.create({
   rowPrice: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: -0.4 },
   scrim: { flex: 1 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  card: { width: '48.5%', flexGrow: 1, borderRadius: radius.card, overflow: 'hidden' },
-  cardCover: { height: 132, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  liveChip: { position: 'absolute', top: 8, left: 8, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
-  liveGreen: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#34C759' },
-  liveText: { fontFamily: fonts.semibold, fontSize: 12, color: '#151515' },
-  discChip: { position: 'absolute', top: 8, right: 8, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
-  cardBody: { padding: 12, gap: 6 },
-  cardTitle: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 19, letterSpacing: -0.2, minHeight: 38 },
-  cardWho: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
-  pricePill: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
-  priceText: { fontFamily: fonts.semibold, fontSize: 15 },
   sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   sheetScroll: { maxHeight: 460 },
   fLabel: { fontFamily: fonts.semibold, fontSize: 13, marginTop: 18, marginBottom: 8 },

@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { ProfileTap } from '@/components/ProfileTap';
 import { Emoji } from '@/components/Emoji';
 import { PaymentForm } from '@/components/PaymentForm';
 import { Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
@@ -83,10 +84,10 @@ export default function CallStartScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/services'))} style={[styles.round, { backgroundColor: theme.surface }]}>
             <Ionicons name="chevron-back" size={22} color={theme.text} />
           </Pressable>
-          <View style={[styles.who, { backgroundColor: theme.surface }]}>
+          <ProfileTap userId={service.seller_id} handle={seller?.handle} style={[styles.who, { backgroundColor: theme.surface }]}>
             <Text style={[styles.whoText, { color: theme.text }]}>{(seller?.full_name ?? '').split(' ')[0]}</Text>
             <Avatar name={seller?.full_name ?? '?'} seed={service.seller_id} size={34} path={seller?.avatar_path} />
-          </View>
+          </ProfileTap>
         </View>
         <View style={styles.titleRow}>
           <Text style={[styles.title, { color: theme.text }]}>{t('calls.blockTitle')}</Text>

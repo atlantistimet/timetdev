@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { ProfileTap } from '@/components/ProfileTap';
 import { CancelSheet } from '@/components/BookingSheets';
 import { PaymentForm } from '@/components/PaymentForm';
 import { ReviewForm } from '@/components/ReviewForm';
@@ -158,7 +159,7 @@ export default function SessionScreen() {
           </View>
           {isClient && s.service_id ? (
             <View style={[styles.moveCard, { backgroundColor: theme.surface }]}>
-              <Avatar name={other.full_name} seed={other.id} size={48} path={other.avatar_path} />
+              <ProfileTap userId={other.id} handle={other.handle}><Avatar name={other.full_name} seed={other.id} size={48} path={other.avatar_path} /></ProfileTap>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.moveTitle, { color: theme.text }]}>{t('bookings.moveTitle')}</Text>
                 <Text style={[styles.moveSub, { color: theme.muted }]}>{t('bookings.moveSub', { name: first })}</Text>

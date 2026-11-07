@@ -2,6 +2,7 @@ import { Image, StyleSheet, Text, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Avatar } from '@/components/Avatar';
+import { ProfileTap } from '@/components/ProfileTap';
 import { Emoji } from '@/components/Emoji';
 import { cleanTitle } from '@/lib/booking';
 import { mediaUrl, type Bucket } from '@/lib/media';
@@ -59,11 +60,13 @@ export function ServiceHero({
       <View style={styles.block}>
       <Text style={[styles.title, { color: ink }]}>{cleanTitle(title)}</Text>
       <View style={styles.seller}>
-        <Avatar name={sellerName} seed={sellerId} size={40} path={sellerPath} />
-        <Text numberOfLines={1} style={[styles.sellerText, { color: ink }]}>
-          {sellerName}
-          {rating ? ` · ★ ${rating.toFixed(1).replace('.', ',')}` : ''}
-        </Text>
+        <ProfileTap userId={sellerId} style={styles.sellerTap}>
+          <Avatar name={sellerName} seed={sellerId} size={40} path={sellerPath} />
+          <Text numberOfLines={1} style={[styles.sellerText, { color: ink }]}>
+            {sellerName}
+            {rating ? ` · ★ ${rating.toFixed(1).replace('.', ',')}` : ''}
+          </Text>
+        </ProfileTap>
         {tag ? (
           <View style={[styles.tag, { backgroundColor: theme.ink }]}>
             <Text style={[styles.tagText, { color: theme.inkOn }]}>{tag}</Text>
@@ -90,6 +93,7 @@ function Shade() {
 }
 
 const styles = StyleSheet.create({
+  sellerTap: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 1 },
   hero: { margin: 8, overflow: 'hidden', minHeight: 340, justifyContent: 'space-between', borderRadius: radius.panel, paddingHorizontal: 22, paddingTop: 24, paddingBottom: 26, gap: 28 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   back: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center' },

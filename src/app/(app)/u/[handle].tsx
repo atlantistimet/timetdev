@@ -5,8 +5,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { ProfileTap } from '@/components/ProfileTap';
 import { Body, Button, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { PostCard } from '@/components/PostCard';
+import { ServiceCard } from '@/components/ServiceCard';
+import { listCovers } from '@/lib/service-media';
+import { type MediaItem } from '@/lib/media';
 import { ReviewReply } from '@/components/ReviewReply';
 import { useAuth } from '@/lib/auth';
 import { followInfo, loadPosts, setFollow, type Post } from '@/lib/feed';
@@ -16,12 +20,12 @@ import { loadReviews, type Review, type ReviewSummary } from '@/lib/reviews';
 import { shareText } from '@/lib/slot-links';
 import { loadProfileByHandle, loadProfileLink, type PublicProfile } from '@/lib/public-profile';
 import { loadCategories, loadSellerStats, loadSellers, type Category, type Seller, type SellerStats } from '@/lib/explore';
-import { fonts, pastelFor, radius, useTheme } from '@/theme';
+import { fonts, radius, useTheme } from '@/theme';
 
 const GREEN = '#34C759';
 
 type Follow = { following: boolean; followers: number; followingCount: number };
-type Loaded = { link: string | null; profile: PublicProfile; seller: Seller | null; stats: SellerStats | null; categories: Category[]; services: SlotService[]; offers: Offer[]; posts: Post[]; reviews: Review[]; summary: ReviewSummary; follow: Follow; nowMs: number } | 'missing';
+type Loaded = { link: string | null; profile: PublicProfile; seller: Seller | null; stats: SellerStats | null; categories: Category[]; services: SlotService[]; covers: Record<string, MediaItem>; offers: Offer[]; posts: Post[]; reviews: Review[]; summary: ReviewSummary; follow: Follow; nowMs: number } | 'missing';
 
 export default function PublicProfileScreen() {
   const { t, i18n } = useTranslation();
@@ -49,8 +53,9 @@ export default function PublicProfileScreen() {
           followInfo(me, profile.id),
           loadReviews(profile.id),
         ]);
+        const covers = await listCovers([...services.map((x) => x.id), ...offers.map((x) => x.service_id)]);
         const [stats, sellers, categories, link] = await Promise.all([loadSellerStats([profile.id]), loadSellers([profile.id]), loadCategories(i18n.language), loadProfileLink(profile.id)]);
-        result = { link, profile, seller: sellers[profile.id] ?? null, stats: stats[profile.id] ?? null, categories, services, offers, posts: postsResult.posts, reviews: rev.reviews, summary: rev.summary, follow, nowMs: Date.now() };
+        result = { link, profile, seller: sellers[profile.id] ?? null, stats: stats[profile.id] ?? null, categories, services, covers, offers, posts: postsResult.posts, reviews: rev.reviews, summary: rev.summary, follow, nowMs: Date.now() };
       }
       if (alive) setLoaded(result);
     })();
@@ -70,9 +75,10 @@ export default function PublicProfileScreen() {
     );
   }
 
-  const { link, profile, seller, stats, services, offers, posts, reviews, summary, follow, nowMs } = loaded;
+  const { link, profile, seller, stats, categories, services, covers, offers, posts, reviews, summary, follow, nowMs } = loaded;
   const isFollowing = following ?? follow.following;
   const mine = session?.user.id === profile.id;
+  const profileEmoji = categories.find((c) => c.key === seller?.categories[0])?.emoji ?? null;
   const where = [...new Set(services.flatMap((s) => s.places))];
   const callableNow = !!profile.available_until && new Date(profile.available_until).getTime() > nowMs;
   const rateService = services.find((s) => s.kind === 'per_minute');
@@ -117,18 +123,6 @@ export default function PublicProfileScreen() {
   };
   const goChat = () => router.push({ pathname: '/chat/[userId]', params: { userId: profile.id } });
   const hoursText = `${hours >= 10 ? Math.round(hours) : hours.toFixed(1).replace('.0', '').replace('.', ',')} h`;
-
-  const row = (key: string, color: string, title: string, meta: string, price: string, onPress: () => void) => (
-    <Pressable key={key} accessibilityRole="button" onPress={onPress} style={[styles.row, { borderTopColor: theme.fill }]}>
-      <View style={[styles.rowTile, { backgroundColor: color }]} />
-      <View style={styles.rowBody}>
-        <Text numberOfLines={2} style={[styles.rowTitle, { color: theme.text }]}>{title}</Text>
-        {meta ? <Text numberOfLines={1} style={[styles.rowMeta, { color: theme.muted }]}>{meta}</Text> : null}
-      </View>
-      <Text style={[styles.rowPrice, { color: theme.text }]}>{price}</Text>
-    </Pressable>
-  );
-  const list = (rows: React.ReactNode[]) => (rows.length > 0 ? <View style={[styles.card, { backgroundColor: theme.surface }]}>{rows}</View> : null);
 
   return (
     <Screen bare scrollRef={scrollRef}>
@@ -249,7 +243,11 @@ export default function PublicProfileScreen() {
               </Pressable>
             ) : null}
             {services.length === 0 ? <Body muted>{t('publicProfile.noServices')}</Body> : null}
-            {list(services.map((s) => row(s.id, pastelFor(s.id), cleanTitle(s.title), metaText(s), priceText(s), () => router.push({ pathname: '/service/[id]', params: { id: s.id } }))))}
+            <View style={styles.grid}>
+              {services.map((s) => (
+                <ServiceCard key={s.id} id={s.id} title={cleanTitle(s.title)} price={priceText(s)} meta={metaText(s)} cover={covers[s.id]} emoji={profileEmoji} liveLabel={t('explore.nowShort')} onPress={() => router.push({ pathname: '/service/[id]', params: { id: s.id } })} />
+              ))}
+            </View>
           </>
         ) : tab === 'reviews' ? (
           <>
@@ -277,7 +275,7 @@ export default function PublicProfileScreen() {
             {reviews.map((r) => (
               <View key={r.id} style={[styles.review, { backgroundColor: theme.surface }]}>
                 <View style={styles.reviewHead}>
-                  <Avatar name={r.author_name || '?'} seed={r.author_name} size={36} round={18} />
+                  {r.author_handle ? <ProfileTap userId="" handle={r.author_handle}><Avatar name={r.author_name || '?'} seed={r.author_name} size={36} round={18} /></ProfileTap> : <Avatar name={r.author_name || '?'} seed={r.author_name} size={36} round={18} />}
                   <View style={styles.rowBody}>
                     <Text numberOfLines={1} style={[styles.rowTitle, { color: theme.text, fontSize: 15 }]}>{r.author_name}</Text>
                     <Text style={[styles.rowMeta, { color: theme.muted }]}>{new Date(r.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short' })}</Text>
@@ -292,18 +290,11 @@ export default function PublicProfileScreen() {
         ) : (
           <>
             {offers.length === 0 ? <Body muted>{t('publicProfile.noOffers')}</Body> : null}
-            {list(
-              offers.map((o) =>
-                row(
-                  o.id,
-                  pastelFor(o.id),
-                  cleanTitle(o.service_title),
-                  `${o.discount_pct ? `−${o.discount_pct}% · ` : ''}${validityText(o.validity, i18n.language, t)}`,
-                  formatEuro(finalPriceCents(o), i18n.language),
-                  () => router.push({ pathname: '/book', params: { serviceId: o.service_id, offerId: o.id } }),
-                ),
-              ),
-            )}
+            <View style={styles.grid}>
+              {offers.map((o) => (
+                <ServiceCard key={o.id} id={o.service_id} title={cleanTitle(o.service_title)} price={formatEuro(finalPriceCents(o), i18n.language)} meta={validityText(o.validity, i18n.language, t)} cover={covers[o.service_id]} emoji={profileEmoji} badge={o.discount_pct ? `−${o.discount_pct}%` : null} liveLabel={t('explore.nowShort')} onPress={() => router.push({ pathname: '/book', params: { serviceId: o.service_id, offerId: o.id } })} />
+              ))}
+            </View>
           </>
         )}
         <View style={{ height: 120 }} />
@@ -313,6 +304,7 @@ export default function PublicProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   body: { paddingHorizontal: 16, paddingTop: 4, gap: 10 },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

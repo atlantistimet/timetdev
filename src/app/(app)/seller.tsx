@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
+import { ProfileTap } from '@/components/ProfileTap';
 import { AvailableNowCard } from '@/components/AvailableNowCard';
 import { Button, ErrorText, LoadingView, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -164,7 +165,7 @@ export default function SellerScreen() {
             </>
           )}
         </View>
-        {summary.next ? <Avatar name={summary.next.client_name ?? ''} seed={summary.next.client_id} size={72} round={26} path={summary.next.client_avatar} /> : null}
+        {summary.next ? <ProfileTap userId={summary.next.client_id}><Avatar name={summary.next.client_name ?? ''} seed={summary.next.client_id} size={72} round={26} path={summary.next.client_avatar} /></ProfileTap> : null}
       </View>
 
       <View style={styles.tiles}>
@@ -186,7 +187,7 @@ export default function SellerScreen() {
         {summary.today.map((b, i) => (
           <Pressable key={b.id} onPress={() => router.push(`/session/${b.id}`)} style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.fill }]}>
             <Text style={[styles.time, { color: theme.text }]}>{timeOf(b.starts_at)}</Text>
-            <Avatar name={b.client_name ?? ''} seed={b.client_id} size={40} round={20} path={b.client_avatar} />
+            <ProfileTap userId={b.client_id}><Avatar name={b.client_name ?? ''} seed={b.client_id} size={40} round={20} path={b.client_avatar} /></ProfileTap>
             <View style={styles.flex}>
               <Text style={[styles.rowName, { color: theme.text }]} numberOfLines={1}>
                 {b.client_name ?? ''}
