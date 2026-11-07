@@ -169,6 +169,11 @@ export default function SessionScreen() {
               </Pressable>
             </View>
           ) : null}
+          {isClient && s.status !== 'cancelled' ? (
+            <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/support', params: { kind: 'session', refType: 'booking', refId: s.id } })} style={[styles.backBtn, { backgroundColor: theme.surface }]}>
+              <Text style={[styles.backBtnText, { color: theme.text }]}>{t('safety.support.reportProblem')}</Text>
+            </Pressable>
+          ) : null}
           <Pressable accessibilityRole="button" onPress={() => router.replace('/bookings')} style={[styles.backBtn, { backgroundColor: theme.surface }]}>
             <Text style={[styles.backBtnText, { color: theme.text }]}>{t('bookings.backAgenda')}</Text>
           </Pressable>

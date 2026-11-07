@@ -8,6 +8,7 @@ import { Avatar } from '@/components/Avatar';
 import { ProfileTap } from '@/components/ProfileTap';
 import { Body, Button, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { PostCard } from '@/components/PostCard';
+import { SafetySheet } from '@/components/SafetySheet';
 import { ServiceCard } from '@/components/ServiceCard';
 import { listCovers } from '@/lib/service-media';
 import { type MediaItem } from '@/lib/media';
@@ -35,6 +36,7 @@ export default function PublicProfileScreen() {
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [following, setFollowing] = useState<boolean | null>(null);
+  const [safety, setSafety] = useState<null | { type: 'profile' | 'review'; id: string; userId: string | null; name: string; start: 'menu' | 'report' }>(null);
   const [tab, setTab] = useState<'services' | 'offers' | 'posts' | 'reviews'>('services');
   const scrollRef = useRef<ScrollView>(null);
   const tabsY = useRef(0);
@@ -132,9 +134,16 @@ export default function PublicProfileScreen() {
             <Ionicons name="chevron-back" size={26} color={theme.text} />
           </Pressable>
           <Text numberOfLines={1} style={[styles.handleTitle, { color: theme.text }]}>{profile.handle ? `@${profile.handle}` : ''}</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('profile.share')} onPress={shareProfile} style={styles.iconBtn}>
-            <Ionicons name="share-outline" size={24} color={theme.text} />
-          </Pressable>
+          <View style={{ flexDirection: 'row' }}>
+            {!mine ? (
+              <Pressable accessibilityRole="button" accessibilityLabel={t('feed.menu')} onPress={() => setSafety({ type: 'profile', id: profile.id, userId: profile.id, name: profile.full_name, start: 'menu' })} style={styles.iconBtn}>
+                <Ionicons name="ellipsis-horizontal" size={24} color={theme.text} />
+              </Pressable>
+            ) : null}
+            <Pressable accessibilityRole="button" accessibilityLabel={t('profile.share')} onPress={shareProfile} style={styles.iconBtn}>
+              <Ionicons name="share-outline" size={24} color={theme.text} />
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.head}>
@@ -281,6 +290,11 @@ export default function PublicProfileScreen() {
                     <Text style={[styles.rowMeta, { color: theme.muted }]}>{new Date(r.created_at).toLocaleDateString(i18n.language, { day: 'numeric', month: 'short' })}</Text>
                   </View>
                   <Text style={[styles.reviewStars, { color: theme.text }]}>{'★'.repeat(Math.round(r.rating))}</Text>
+                  {!mine ? (
+                    <Pressable accessibilityRole="button" accessibilityLabel={t('safety.report')} hitSlop={8} onPress={() => setSafety({ type: 'review', id: r.id, userId: null, name: r.author_name, start: 'report' })}>
+                      <Ionicons name="flag-outline" size={16} color={theme.muted} />
+                    </Pressable>
+                  ) : null}
                 </View>
                 {r.body ? <Text style={[styles.reviewBody, { color: theme.text }]}>{r.body}</Text> : null}
                 <ReviewReply reviewId={r.id} reply={r.reply} sellerName={profile.full_name} canReply={mine} onDone={() => setReloadKey((k) => k + 1)} />
@@ -299,6 +313,7 @@ export default function PublicProfileScreen() {
         )}
         <View style={{ height: 120 }} />
       </View>
+      {safety ? <SafetySheet visible onClose={() => setSafety(null)} entityType={safety.type} entityId={safety.id} userId={safety.userId} name={safety.name} start={safety.start} onDone={(w) => w === 'blocked' && router.back()} /> : null}
     </Screen>
   );
 }

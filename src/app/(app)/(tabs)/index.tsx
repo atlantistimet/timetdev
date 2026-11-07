@@ -13,6 +13,7 @@ import { PostCard } from '@/components/PostCard';
 import { Body, ErrorText, LoadingView, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { loadPosts, type Post } from '@/lib/feed';
+import { loadBlockedIds } from '@/lib/safety';
 import { useUnreadCount } from '@/lib/notifications';
 import { fonts, radius, useTheme } from '@/theme';
 
@@ -49,7 +50,8 @@ export default function Home() {
     if (!userId) return;
     let alive = true;
     (async () => {
-      const r = await loadPosts(userId, { kind: scope });
+      const [r, blocked] = await Promise.all([loadPosts(userId, { kind: scope }), loadBlockedIds()]);
+      r.posts = r.posts.filter((p) => !blocked.has(p.author_id));
       if (alive) setLoaded({ ...r, nowMs: Date.now(), scope });
     })();
     return () => {

@@ -3,12 +3,14 @@ import { Text, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
 import { useTranslation } from 'react-i18next';
 import { Body, Button, ErrorText, Spacer, TextField } from '@/components/ui';
+import { SafetySheet } from '@/components/SafetySheet';
 import { addComment, deleteComment, loadComments, type Comment } from '@/lib/comments';
 import { useTheme } from '@/theme';
 
 export function CommentsSection({ postId, userId, postAuthorId, onChanged }: { postId: string; userId: string; postAuthorId: string; onChanged: (count: number) => void }) {
   const { t } = useTranslation();
   const theme = useTheme();
+  const [reporting, setReporting] = useState<Comment | null>(null);
   const [comments, setComments] = useState<Comment[] | null>(null);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -51,6 +53,11 @@ export function CommentsSection({ postId, userId, postAuthorId, onChanged }: { p
         <View key={c.id} style={{ marginBottom: 8 }}>
           <Text style={{ color: theme.text, fontWeight: '700', fontSize: 13 }}>{c.author_name}</Text>
           <Text style={{ color: theme.text }}>{c.body}</Text>
+          {c.author_id !== userId ? (
+            <Pressable accessibilityRole="button" onPress={() => setReporting(c)}>
+              <Text style={{ color: theme.muted, fontSize: 12 }}>{t('safety.report')}</Text>
+            </Pressable>
+          ) : null}
           {c.author_id === userId || postAuthorId === userId ? (
             <Pressable
               accessibilityRole="button"
@@ -62,6 +69,7 @@ export function CommentsSection({ postId, userId, postAuthorId, onChanged }: { p
           ) : null}
         </View>
       ))}
+      {reporting ? <SafetySheet visible onClose={() => setReporting(null)} entityType="comment" entityId={reporting.id} userId={reporting.author_id} name={reporting.author_name} start="report" /> : null}
       <Spacer size={4} />
       <TextField label={t('comments.write')} value={text} onChangeText={setText} maxLength={500} multiline />
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}

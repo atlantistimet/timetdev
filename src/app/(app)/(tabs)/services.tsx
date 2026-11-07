@@ -22,6 +22,7 @@ import {
 } from '@/lib/explore';
 import { type MediaItem } from '@/lib/media';
 import { finalPriceCents, listPublicOffers, type Offer } from '@/lib/offers';
+import { loadBlockedIds } from '@/lib/safety';
 import { listCovers } from '@/lib/service-media';
 import { type Place } from '@/lib/my-services';
 import { fonts, pastelFor, radius, type, useTheme } from '@/theme';
@@ -39,6 +40,7 @@ type Data = {
   sellers: Record<string, Seller>;
   ratings: Record<string, ServiceRating>;
   categories: Category[];
+  blocked: Set<string>;
   errorKey: string | null;
 };
 
@@ -64,7 +66,7 @@ export default function ServicesScreen() {
     if (!userId) return;
     let active = true;
     (async () => {
-      const [r, o, categories] = await Promise.all([listSlotServices(userId), listPublicOffers(userId), loadCategories(i18n.language)]);
+      const [r, o, categories, blocked] = await Promise.all([listSlotServices(userId), listPublicOffers(userId), loadCategories(i18n.language), loadBlockedIds()]);
       const [covers, sellers, ratings] = await Promise.all([
         listCovers(r.services.map((x) => x.id)),
         loadSellers([userId, ...r.services.map((x) => x.seller_id), ...o.offers.map((x) => x.seller_id)]),
@@ -72,7 +74,7 @@ export default function ServicesScreen() {
       ]);
       if (active) {
         setNow(Date.now());
-        setResult({ services: r.services, offers: o.offers, covers, sellers, ratings, categories, errorKey: r.errorKey ?? o.errorKey });
+        setResult({ services: r.services, offers: o.offers, covers, sellers, ratings, categories, blocked, errorKey: r.errorKey ?? o.errorKey });
       }
     })();
     return () => {
@@ -88,6 +90,7 @@ export default function ServicesScreen() {
     const ok = (sellerId: string, title: string, serviceId: string, cents: number, minutes: number, discount: boolean) => {
       const seller = result.sellers[sellerId];
       const sv = byId.get(serviceId);
+      if (result.blocked.has(sellerId)) return false;
       if (category && !seller?.categories.includes(category)) return false;
       if (onlyNow && !isAvailableNow(seller, now)) return false;
       if (onlyDiscount && !discount) return false;

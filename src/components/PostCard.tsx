@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafetySheet } from '@/components/SafetySheet';
 import { SheetModal } from '@/components/SheetModal';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
 import { Pressable, buzz } from '@/components/Pressable';
@@ -70,6 +71,7 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false,
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [tags, setTags] = useState(post.tags);
   const [menu, setMenu] = useState<'menu' | 'tags' | null>(null);
+  const [safety, setSafety] = useState(false);
   const mine = post.author_id === userId;
   const fmt = (cents: number) => formatEuro(cents, i18n.language);
 
@@ -223,6 +225,7 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false,
       ) : null}
       {shareNote ? <Body muted>{shareNote}</Body> : null}
       {showComments ? <CommentsSection postId={post.id} userId={userId} postAuthorId={post.author_id} onChanged={setCommentCount} /> : null}
+      <SafetySheet visible={safety} onClose={() => setSafety(false)} entityType="post" entityId={post.id} userId={post.author_id} name={post.author.full_name} onDone={(w) => w === 'blocked' && onDeleted()} />
       <SheetModal visible={menu !== null}  onRequestClose={() => setMenu(null)}>
         <Pressable style={[styles.backdrop]} onPress={() => setMenu(null)} />
         <View style={[styles.sheet, { backgroundColor: theme.surface }]}>
@@ -249,6 +252,7 @@ export function PostCard({ post, userId, nowMs, onDeleted, openComments = false,
                 {mine ? <MenuRow icon="people-outline" label={t('feed.menuTags')} sub={pendingCount > 0 ? t('feed.tagsPending', { count: pendingCount }) : undefined} onPress={() => setMenu('tags')} /> : null}
                 {myTag?.status === 'accepted' ? <MenuRow icon="person-remove-outline" label={t('feed.tagRemove')} sub={t('feed.menuRemoveSub')} onPress={() => { setMenu(null); void answer('removed'); }} /> : null}
                 <MenuRow icon="share-outline" label={t('feed.share')} onPress={() => { setMenu(null); void share(); }} />
+                {!mine ? <MenuRow icon="flag-outline" label={t('safety.reportOrBlock')} danger onPress={() => { setMenu(null); setSafety(true); }} /> : null}
                 {mine ? <MenuRow icon="trash-outline" label={t('feed.menuDelete')} danger onPress={async () => { setMenu(null); if (!(await deletePost(post.id))) onDeleted(); }} /> : null}
               </>
             ) : null}

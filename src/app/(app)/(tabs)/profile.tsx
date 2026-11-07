@@ -7,6 +7,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { Screen } from '@/components/ui';
+import { createTicket } from '@/lib/safety';
 import { useAuth } from '@/lib/auth';
 import { loadMyProfile, loadMyStats, type MyProfile, type MyStats } from '@/lib/profile-edit';
 import { useUnreadCount } from '@/lib/notifications';
@@ -54,6 +55,12 @@ export default function ProfileScreen() {
     setNote(r === 'copied' ? t('slotLinks.copied') : r === 'failed' ? t('errors.generic') : null);
   };
 
+  const requestExport = async () => {
+    if (!userId) return;
+    const failure = await createTicket({ me: userId, kind: 'other', reason: 'data_export', body: 'Richiesta copia dei dati personali (GDPR)' });
+    setNote(failure ? t(failure) : t('safety.exportSent'));
+  };
+
   type Row = { key: string; icon: keyof typeof Ionicons.glyphMap; label: string; value?: string; badge?: boolean; danger?: boolean; onPress: () => void };
   const space: Row[] = [
     { key: 'seller', icon: 'storefront-outline', label: t('home.sellerArea'), onPress: () => router.push('/seller') },
@@ -64,7 +71,11 @@ export default function ProfileScreen() {
   ];
   const settings: Row[] = [
     { key: 'language', icon: 'language-outline', label: t('settings.language'), value: languageNames[i18n.language] ?? i18n.language, onPress: () => setLangOpen(true) },
+    { key: 'export', icon: 'download-outline', label: t('safety.exportRow'), onPress: () => void requestExport() },
+    { key: 'blocked', icon: 'ban-outline', label: t('safety.blockedRow'), onPress: () => router.push('/blocked') },
+    { key: 'support', icon: 'help-buoy-outline', label: t('safety.supportRow'), onPress: () => router.push('/support') },
     { key: 'signout', icon: 'log-out-outline', label: t('settings.signOut'), danger: true, onPress: () => void signOut() },
+    { key: 'delete', icon: 'trash-outline', label: t('safety.deleteRow'), danger: true, onPress: () => router.push('/delete-account') },
   ];
   const rows = section === 'space' ? space : settings;
 
