@@ -1,4 +1,4 @@
-import { Image, ImageBackground, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,8 +20,10 @@ export default function Welcome() {
   const { t } = useTranslation();
   const theme = useTheme();
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
   return (
-    <ImageBackground source={background} resizeMode="cover" style={styles.fill}>
+    <View style={[styles.fill, { width, height }]}>
+      <Image source={background} resizeMode="cover" accessible={false} style={[styles.photo, { width, height }]} />
       <View style={styles.shade} />
       <SafeAreaView style={styles.fill}>
         <View style={styles.inner}>
@@ -44,12 +46,13 @@ export default function Welcome() {
           </View>
         </View>
       </SafeAreaView>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: '#151515' },
+  photo: { position: 'absolute', top: 0, left: 0 },
   shade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.42)' },
   inner: { flex: 1, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 16, justifyContent: 'space-between', width: '100%', maxWidth: 440, alignSelf: 'center' },
   brand: { fontFamily: fonts.semibold, fontSize: 26, letterSpacing: -1 },
