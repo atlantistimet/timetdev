@@ -73,6 +73,7 @@ export default function ProfileScreen() {
     { key: 'language', icon: 'language-outline', label: t('settings.language'), value: languageNames[i18n.language] ?? i18n.language, onPress: () => setLangOpen(true) },
     { key: 'export', icon: 'download-outline', label: t('safety.exportRow'), onPress: () => void requestExport() },
     { key: 'blocked', icon: 'ban-outline', label: t('safety.blockedRow'), onPress: () => router.push('/blocked') },
+    { key: 'legal', icon: 'shield-checkmark-outline', label: t('settings.privacyLegal'), onPress: () => router.push('/legal') },
     { key: 'support', icon: 'help-buoy-outline', label: t('safety.supportRow'), onPress: () => router.push('/support') },
     { key: 'signout', icon: 'log-out-outline', label: t('settings.signOut'), danger: true, onPress: () => void signOut() },
     { key: 'delete', icon: 'trash-outline', label: t('safety.deleteRow'), danger: true, onPress: () => router.push('/delete-account') },

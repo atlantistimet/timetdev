@@ -25,7 +25,8 @@
   },
   "settings": {
     "language": "Language",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "privacyLegal": "Privacy and legal"
   },
   "auth": {
     "email": "Email",
@@ -1386,5 +1387,69 @@
     "following": "Following",
     "noFollowers": "No followers yet.",
     "noFollowing": "Not following anyone yet."
+  },
+  "welcome": {
+    "title": "Who are you spending time with today?",
+    "subtitle": "Book people’s time. Offer yours.",
+    "email": "Continue with email",
+    "haveAccount": "I already have an account",
+    "age": "For people aged 18 and over"
+  },
+  "reg": {
+    "nameTitle": "What’s your name?",
+    "nameSub": "So others know who they’re talking to.",
+    "emailTitle": "Your email",
+    "emailSub": "You’ll need it to sign in and get confirmations.",
+    "passwordTitle": "Choose a password",
+    "passwordSub": "At least {{count}} characters.",
+    "lastTitle": "One last thing, then you’re in.",
+    "lastSub": "Tap the boxes to confirm.",
+    "stepOf": "{{n}} of {{total}}",
+    "continue": "Continue",
+    "create": "Create my account",
+    "adultTitle": "I’m at least 18",
+    "adultText": "Timeet is for adults only.",
+    "termsTitle": "Rules and terms",
+    "termsText": "I accept the Terms of service and the Community rules.",
+    "readTerms": "Read the documents",
+    "marketingTitle": "News and offers",
+    "marketingText": "An occasional email with news and offers. Optional, change your mind any time.",
+    "privacyNote": "I’ve read how we use your data.",
+    "privacyLink": "Read the privacy policy"
+  },
+  "legal": {
+    "hubTitle": "Privacy and legal",
+    "version": "Version {{v}}",
+    "effective": "effective {{date}}",
+    "inShort": "In short",
+    "report": "Report a problem with this document",
+    "notFound": "Document not found",
+    "termsRequired": "To sign up you need to accept the terms and rules.",
+    "draftNote": "Text under legal review before publication."
+  },
+  "consents": {
+    "title": "Privacy and consents",
+    "intro": "Choose what we can do with your data. Every change is recorded.",
+    "emailTitle": "News and offers by email",
+    "emailText": "Timeet updates and promotions.",
+    "pushTitle": "Promotional notifications",
+    "pushText": "Invitations and offers as phone notifications.",
+    "personalTitle": "Tailored suggestions",
+    "personalText": "We use what you do to suggest people and services.",
+    "analyticsTitle": "Anonymous usage statistics",
+    "analyticsText": "They help us improve the app.",
+    "serviceNote": "Service notifications (bookings, messages, payments) are not marketing and stay on.",
+    "download": "Download my data",
+    "delete": "Delete account"
+  },
+  "terms": {
+    "updateTitle": "We’ve updated our terms",
+    "updateBody": "To keep using Timeet, read and accept version {{v}} (effective {{date}}).",
+    "read_terms": "Read the Terms of service",
+    "read_community": "Read the Community rules",
+    "read_privacy": "Read the Privacy policy",
+    "accept": "Accept and continue",
+    "leave": "Sign out",
+    "leaveNote": "If you don’t accept you can sign out or delete your account from Settings."
   }
 }

@@ -13,6 +13,8 @@ import type { Session } from '@supabase/supabase-js';
 import i18n, { supportedLanguages } from '@/i18n';
 import { authErrorKey } from '@/lib/auth-errors';
 import { supabase } from '@/lib/supabase';
+import { LEGAL_VERSION } from '@/content/legal';
+import { acceptLegal, lastAcceptedVersion, setConsent } from '@/lib/consents';
 
 export type Profile = {
   id: string;
@@ -24,7 +26,7 @@ export type Profile = {
 
 const PROFILE_COLUMNS = 'id, full_name, preferred_lang, adult_confirmed_at, is_seller';
 
-type SignUpInput = { fullName: string; email: string; password: string };
+type SignUpInput = { fullName: string; email: string; password: string; marketing?: boolean };
 type SignUpResult = { errorKey: string | null; needsEmailConfirmation: boolean };
 
 type AuthContextValue = {
@@ -45,6 +47,9 @@ type AuthContextValue = {
   exchangeRecoveryCode: (code: string) => Promise<string | null>;
   updatePassword: (password: string) => Promise<string | null>;
   confirmAdult: () => Promise<string | null>;
+  /** Vero se la persona ha accettato la versione corrente dei termini. */
+  termsAccepted: boolean;
+  acceptTerms: () => Promise<string | null>;
   setLanguage: (lang: string) => Promise<void>;
   reloadProfile: () => void;
 };
@@ -57,6 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Esito del caricamento del profilo, legato all'utente a cui appartiene.
   const [loaded, setLoaded] = useState<{ userId: string; profile: Profile | null; error: boolean } | null>(null);
   const [reloadCounter, setReloadCounter] = useState(0);
+  // Versione dei termini accettata dalla persona, legata al suo id (null = nessuna).
+  const [terms, setTerms] = useState<{ userId: string; accepted: boolean } | null>(null);
   const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
@@ -81,6 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const userId = session?.user.id ?? null;
   const adultDeclaredAtSignUp = session?.user.user_metadata?.adult_confirmed === true;
+  const signUpTerms = session?.user.user_metadata?.terms_version as string | undefined;
+  const signUpMarketing = session?.user.user_metadata?.marketing_optin === true;
 
   useEffect(() => {
     if (!sessionLoaded || !userId) return;
@@ -108,6 +117,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         if (!updateError) next = { ...next, adult_confirmed_at: now };
       }
+      // Termini accettati in registrazione: li registriamo al primo accesso (la sessione può nascere dopo la conferma email).
+      let accepted = (await lastAcceptedVersion(userId)) === LEGAL_VERSION;
+      if (!active) return;
+      if (!accepted && signUpTerms === LEGAL_VERSION) {
+        if ((await acceptLegal(i18n.language)) === null) {
+          accepted = true;
+          if (signUpMarketing) await setConsent('marketing_email', true);
+        }
+        if (!active) return;
+      }
+      setTerms({ userId, accepted });
       setLoaded({ userId, profile: next, error: false });
       if (next.preferred_lang !== i18n.language && supportedLanguages.includes(next.preferred_lang)) {
         void i18n.changeLanguage(next.preferred_lang);
@@ -116,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [sessionLoaded, userId, adultDeclaredAtSignUp, reloadCounter]);
+  }, [sessionLoaded, userId, adultDeclaredAtSignUp, signUpTerms, signUpMarketing, reloadCounter]);
 
   const updateProfile = useCallback((changes: Partial<Profile>) => {
     setLoaded((current) =>
@@ -129,13 +149,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return authErrorKey(error);
   }, []);
 
-  const signUp = useCallback(async ({ fullName, email, password }: SignUpInput): Promise<SignUpResult> => {
+  const signUp = useCallback(async ({ fullName, email, password, marketing }: SignUpInput): Promise<SignUpResult> => {
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
         // handle_new_user() usa full_name e lang per creare il profilo.
-        data: { full_name: fullName.trim(), lang: i18n.language, adult_confirmed: true },
+        data: {
+          full_name: fullName.trim(),
+          lang: i18n.language,
+          adult_confirmed: true,
+          terms_version: LEGAL_VERSION,
+          marketing_optin: marketing === true,
+        },
       },
     });
     const errorKey = authErrorKey(error);
@@ -174,6 +200,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   }, [userId, updateProfile]);
 
+  const acceptTerms = useCallback(async () => {
+    if (!userId) return 'errors.generic';
+    const failure = await acceptLegal(i18n.language);
+    if (failure) return failure;
+    setTerms({ userId, accepted: true });
+    return null;
+  }, [userId]);
+
   const setLanguage = useCallback(
     async (lang: string) => {
       if (!supportedLanguages.includes(lang)) return;
@@ -194,6 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const current = loaded && loaded.userId === userId ? loaded : null;
   const profile = current?.profile ?? null;
   const profileError = current?.error ?? false;
+  const termsAccepted = terms?.userId === userId && terms.accepted;
   const isLoading = !sessionLoaded || (userId !== null && current === null);
 
   const value = useMemo<AuthContextValue>(
@@ -211,6 +246,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       exchangeRecoveryCode,
       updatePassword,
       confirmAdult,
+      termsAccepted,
+      acceptTerms,
       setLanguage,
       reloadProfile,
     }),
@@ -227,6 +264,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       exchangeRecoveryCode,
       updatePassword,
       confirmAdult,
+      termsAccepted,
+      acceptTerms,
       setLanguage,
       reloadProfile,
     ],

@@ -26,10 +26,10 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function RootNavigator() {
   const { t } = useTranslation();
-  const { session, isLoading, profileError, isAdultConfirmed, recovering, reloadProfile, signOut } = useAuth();
+  const { session, isLoading, profileError, isAdultConfirmed, termsAccepted, recovering, reloadProfile, signOut } = useAuth();
 
   const pathname = usePathname();
-  const ready = !!session && !recovering && isAdultConfirmed;
+  const ready = !!session && !recovering && isAdultConfirmed && termsAccepted;
 
   useEffect(() => {
     if (!isLoading) SplashScreen.hideAsync().catch(() => {});
@@ -60,6 +60,7 @@ function RootNavigator() {
   return (
     <Stack screenOptions={{ headerShown: false, scrollEdgeEffects: { top: 'hidden', bottom: 'hidden', left: 'hidden', right: 'hidden' } }}>
       <Stack.Protected guard={!session}>
+        <Stack.Screen name="welcome" />
         <Stack.Screen name="login" />
         <Stack.Screen name="register" />
         <Stack.Screen name="forgot-password" />
@@ -71,9 +72,14 @@ function RootNavigator() {
       <Stack.Protected guard={!!session && !recovering && !isAdultConfirmed}>
         <Stack.Screen name="adult" />
       </Stack.Protected>
-      <Stack.Protected guard={!!session && !recovering && isAdultConfirmed}>
+      <Stack.Protected guard={!!session && !recovering && isAdultConfirmed && !termsAccepted}>
+        <Stack.Screen name="terms-update" />
+      </Stack.Protected>
+      <Stack.Protected guard={!!session && !recovering && isAdultConfirmed && termsAccepted}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
+      {/* I documenti si leggono anche prima di registrarsi. */}
+      <Stack.Screen name="legal/[doc]" />
     </Stack>
   );
 }
