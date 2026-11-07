@@ -304,7 +304,7 @@ export default function ServiceEditScreen() {
             {kinds.map((x) => {
               const on = kind === x.k && (x.k !== 'slot' || pricing === x.p);
               return (
-                <Pressable key={x.k} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => { setKind(x.k); setPricing(x.p); }} style={[styles.kind, { backgroundColor: on ? theme.accent : theme.surface }]}>
+                <Pressable key={`${x.k}-${x.p}`} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => { setKind(x.k); setPricing(x.p); }} style={[styles.kind, { backgroundColor: on ? theme.accent : theme.surface }]}>
                   <View style={[styles.round56, { backgroundColor: theme.surface }]}><Emoji name={x.emoji} size={34} /></View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={[styles.kindTitle, { color: on ? theme.onAccent : theme.text }]}>{x.a}</Text>
