@@ -9,7 +9,7 @@ import { Avatar } from '@/components/Avatar';
 import { Emoji } from '@/components/Emoji';
 import { Body, Button, Chip, ErrorText, LoadingView, Pill, Screen, Spacer } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { cleanTitle, formatEuro, listSlotServices, type SlotService } from '@/lib/booking';
+import { cleanTitle, formatEuro, isTimed, listSlotServices, type SlotService } from '@/lib/booking';
 import {
   isAvailableNow,
   loadCategories,
@@ -109,7 +109,9 @@ export default function ServicesScreen() {
       ? t('explore.perMin', { price: formatEuro(service.rate_cents_per_min, i18n.language) })
       : service.kind === 'package'
         ? t('book.packageLine', { count: service.sessions ?? 0, minutes: service.duration_min, price: formatEuro(service.price_cents, i18n.language) })
-        : `${formatEuro(service.price_cents, i18n.language)} · ${t('explore.minutes', { n: service.duration_min })}`;
+        : isTimed(service)
+          ? `${t('explore.perHour', { price: formatEuro(service.price_cents, i18n.language) })} · ${t('explore.timedRange', { min: service.duration_min, max: service.max_duration_min ?? service.duration_min })}`
+          : `${formatEuro(service.price_cents, i18n.language)} · ${t('explore.minutes', { n: service.duration_min })}`;
 
   const emojiOf = (sellerId: string) => {
     const key = result.sellers[sellerId]?.categories[0];

@@ -81,9 +81,9 @@ export default function PublicProfileScreen() {
   const hours = stats?.hours_shared ?? 0;
   const rateText = rateService ? t('explore.perMin', { price: formatEuro(rateService.rate_cents_per_min ?? 0, i18n.language) }) : null;
   const priceText = (s: SlotService) =>
-    s.kind === 'per_minute' ? t('explore.perMin', { price: formatEuro(s.rate_cents_per_min ?? 0, i18n.language) }) : formatEuro(s.price_cents, i18n.language);
+    s.kind === 'per_minute' ? t('explore.perMin', { price: formatEuro(s.rate_cents_per_min ?? 0, i18n.language) }) : s.pricing === 'timed' ? t('explore.perHour', { price: formatEuro(s.price_cents, i18n.language) }) : formatEuro(s.price_cents, i18n.language);
   const metaText = (s: SlotService) =>
-    [s.kind === 'package' ? t('book.packageShort', { count: s.sessions ?? 0 }) : s.kind === 'per_minute' ? null : t('explore.minutes', { n: s.duration_min }), s.places.map((p) => t(`places.${p}`)).join(', ')]
+    [s.kind === 'package' ? t('book.packageShort', { count: s.sessions ?? 0 }) : s.kind === 'per_minute' ? null : s.pricing === 'timed' ? t('explore.timedRange', { min: s.duration_min, max: s.max_duration_min ?? s.duration_min }) : t('explore.minutes', { n: s.duration_min }), s.places.map((p) => t(`places.${p}`)).join(', ')]
       .filter(Boolean)
       .join(' · ');
   const tabs: { key: typeof tab; label: string }[] = [

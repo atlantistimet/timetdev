@@ -19,12 +19,15 @@ import {
   createPackagePayment,
   cleanTitle,
   formatEuro,
+  isTimed,
   loadExactSlot,
   loadLinkSlots,
   loadOpenSlots,
   loadSellerPlace,
   loadLinkService,
   loadSlotService,
+  priceFor,
+  timedOptions,
   type OpenSlot,
   type PaymentIntentInfo,
   type SellerPlace,
@@ -55,6 +58,8 @@ export default function BookScreen() {
   const [paid, setPaid] = useState(false);
   const [declined, setDeclined] = useState(false);
   const [day, setDay] = useState<string | null>(null);
+  const [units, setUnits] = useState<number | null>(null); // blocchi di fila o minuti scelti (servizi con più durate)
+  const [altSlots, setAltSlots] = useState<{ units: number; list: OpenSlot[] } | null>(null);
   const theme = useTheme();
 
   useEffect(() => {
@@ -99,6 +104,20 @@ export default function BookScreen() {
     };
   }, [serviceId, offerId, code, i18n.language]);
 
+  useEffect(() => {
+    if (!loaded || loaded === 'missing' || units === null) return;
+    const s = loaded.service;
+    const dur = isTimed(s) ? units : s.duration_min * units;
+    let alive = true;
+    (async () => {
+      const list = await loadOpenSlots(s.seller_id, s.id, null, dur);
+      if (alive) setAltSlots({ units, list });
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [units, loaded]);
+
   if (!loaded) return <LoadingView />;
   if (loaded === 'missing') {
     return (
@@ -111,18 +130,30 @@ export default function BookScreen() {
     );
   }
 
-  const { service, offer, link, slots, tiers, sellerPlace, photos, seller, rating, emoji } = loaded;
+  const { service, offer, link, slots: baseSlots, tiers, sellerPlace, photos, seller, rating, emoji } = loaded;
   // sede solo se il venditore ha indicato l'indirizzo (stessa regola del server)
   const places = service.places.filter((p) => (!link || link.places.includes(p)) && (p !== 'sede' || !!sellerPlace.place_address));
   const chosen: Place | null = place && places.includes(place) ? place : places.length === 1 ? places[0] : null;
   const extraCents = link
     ? chosen === 'domicilio' ? link.extra_travel_cents : chosen === 'sede' ? link.extra_space_cents : 0
     : chosen === 'domicilio' ? sellerPlace.travel_fee_cents : chosen === 'sede' ? service.space_fee_cents : 0;
-  const priceCents = link ? discountedCents(link.price_cents, link.discount_pct) : offer ? finalPriceCents(offer) : service.price_cents;
-  const durationMin = link?.duration_min ?? offer?.duration_min ?? service.duration_min;
-  const discountPct = (link ?? offer)?.discount_pct ?? 0;
-  const baseCents = link ? link.price_cents : offer ? offer.price_cents : service.price_cents;
   const isPackage = service.kind === 'package';
+  const timed = isTimed(service);
+  const blocksMax = service.max_consecutive ?? 1;
+  // servizi a tempo o con più blocchi di fila: il cliente sceglie quanto prenotare (non vale per offerte, link e chiamate immediate)
+  const flexible = !link && !offer && !isInstant && service.kind === 'slot' && (timed || blocksMax > 1);
+  const options = timed ? timedOptions(service) : Array.from({ length: blocksMax }, (_, i) => i + 1);
+  const u = flexible ? (units !== null && options.includes(units) ? units : options[0]) : 1;
+  const slots = !flexible || u === options[0] ? baseSlots : altSlots?.units === u ? altSlots.list : [];
+  const priceCents = link ? discountedCents(link.price_cents, link.discount_pct) : offer ? finalPriceCents(offer) : flexible ? priceFor(service, u) : service.price_cents;
+  const durationMin = link?.duration_min ?? offer?.duration_min ?? (flexible ? (timed ? u : service.duration_min * u) : service.duration_min);
+  const fmtDur = (m: number) => (m < 60 ? `${m}'` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60}'` : ''}`);
+  const pickUnits = (next: number) => {
+    setUnits(next);
+    setSlotId(null);
+  };
+  const discountPct = (link ?? offer)?.discount_pct ?? 0;
+  const baseCents = link ? link.price_cents : offer ? offer.price_cents : flexible ? priceFor(service, u) : service.price_cents;
   const sessions = service.sessions ?? 1;
   const pickedMs = picked.map((iso) => new Date(iso).getTime()).sort((a, b) => a - b);
   const clashes = (iso: string) => {
@@ -149,7 +180,7 @@ export default function BookScreen() {
     if (chosen === 'domicilio' && !address.trim()) return setErrorKey('book.errors.address_required');
     setStarting(true);
     setErrorKey(null);
-    const result = await createBookingPayment({ serviceId: link ? undefined : service.id, code: link?.code, startsAt: slot.starts_at, place: chosen, clientAddress: chosen === 'domicilio' ? address.trim() : undefined, offerId: offer?.id });
+    const result = await createBookingPayment({ serviceId: link ? undefined : service.id, code: link?.code, startsAt: slot.starts_at, place: chosen, clientAddress: chosen === 'domicilio' ? address.trim() : undefined, offerId: offer?.id, slots: flexible && !timed ? u : undefined, durationMin: flexible && timed ? u : undefined });
     setStarting(false);
     if (result.payment) setPayment(result.payment);
     else setErrorKey(result.errorKey);
@@ -404,6 +435,25 @@ export default function BookScreen() {
           <Body muted>{t('book.instantHint', { minutes: durationMin })}</Body>
         ) : (
           <>
+            {flexible ? (
+              <View style={[styles.amount, { backgroundColor: theme.surface }]}>
+                <Text style={[styles.amountLabel, { color: theme.muted }]}>{t(timed ? 'book.howLong' : 'book.howMany')}</Text>
+                <View style={styles.amountRow}>
+                  <Pressable accessibilityRole="button" accessibilityLabel="-" disabled={u === options[0]} onPress={() => pickUnits(options[Math.max(0, options.indexOf(u) - 1)])} style={[styles.amountBtn, { backgroundColor: theme.bg, opacity: u === options[0] ? 0.4 : 1 }]}>
+                    <Text style={[styles.amountBtnText, { color: theme.text }]}>−</Text>
+                  </Pressable>
+                  <Text style={[styles.amountBig, { color: theme.text }]}>{timed ? fmtDur(u) : String(u)}</Text>
+                  <Pressable accessibilityRole="button" accessibilityLabel="+" disabled={u === options[options.length - 1]} onPress={() => pickUnits(options[Math.min(options.length - 1, options.indexOf(u) + 1)])} style={[styles.amountBtn, { backgroundColor: theme.bg, opacity: u === options[options.length - 1] ? 0.4 : 1 }]}>
+                    <Text style={[styles.amountBtnText, { color: theme.text }]}>+</Text>
+                  </Pressable>
+                </View>
+                <Text style={[styles.amountNote, { color: theme.muted }]}>
+                  {timed
+                    ? t('book.timedNote', { min: options[0], max: options[options.length - 1], rate: formatEuro(service.price_cents, i18n.language) })
+                    : t('book.blocksNote', { minutes: durationMin, max: blocksMax })}
+                </Text>
+              </View>
+            ) : null}
             <Text style={[styles.h2, { color: theme.text }]}>{isPackage ? t('book.pickSlots', { picked: picked.length, count: sessions }) : t('book.when')}</Text>
             {slots.length === 0 ? <Body muted>{t('book.noSlots')}</Body> : null}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.days}>
@@ -455,6 +505,13 @@ export default function BookScreen() {
 }
 
 const styles = StyleSheet.create({
+  amount: { borderRadius: 28, padding: 16, gap: 8 },
+  amountLabel: { fontFamily: fonts.semibold, fontSize: 13 },
+  amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  amountBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  amountBtnText: { fontFamily: fonts.regular, fontSize: 22 },
+  amountBig: { fontFamily: fonts.semibold, fontSize: 34, letterSpacing: -1.3 },
+  amountNote: { fontFamily: fonts.regular, fontSize: 13, textAlign: 'center' },
   doneWrap: { flex: 1, padding: 8, paddingBottom: 16, gap: 12, maxWidth: 440, width: '100%', alignSelf: 'center' },
   donePanel: { borderRadius: 40, padding: 22, paddingTop: 56, gap: 20 },
   doneFaces: { flexDirection: 'row', alignItems: 'center', gap: 10 },

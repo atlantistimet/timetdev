@@ -16,22 +16,28 @@ export type MyService = {
   sessions: number | null;
   rate_cents_per_min: number | null;
   category_key: string | null;
+  pricing?: 'slot' | 'timed' | null;
+  max_consecutive?: number | null;
+  max_duration_min?: number | null;
   deleted_at?: string | null;
 };
 
 export type Place = 'online' | 'sede' | 'domicilio';
 export const PLACES: Place[] = ['online', 'sede', 'domicilio'];
 
-const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers, places, includes, space_fee_cents, kind, sessions, rate_cents_per_min, category_key, deleted_at';
+const COLUMNS = 'id, title, description, price_cents, duration_min, active, cancel_tiers, places, includes, space_fee_cents, kind, sessions, rate_cents_per_min, category_key, pricing, max_consecutive, max_duration_min, deleted_at';
 
 /** Servizi del venditore (anche quelli in pausa). Di norma solo a slot: offerte e link non valgono per i pacchetti. */
-export async function listMyServices(sellerId: string, kinds: ('slot' | 'package' | 'per_minute')[] = ['slot']): Promise<{ services: MyService[]; errorKey: string | null }> {
-  const { data, error } = await supabase
+export async function listMyServices(sellerId: string, kinds: ('slot' | 'package' | 'per_minute')[] = ['slot'], includeTimed = kinds.length > 1): Promise<{ services: MyService[]; errorKey: string | null }> {
+  // offerte e link valgono solo per i servizi a blocchi: i servizi "a tempo" compaiono solo nell'elenco completo
+  let query = supabase
     .from('services')
     .select(COLUMNS)
     .eq('seller_id', sellerId)
     .in('kind', kinds)
-    .eq('link_only', false)
+    .eq('link_only', false);
+  if (!includeTimed) query = query.eq('pricing', 'slot');
+  const { data, error } = await query
     .is('deleted_at', null)
     .order('created_at', { ascending: false });
   if (error) return { services: [], errorKey: 'errors.generic' };
@@ -72,6 +78,9 @@ export async function saveService(input: {
   sessions?: number | null;
   rateCents?: number;
   categoryKey?: string | null;
+  pricing?: 'slot' | 'timed';
+  maxConsecutive?: number;
+  maxDurationMin?: number | null;
 }): Promise<{ errorKey: string | null; id: string | null }> {
   if (input.kind === 'per_minute') {
     const perMinute = {
@@ -95,6 +104,9 @@ export async function saveService(input: {
     space_fee_cents: input.places.includes('sede') ? input.spaceFeeCents : 0,
     sessions: input.kind === 'package' ? input.sessions ?? null : null,
     category_key: input.categoryKey ?? null,
+    pricing: input.pricing ?? 'slot',
+    max_consecutive: input.kind === 'package' || input.pricing === 'timed' ? 1 : input.maxConsecutive ?? 1,
+    max_duration_min: input.pricing === 'timed' ? input.maxDurationMin ?? null : null,
   };
   const { data, error } = input.id
     ? await supabase.from('services').update(row).eq('id', input.id).select('id').single()

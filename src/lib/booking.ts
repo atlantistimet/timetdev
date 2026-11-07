@@ -20,6 +20,10 @@ export type SlotService = {
   kind: 'slot' | 'package' | 'per_minute';
   sessions: number | null;
   rate_cents_per_min: number | null;
+  /** 'slot' = blocchi fissi; 'timed' = a tempo (duration_min = minimo, max_duration_min = massimo, price_cents = prezzo all'ora). */
+  pricing?: 'slot' | 'timed' | null;
+  max_consecutive?: number | null;
+  max_duration_min?: number | null;
 };
 
 export type SellerPlace = { place_type: string | null; place_address: string | null; service_area: string | null; travel_fee_cents: number };
@@ -33,7 +37,22 @@ export type PaymentIntentInfo = {
   amount_cents: number;
 };
 
-const SERVICE_COLUMNS = 'id, seller_id, title, description, price_cents, duration_min, places, includes, space_fee_cents, cancel_tiers, kind, sessions, rate_cents_per_min';
+const SERVICE_COLUMNS = 'id, seller_id, title, description, price_cents, duration_min, places, includes, space_fee_cents, cancel_tiers, kind, sessions, rate_cents_per_min, pricing, max_consecutive, max_duration_min';
+
+export const isTimed = (s: { pricing?: string | null }) => s.pricing === 'timed';
+
+/** Prezzo di un servizio per un dato numero di blocchi (slot) o minuti (a tempo). */
+export const priceFor = (s: SlotService, units: number): number => (isTimed(s) ? Math.round((s.price_cents * units) / 60) : s.price_cents * units);
+
+/** Durate scelte dal cliente per un servizio a tempo: dal minimo al massimo a passi di 15'. */
+export function timedOptions(s: SlotService): number[] {
+  const min = s.duration_min;
+  const max = s.max_duration_min ?? min;
+  const out: number[] = [];
+  for (let d = min; d < max; d += 15) out.push(d);
+  out.push(max);
+  return out;
+}
 
 export async function loadSellerPlace(sellerId: string): Promise<SellerPlace> {
   const { data } = await supabase.from('profiles').select('place_type, place_address, service_area, travel_fee_cents').eq('id', sellerId).maybeSingle();
@@ -132,9 +151,11 @@ export async function createBookingPayment(input: {
   clientAddress?: string;
   offerId?: string;
   instant?: boolean;
+  slots?: number;
+  durationMin?: number;
 }): Promise<{ payment: PaymentIntentInfo | null; errorKey: string | null }> {
   const { data, error } = await supabase.functions.invoke<PaymentIntentInfo>('create-booking-payment', {
-    body: { service_id: input.serviceId, code: input.code, starts_at: input.startsAt, place: input.place, client_address: input.clientAddress, offer_id: input.offerId, instant: input.instant },
+    body: { service_id: input.serviceId, code: input.code, starts_at: input.startsAt, place: input.place, client_address: input.clientAddress, offer_id: input.offerId, instant: input.instant, slots: input.slots, duration_min: input.durationMin },
   });
   if (!error && data) return { payment: data, errorKey: null };
   if (error instanceof FunctionsHttpError) {

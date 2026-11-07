@@ -45,6 +45,9 @@ export default function ServiceEditScreen() {
   const [duration, setDuration] = useState(45);
   const [rate, setRate] = useState('');
   const [sessions, setSessions] = useState(5);
+  const [pricing, setPricing] = useState<'slot' | 'timed'>('slot');
+  const [maxConsecutive, setMaxConsecutive] = useState(1);
+  const [maxDur, setMaxDur] = useState(120);
   const [active, setActive] = useState(true);
   const [places, setPlaces] = useState<Place[]>(['online']);
   const [spaceFee, setSpaceFee] = useState('');
@@ -81,6 +84,9 @@ export default function ServiceEditScreen() {
         setDuration(service.duration_min || 45);
         setRate(service.rate_cents_per_min ? centsToEuroText(service.rate_cents_per_min) : '');
         setSessions(service.sessions ?? 5);
+        setPricing(service.pricing === 'timed' ? 'timed' : 'slot');
+        setMaxConsecutive(service.max_consecutive ?? 1);
+        setMaxDur(service.max_duration_min ?? 120);
         setActive(service.active);
         setPlaces(service.places);
         setSpaceFee(service.space_fee_cents ? centsToEuroText(service.space_fee_cents) : '');
@@ -97,6 +103,7 @@ export default function ServiceEditScreen() {
 
   if (!ready) return <LoadingView />;
 
+  const timed = kind === 'slot' && pricing === 'timed';
   const steps: Step[] = kind === 'per_minute' ? ['type', 'details', 'category', 'price', 'include'] : ['type', 'details', 'category', 'price', 'where', 'rules', 'when'];
   const idx = Math.min(stepIdx, steps.length - 1);
   const step = steps[idx];
@@ -115,6 +122,7 @@ export default function ServiceEditScreen() {
         const p = parseEuroToCents(price);
         if (p === null || p < MIN_PRICE_CENTS) return 'myServices.errors.price';
         if (duration < 5 || duration > 480) return 'myServices.errors.duration';
+        if (timed && (maxDur < duration || maxDur > 480)) return 'myServices.errors.duration';
         if (kind === 'package' && (sessions < 2 || sessions > 50)) return 'myServices.errors.sessions';
       }
     }
@@ -152,6 +160,7 @@ export default function ServiceEditScreen() {
         cancelTiers: custom ? fromRows(rows) : null, places, includes: lines,
         spaceFeeCents: places.includes('sede') && spaceFee.trim() ? parseEuroToCents(spaceFee) ?? 0 : 0,
         kind, sessions: kind === 'package' ? sessions : null, categoryKey,
+        pricing: timed ? 'timed' : 'slot', maxConsecutive: kind === 'slot' && !timed ? maxConsecutive : 1, maxDurationMin: timed ? maxDur : null,
       });
     }
     if (result.errorKey || !result.id) {
@@ -184,7 +193,7 @@ export default function ServiceEditScreen() {
   // ───────── schermata finale
   if (done) {
     const url = `https://timeet.world/service/${done.id}`;
-    const sub = kind === 'per_minute' ? t('svc.doneSubCall') : `${duration} min`;
+    const sub = kind === 'per_minute' ? t('svc.doneSubCall') : timed ? t('explore.timedRange', { min: duration, max: maxDur }) : `${duration} min`;
     return (
       <Screen bare>
         <View style={[styles.doneHero, { backgroundColor: theme.accent }]}>
@@ -195,7 +204,7 @@ export default function ServiceEditScreen() {
               <Text style={[styles.rowTitle, { color: theme.text }]} numberOfLines={1}>{title}</Text>
               <Text style={[styles.rowSub, { color: theme.muted }]}>{sub}</Text>
             </View>
-            <Text style={[styles.donePrice, { color: theme.text }]}>{kind === 'per_minute' ? `${euro(parseEuroToCents(rate) ?? 0)}/min` : euro(parseEuroToCents(price) ?? 0)}</Text>
+            <Text style={[styles.donePrice, { color: theme.text }]}>{kind === 'per_minute' ? `${euro(parseEuroToCents(rate) ?? 0)}/min` : euro(parseEuroToCents(price) ?? 0)}{timed ? '/h' : ''}</Text>
           </View>
         </View>
         <View style={styles.body}>
@@ -247,11 +256,30 @@ export default function ServiceEditScreen() {
     </View>
   );
 
-  const kinds: { k: Kind; emoji: string; a: string; b: string }[] = [
-    { k: 'slot', emoji: 'books', a: t('svc.typeSlot'), b: t('svc.typeSlotSub') },
-    { k: 'per_minute', emoji: 'stopwatch', a: t('svc.typeCall'), b: t('svc.typeCallSub') },
-    { k: 'package', emoji: 'sparkles', a: t('svc.typePackage'), b: t('svc.typePackageSub') },
+  const kinds: { k: Kind; p: 'slot' | 'timed'; emoji: string; a: string; b: string }[] = [
+    { k: 'slot', p: 'slot', emoji: 'books', a: t('svc.typeBlocks'), b: t('svc.typeBlocksSub') },
+    { k: 'slot', p: 'timed', emoji: 'hourglass', a: t('svc.typeTimed'), b: t('svc.typeTimedSub') },
+    { k: 'package', p: 'slot', emoji: 'sparkles', a: t('svc.typePackage'), b: t('svc.typePackageSub') },
+    { k: 'per_minute', p: 'slot', emoji: 'stopwatch', a: t('svc.typeCall'), b: t('svc.typeCallSub') },
   ];
+  const stepperBtns = (value: number, set: (n: number) => void, step: number, min: number, max: number, label: string) => (
+    <View style={styles.stepper}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`-${step}`} onPress={() => set(Math.max(min, value - step))} style={[styles.stepBtn, { backgroundColor: theme.bg }]}><Text style={[styles.stepTxt, { color: theme.text }]}>−</Text></Pressable>
+      <Text style={[styles.big, { color: theme.text }]}>{label}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={`+${step}`} onPress={() => set(Math.min(max, value + step))} style={[styles.stepBtn, { backgroundColor: theme.bg }]}><Text style={[styles.stepTxt, { color: theme.text }]}>+</Text></Pressable>
+    </View>
+  );
+  const chips = (value: number, set: (n: number) => void) => (
+    <View style={styles.chipRow}>
+      {[30, 45, 60, 90, 120].map((m) => (
+        <Pressable key={m} accessibilityRole="button" onPress={() => set(m)} style={[styles.durChip, { backgroundColor: value === m ? theme.ink : theme.bg }]}>
+          <Text style={[styles.durChipText, { color: value === m ? theme.inkOn : theme.text }]}>{`${m}'`}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+  const priceCents = parseEuroToCents(price);
+  const perSession = kind === 'package' && priceCents ? Math.round(priceCents / sessions) : null;
 
   return (
     <Screen footer={footer}>
@@ -274,9 +302,9 @@ export default function ServiceEditScreen() {
           <Text style={[styles.h1, { color: theme.text, fontSize: 36 }]}>{t('svc.typeTitle')}</Text>
           <View style={{ gap: 10 }} accessibilityRole="radiogroup">
             {kinds.map((x) => {
-              const on = kind === x.k;
+              const on = kind === x.k && (x.k !== 'slot' || pricing === x.p);
               return (
-                <Pressable key={x.k} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => setKind(x.k)} style={[styles.kind, { backgroundColor: on ? theme.accent : theme.surface }]}>
+                <Pressable key={x.k} accessibilityRole="radio" accessibilityState={{ selected: on }} onPress={() => { setKind(x.k); setPricing(x.p); }} style={[styles.kind, { backgroundColor: on ? theme.accent : theme.surface }]}>
                   <View style={[styles.round56, { backgroundColor: theme.surface }]}><Emoji name={x.emoji} size={34} /></View>
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={[styles.kindTitle, { color: on ? theme.onAccent : theme.text }]}>{x.a}</Text>
@@ -320,7 +348,7 @@ export default function ServiceEditScreen() {
                   return (
                     <Pressable key={c.key} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => setCategoryKey(on ? null : c.key)} style={[styles.catChip, { backgroundColor: on ? theme.ink : theme.bg }]}>
                       {c.emoji ? <Emoji name={c.emoji} size={24} /> : null}
-                      <Text style={[styles.chipSmText, { color: on ? '#FFFFFF' : theme.text }]}>{c.name}</Text>
+                      <Text style={[styles.durChipText, { color: on ? '#FFFFFF' : theme.text }]}>{c.name}</Text>
                     </Pressable>
                   );
                 })}
@@ -344,31 +372,37 @@ export default function ServiceEditScreen() {
             </View>
           ) : (
             <>
-              <View style={styles.two}>
-                <View style={[styles.tile, { backgroundColor: theme.surface, flex: 1 }]}>
-                  <Text style={[styles.label, { color: theme.muted }]}>{t(kind === 'package' ? 'svc.fieldDurationEach' : 'svc.fieldDuration')}</Text>
-                  <View style={styles.stepper}>
-                    <Pressable accessibilityRole="button" accessibilityLabel="-15" onPress={() => setDuration((d) => Math.max(5, d <= 15 ? 5 : d - 15))} style={[styles.stepBtn, { backgroundColor: theme.bg }]}><Text style={[styles.stepTxt, { color: theme.text }]}>−</Text></Pressable>
-                    <Text style={[styles.big, { color: theme.text }]}>{`${duration}'`}</Text>
-                    <Pressable accessibilityRole="button" accessibilityLabel="+15" onPress={() => setDuration((d) => Math.min(480, d === 5 ? 15 : d + 15))} style={[styles.stepBtn, { backgroundColor: theme.bg }]}><Text style={[styles.stepTxt, { color: theme.text }]}>+</Text></Pressable>
-                  </View>
-                </View>
-                <View style={[styles.tile, { backgroundColor: theme.accent, flex: 1 }]}>
-                  <Text style={[styles.label, { color: theme.onAccent }]}>{t(kind === 'package' ? 'svc.fieldPackagePrice' : 'svc.fieldPrice')}</Text>
-                  <View style={styles.priceRow}>
-                    <TextInput value={price} onChangeText={setPrice} keyboardType="decimal-pad" style={[styles.priceInput, { color: theme.onAccent }]} placeholder="0" placeholderTextColor={theme.onAccent} />
-                    <Text style={[styles.priceInput, { color: theme.onAccent }]}>€</Text>
-                  </View>
-                </View>
+              <View style={[styles.tile, { backgroundColor: theme.surface }]}>
+                <Text style={[styles.label, { color: theme.muted }]}>{t(kind === 'package' ? 'svc.fieldDurationEach' : timed ? 'svc.fieldMinDuration' : 'svc.fieldBlockDuration')}</Text>
+                {stepperBtns(duration, setDuration, 5, 5, 480, `${duration}'`)}
+                {chips(duration, setDuration)}
               </View>
+              {timed ? (
+                <View style={[styles.tile, { backgroundColor: theme.surface }]}>
+                  <Text style={[styles.label, { color: theme.muted }]}>{t('svc.fieldMaxDuration')}</Text>
+                  {stepperBtns(maxDur, setMaxDur, 15, 15, 480, `${maxDur}'`)}
+                </View>
+              ) : null}
+              <View style={[styles.tile, { backgroundColor: theme.accent }]}>
+                <Text style={[styles.label, { color: theme.onAccent }]}>{t(kind === 'package' ? 'svc.fieldPackagePrice' : timed ? 'svc.fieldHourly' : 'svc.fieldBlockPrice')}</Text>
+                <View style={styles.priceRow}>
+                  <TextInput value={price} onChangeText={setPrice} keyboardType="decimal-pad" style={[styles.priceInput, { color: theme.onAccent }]} placeholder="0" placeholderTextColor={theme.onAccent} />
+                  <Text style={[styles.priceInput, { color: theme.onAccent }]}>{timed ? '€/h' : '€'}</Text>
+                </View>
+                {kind === 'slot' && !timed && priceCents && duration ? <Text style={[styles.rowSub, { color: theme.onAccent }]}>{t('svc.perHourHint', { price: euro(Math.round((priceCents * 60) / duration)) })}</Text> : null}
+                {perSession ? <Text style={[styles.rowSub, { color: theme.onAccent }]}>{t('svc.perSessionHint', { price: euro(perSession) })}</Text> : null}
+              </View>
+              {kind === 'slot' && !timed ? (
+                <View style={[styles.tile, { backgroundColor: theme.surface }]}>
+                  <Text style={[styles.label, { color: theme.muted }]}>{t('svc.fieldMaxBlocks')}</Text>
+                  {stepperBtns(maxConsecutive, setMaxConsecutive, 1, 1, 8, String(maxConsecutive))}
+                  <Text style={[styles.rowSub, { color: theme.muted }]}>{t('svc.maxBlocksHint', { minutes: duration * maxConsecutive })}</Text>
+                </View>
+              ) : null}
               {kind === 'package' ? (
                 <View style={[styles.tile, { backgroundColor: theme.surface }]}>
                   <Text style={[styles.label, { color: theme.muted }]}>{t('svc.fieldSessions')}</Text>
-                  <View style={styles.stepper}>
-                    <Pressable accessibilityRole="button" accessibilityLabel="-1" onPress={() => setSessions((s) => Math.max(2, s - 1))} style={[styles.stepBtn, { backgroundColor: theme.bg }]}><Text style={[styles.stepTxt, { color: theme.text }]}>−</Text></Pressable>
-                    <Text style={[styles.big, { color: theme.text }]}>{sessions}</Text>
-                    <Pressable accessibilityRole="button" accessibilityLabel="+1" onPress={() => setSessions((s) => Math.min(50, s + 1))} style={[styles.stepBtn, { backgroundColor: theme.bg }]}><Text style={[styles.stepTxt, { color: theme.text }]}>+</Text></Pressable>
-                  </View>
+                  {stepperBtns(sessions, setSessions, 1, 2, 50, String(sessions))}
                   <Text style={[styles.rowSub, { color: theme.muted }]}>{t('myServices.packagePriceHint')}</Text>
                 </View>
               ) : null}
@@ -432,8 +466,8 @@ export default function ServiceEditScreen() {
                 <Text style={[styles.rowSub, { color: theme.muted }]}>{t('myServices.startFrom')}</Text>
                 <View style={styles.chips}>
                   {[...policies.map((p) => ({ key: p.id, name: p.name, tiers: p.tiers })), { key: 'standard', name: t('policy.standardName'), tiers: STANDARD_TIERS }].map((p) => (
-                    <Pressable key={p.key} accessibilityRole="button" onPress={() => setRows(toRows(p.tiers))} style={[styles.chipSm, { backgroundColor: theme.bg }]}>
-                      <Text style={[styles.chipSmText, { color: theme.text }]}>{p.name}</Text>
+                    <Pressable key={p.key} accessibilityRole="button" onPress={() => setRows(toRows(p.tiers))} style={[styles.durChip, { backgroundColor: theme.bg }]}>
+                      <Text style={[styles.durChipText, { color: theme.text }]}>{p.name}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -541,8 +575,8 @@ export default function ServiceEditScreen() {
         </View>
         <View style={styles.chips}>
           {includes.map((x, i) => (
-            <Pressable key={x + i} accessibilityRole="button" onPress={() => setIncludes(includes.filter((_, j) => j !== i))} style={[styles.chipSm, { backgroundColor: theme.bg }]}>
-              <Text style={[styles.chipSmText, { color: theme.text }]}>{`${x} ✕`}</Text>
+            <Pressable key={x + i} accessibilityRole="button" onPress={() => setIncludes(includes.filter((_, j) => j !== i))} style={[styles.durChip, { backgroundColor: theme.bg }]}>
+              <Text style={[styles.durChipText, { color: theme.text }]}>{`${x} ✕`}</Text>
             </Pressable>
           ))}
         </View>
@@ -558,6 +592,7 @@ export default function ServiceEditScreen() {
 }
 
 const styles = StyleSheet.create({
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   stack: { gap: 22 },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   pill: { height: 44, paddingHorizontal: 16, borderRadius: 999, justifyContent: 'center' },
@@ -594,8 +629,8 @@ const styles = StyleSheet.create({
   check: { width: 22, height: 22, borderRadius: 7, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   catChip: { height: 38, paddingLeft: 5, paddingRight: 12, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  chipSm: { height: 38, paddingHorizontal: 14, borderRadius: 999, justifyContent: 'center' },
-  chipSmText: { fontFamily: fonts.semibold, fontSize: 14 },
+  durChip: { height: 38, paddingHorizontal: 14, borderRadius: 999, justifyContent: 'center' },
+  durChipText: { fontFamily: fonts.semibold, fontSize: 14 },
   addRow: { flexDirection: 'row', alignItems: 'center', borderRadius: 999, paddingLeft: 16, paddingRight: 4, height: 50 },
   addInput: { flex: 1, fontFamily: fonts.regular, fontSize: 15, padding: 0 },
   copy: { height: 42, paddingHorizontal: 16, borderRadius: 999, justifyContent: 'center' },

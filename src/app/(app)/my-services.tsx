@@ -119,10 +119,14 @@ export default function MyServicesScreen() {
         ? t('myServices.minutesRange', { min: 5, max: 60 })
         : s.kind === 'package'
           ? t('book.packageLine', { count: s.sessions ?? 0, minutes: s.duration_min, price: money(s.price_cents) }).split(' · ')[0]
-          : `${s.duration_min} min`;
+          : s.pricing === 'timed'
+            ? t('explore.timedRange', { min: s.duration_min, max: s.max_duration_min ?? s.duration_min })
+            : (s.max_consecutive ?? 1) > 1
+              ? `${s.duration_min} min · ×${s.max_consecutive}`
+              : `${s.duration_min} min`;
     const n = s.kind === 'package' ? (loaded.counts.packages[s.id] ?? 0) : (loaded.counts.services[s.id] ?? 0);
     const stat = faded ? t('delete.deletedOn', { date: dateOf(s.deleted_at ?? null) }) : n > 0 ? t(s.kind === 'package' ? 'myServices.statPackages' : s.kind === 'per_minute' ? 'myServices.statCalls' : 'myServices.statBookings', { count: n }) : s.active ? null : t('myServices.paused');
-    const price = s.kind === 'per_minute' ? `${money(s.rate_cents_per_min ?? 0)}/min` : money(s.price_cents);
+    const price = s.kind === 'per_minute' ? `${money(s.rate_cents_per_min ?? 0)}/min` : s.pricing === 'timed' ? t('explore.perHour', { price: money(s.price_cents) }) : money(s.price_cents);
     return row(s.id, kindIcon, s.id, s.title, loaded.specific.services.has(s.id) ? `${sub} · ${t('availability.specificTag')}` : sub, stat, price, () => setMenu({ tab: 'services', id: s.id }), faded);
   };
 

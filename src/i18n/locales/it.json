@@ -230,7 +230,11 @@
     "declinedBody": "La banca ha rifiutato l'operazione. Non ti è stato addebitato nulla. Prova con un altro metodo o controlla i dati della carta.",
     "declinedHold": "Teniamo l'orario per te per qualche minuto.",
     "declinedOther": "Usa un altro metodo",
-    "declinedRetry": "Riprova con la stessa carta"
+    "declinedRetry": "Riprova con la stessa carta",
+    "howMany": "Quanti blocchi?",
+    "howLong": "Quanto tempo?",
+    "blocksNote": "{{minutes}} minuti di fila · massimo {{max}} blocchi",
+    "timedNote": "Da {{min}}' a {{max}}' · {{rate}} all'ora"
   },
   "policy": {
     "title": "Policy di cancellazione",
@@ -848,7 +852,9 @@
     "filters": "Filtri",
     "onlyNow": "Solo disponibili ora",
     "apply": "Mostra risultati",
-    "today": "Oggi"
+    "today": "Oggi",
+    "perHour": "{{price}}/h",
+    "timedRange": "{{min}}–{{max}} min"
   },
   "comments": {
     "none": "Ancora nessun commento.",
@@ -1260,6 +1266,19 @@
     "category": "Categoria",
     "categoryTitle": "Di cosa si occupa?",
     "priceTitle": "Durata e prezzo",
-    "rateTitle": "Quanto costa al minuto"
+    "rateTitle": "Quanto costa al minuto",
+    "typeBlocks": "Sessione a blocchi",
+    "typeBlocksSub": "Vendi blocchi di tempo fissi; il cliente può prenotarne più di fila.",
+    "typeTimed": "Sessione a tempo",
+    "typeTimedSub": "Prezzo all'ora: il cliente sceglie quanto durare, tra un minimo e un massimo.",
+    "fieldBlockDuration": "Durata di un blocco",
+    "fieldBlockPrice": "Prezzo del blocco",
+    "fieldMinDuration": "Durata minima",
+    "fieldMaxDuration": "Durata massima",
+    "fieldHourly": "Prezzo all'ora",
+    "fieldMaxBlocks": "Blocchi di fila prenotabili",
+    "maxBlocksHint": "Fino a {{minutes}} minuti in una sola prenotazione.",
+    "perHourHint": "Circa {{price}} all'ora",
+    "perSessionHint": "{{price}} a sessione"
   }
 }

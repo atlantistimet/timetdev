@@ -47,7 +47,7 @@ export default function NewPostScreen() {
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const prefilled = useRef(false);
 
-  const asServiceAttach = useCallback((s: MyService): Attach => ({ kind: 'service', id: s.id, title: s.title, emoji: s.kind === 'per_minute' ? 'telephone_receiver' : s.kind === 'package' ? 'gift' : 'books', sub: s.kind === 'per_minute' ? `${formatEuro(s.rate_cents_per_min ?? 0, i18n.language)}/min` : `${formatEuro(s.price_cents ?? 0, i18n.language)}${s.duration_min ? ` · ${s.duration_min} min` : ''}` }), [i18n.language]);
+  const asServiceAttach = useCallback((s: MyService): Attach => ({ kind: 'service', id: s.id, title: s.title, emoji: s.kind === 'per_minute' ? 'telephone_receiver' : s.kind === 'package' ? 'gift' : 'books', sub: s.kind === 'per_minute' ? `${formatEuro(s.rate_cents_per_min ?? 0, i18n.language)}/min` : s.pricing === 'timed' ? `${formatEuro(s.price_cents ?? 0, i18n.language)}/h` : `${formatEuro(s.price_cents ?? 0, i18n.language)}${s.duration_min ? ` · ${s.duration_min} min` : ''}` }), [i18n.language]);
   const asOfferAttach = useCallback((o: Offer): Attach => ({ kind: 'offer', id: o.id, title: o.service_title, emoji: 'party_popper', sub: `${formatEuro(finalPriceCents(o), i18n.language)} · ${o.duration_min} min${o.discount_pct ? ` · -${o.discount_pct}%` : ''}` }), [i18n.language]);
   const asLinkAttach = useCallback((l: SlotLink): Attach => ({ kind: 'slot', id: l.id, title: l.service_title || t('feed.kind.slots'), emoji: 'stopwatch', sub: `${formatEuro(l.price_cents, i18n.language)} · ${l.duration_min} min` }), [i18n.language, t]);
 

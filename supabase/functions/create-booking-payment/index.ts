@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
   if (userError || !userData.user) return json({ error: 'unauthorized' }, 401);
   const user = userData.user;
 
-  const body = (await req.json().catch(() => ({}))) as { service_id?: string; starts_at?: string; place?: string; client_address?: string; offer_id?: string; code?: string; instant?: boolean };
+  const body = (await req.json().catch(() => ({}))) as { service_id?: string; starts_at?: string; place?: string; client_address?: string; offer_id?: string; code?: string; instant?: boolean; slots?: number; duration_min?: number };
   const instant = body.instant === true;
   if (instant && body.code) return json({ error: 'bad_request' }, 400);
   let startsAt = instant ? new Date() : body.starts_at ? new Date(body.starts_at) : null;
@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
 
   const { data: service } = await admin
     .from('services')
-    .select('id, seller_id, kind, title, price_cents, duration_min, places, active, cancel_tiers, space_fee_cents')
+    .select('id, seller_id, kind, title, price_cents, duration_min, places, active, cancel_tiers, space_fee_cents, pricing, max_consecutive, max_duration_min')
     .eq('id', link ? link.service_id! : body.service_id!)
     .maybeSingle();
   if (!service || !service.active) return json({ error: 'service_not_found' }, 404);
@@ -73,6 +73,20 @@ Deno.serve(async (req) => {
 
   let priceCents = service.price_cents!;
   let durationMin = service.duration_min!;
+  // Più blocchi di fila (pricing 'slot') o durata scelta (pricing 'timed'): prezzo e durata li calcola sempre il server.
+  const extended = service.pricing === 'timed' || (body.slots ?? 1) > 1;
+  if (extended && (link || body.offer_id || instant)) return json({ error: 'bad_request' }, 400);
+  if (service.pricing === 'timed') {
+    const d = body.duration_min;
+    if (!Number.isInteger(d) || d! < service.duration_min! || d! > (service.max_duration_min ?? 0)) return json({ error: 'bad_request' }, 400);
+    durationMin = d!;
+    priceCents = Math.round((service.price_cents! * d!) / 60);
+  } else {
+    const n = body.slots ?? 1;
+    if (!Number.isInteger(n) || n < 1 || n > (service.max_consecutive ?? 1)) return json({ error: 'bad_request' }, 400);
+    durationMin = service.duration_min! * n;
+    priceCents = service.price_cents! * n;
+  }
   let offerTiers: unknown = null;
   if (body.offer_id) {
     const { data: offer } = await admin
