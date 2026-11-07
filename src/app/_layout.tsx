@@ -1,5 +1,5 @@
 import '@/i18n';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { LogBox } from 'react-native';
 import {
   InterTight_300Light,
@@ -36,6 +36,17 @@ function RootNavigator() {
   }, [isLoading]);
 
   // Dopo l'accesso, porta dove l'utente voleva andare (es. al link di Slot singolo).
+  // Se l'app si apre dopo la schermata dei termini, riparte dalla Home invece di restare sull'indirizzo di prima.
+  const wasGated = useRef(false);
+  const gated = !!session && !recovering && isAdultConfirmed && !termsAccepted;
+  useEffect(() => {
+    if (gated) wasGated.current = true;
+    else if (ready && wasGated.current) {
+      wasGated.current = false;
+      router.replace('/');
+    }
+  }, [gated, ready]);
+
   useEffect(() => {
     if (!ready) return;
     const target = takePendingPath();
