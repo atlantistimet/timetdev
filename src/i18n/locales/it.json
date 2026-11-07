@@ -1449,7 +1449,8 @@
     "read_community": "Leggi le Regole della community",
     "read_privacy": "Leggi l’Informativa privacy",
     "accept": "Accetto e continuo",
-    "leave": "Esci",
-    "leaveNote": "Se non accetti puoi uscire o eliminare il tuo account da Impostazioni."
+    "leave": "Non accetto, esci",
+    "readFull": "Leggi il testo completo",
+    "checkLabel": "Ho letto e accetto Termini, Regole della community e Informativa privacy"
   }
 }

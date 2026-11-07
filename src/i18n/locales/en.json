@@ -1449,7 +1449,8 @@
     "read_community": "Read the Community rules",
     "read_privacy": "Read the Privacy policy",
     "accept": "Accept and continue",
-    "leave": "Sign out",
-    "leaveNote": "If you don’t accept you can sign out or delete your account from Settings."
+    "leave": "I don’t accept, sign out",
+    "readFull": "Read the full text",
+    "checkLabel": "I’ve read and accept the Terms, Community rules and Privacy policy"
   }
 }
