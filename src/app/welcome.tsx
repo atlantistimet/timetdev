@@ -1,13 +1,20 @@
-import { ImageBackground, StyleSheet, Text, View } from 'react-native';
+import { Image, ImageBackground, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Pressable } from '@/components/Pressable';
-import { fonts, pastels, useTheme } from '@/theme';
+import { fonts, useTheme } from '@/theme';
 
 // Immagine provvisoria: sostituire assets/welcome.jpg con la foto definitiva.
 const background = require('../../assets/welcome.jpg');
-const people = ['MA', 'GI', 'LU', 'SO'];
+// Foto dei profili di prova (non cliccabili).
+const faces = [
+  require('../../assets/welcome/face1.jpg'),
+  require('../../assets/welcome/face2.jpg'),
+  require('../../assets/welcome/face3.jpg'),
+  require('../../assets/welcome/face4.jpg'),
+  require('../../assets/welcome/face5.jpg'),
+];
 
 export default function Welcome() {
   const { t } = useTranslation();
@@ -21,10 +28,8 @@ export default function Welcome() {
           <Text style={[styles.brand, { color: '#FFFFFF' }]}>timeet</Text>
           <View style={styles.bottom}>
             <View style={styles.faces}>
-              {people.map((p, i) => (
-                <View key={p} style={[styles.face, { backgroundColor: pastels[i % pastels.length], marginLeft: i === 0 ? 0 : -14 }]}>
-                  <Text style={[styles.faceText, { color: theme.ink }]}>{p}</Text>
-                </View>
+              {faces.map((src, i) => (
+                <Image key={i} source={src} accessible={false} style={[styles.face, { marginLeft: i === 0 ? 0 : -14 }]} />
               ))}
             </View>
             <Text style={styles.title}>{t('welcome.title')}</Text>
@@ -45,13 +50,12 @@ export default function Welcome() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: '#151515' },
-  shade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.38)' },
+  shade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.42)' },
   inner: { flex: 1, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 16, justifyContent: 'space-between', width: '100%', maxWidth: 440, alignSelf: 'center' },
   brand: { fontFamily: fonts.semibold, fontSize: 26, letterSpacing: -1 },
   bottom: { gap: 12 },
   faces: { flexDirection: 'row', marginBottom: 8 },
-  face: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, borderColor: '#151515' },
-  faceText: { fontFamily: fonts.semibold, fontSize: 16 },
+  face: { width: 48, height: 48, borderRadius: 24, borderWidth: 2.5, borderColor: '#151515' },
   title: { fontFamily: fonts.semibold, fontSize: 40, lineHeight: 42, letterSpacing: -1.8, color: '#FFFFFF' },
   sub: { fontFamily: fonts.medium, fontSize: 16, lineHeight: 22, color: 'rgba(255,255,255,0.82)', marginBottom: 8 },
   primary: { borderRadius: 999, paddingVertical: 17, alignItems: 'center' },
