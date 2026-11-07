@@ -25,7 +25,7 @@ export default function Welcome() {
     <View style={[styles.fill, { width, height }]}>
       <Image source={background} resizeMode="cover" accessible={false} style={[styles.photo, { width, height }]} />
       <View style={styles.shade} />
-      <SafeAreaView style={styles.fill}>
+      <SafeAreaView style={styles.safe}>
         <View style={styles.inner}>
           <Text style={[styles.brand, { color: '#FFFFFF' }]}>timeet</Text>
           <View style={styles.bottom}>
@@ -52,8 +52,9 @@ export default function Welcome() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, backgroundColor: '#151515' },
+  safe: { flex: 1 },
   photo: { position: 'absolute', top: 0, left: 0 },
-  shade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.42)' },
+  shade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' },
   inner: { flex: 1, paddingHorizontal: 24, paddingTop: 12, paddingBottom: 16, justifyContent: 'space-between', width: '100%', maxWidth: 440, alignSelf: 'center' },
   brand: { fontFamily: fonts.semibold, fontSize: 26, letterSpacing: -1 },
   bottom: { gap: 12 },
