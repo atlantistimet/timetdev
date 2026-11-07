@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SheetModal } from '@/components/SheetModal';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -7,7 +7,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { Emoji } from '@/components/Emoji';
-import { Body, Button, Chip, ErrorText, LoadingView, Pill, Screen, Spacer } from '@/components/ui';
+import { Body, Button, Chip, ChipRow, ErrorText, LoadingView, Pill, Screen, Spacer } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { cleanTitle, formatEuro, isTimed, listSlotServices, type SlotService } from '@/lib/booking';
 import {
@@ -19,10 +19,17 @@ import {
   type Seller,
   type ServiceRating,
 } from '@/lib/explore';
-import { type MediaItem } from '@/lib/media';
+import { mediaUrl, type MediaItem } from '@/lib/media';
 import { finalPriceCents, listPublicOffers, type Offer } from '@/lib/offers';
 import { listCovers } from '@/lib/service-media';
+import { type Place } from '@/lib/my-services';
 import { fonts, pastelFor, radius, type, useTheme } from '@/theme';
+
+type KindKey = 'blocks' | 'timed' | 'package';
+type PriceBand = 'lt25' | '25-50' | '50-100' | 'gt100';
+type DurBand = 'le30' | '45' | '60' | 'ge90';
+const inBand = (cents: number, b: PriceBand) => (b === 'lt25' ? cents < 2500 : b === '25-50' ? cents >= 2500 && cents < 5000 : b === '50-100' ? cents >= 5000 && cents < 10000 : cents >= 10000);
+const inDur = (m: number, b: DurBand) => (b === 'le30' ? m <= 30 : b === '45' ? m > 30 && m <= 45 : b === '60' ? m > 45 && m < 90 : m >= 90);
 
 type Data = {
   services: SlotService[];
@@ -45,6 +52,12 @@ export default function ServicesScreen() {
   const [now, setNow] = useState(0);
   const [onlyNow, setOnlyNow] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [onlyDiscount, setOnlyDiscount] = useState(false);
+  const [kinds, setKinds] = useState<KindKey[]>([]);
+  const [band, setBand] = useState<PriceBand | null>(null);
+  const [dur, setDur] = useState<DurBand | null>(null);
+  const [place, setPlace] = useState<Place | null>(null);
+  const [minRating, setMinRating] = useState<number | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -69,18 +82,38 @@ export default function ServicesScreen() {
   const filtered = useMemo(() => {
     if (!result) return { offers: [] as Offer[], services: [] as SlotService[] };
     const q = query.trim().toLowerCase();
-    const ok = (sellerId: string, title: string) => {
+    const byId = new Map(result.services.map((x) => [x.id, x]));
+    const kindOf = (sv: SlotService | undefined): KindKey => (sv?.kind === 'package' ? 'package' : sv && isTimed(sv) ? 'timed' : 'blocks');
+    const ok = (sellerId: string, title: string, serviceId: string, cents: number, minutes: number, discount: boolean) => {
       const seller = result.sellers[sellerId];
+      const sv = byId.get(serviceId);
       if (category && !seller?.categories.includes(category)) return false;
       if (onlyNow && !isAvailableNow(seller, now)) return false;
+      if (onlyDiscount && !discount) return false;
+      if (kinds.length > 0 && !kinds.includes(kindOf(sv))) return false;
+      if (band && !inBand(cents, band)) return false;
+      if (dur && !inDur(minutes, dur)) return false;
+      if (place && !sv?.places.includes(place)) return false;
+      if (minRating !== null && Number(result.ratings[serviceId]?.rating_avg ?? 0) < minRating) return false;
       if (!q) return true;
       return [title, seller?.full_name, seller?.handle, seller?.role_title, seller?.city].some((v) => v?.toLowerCase().includes(q));
     };
     return {
-      offers: result.offers.filter((o) => ok(o.seller_id, o.service_title)),
-      services: result.services.filter((s) => ok(s.seller_id, s.title)),
+      offers: result.offers.filter((o) => ok(o.seller_id, o.service_title, o.service_id, finalPriceCents(o), o.duration_min, o.discount_pct > 0)),
+      services: onlyDiscount ? [] : result.services.filter((s) => ok(s.seller_id, s.title, s.id, s.price_cents, s.duration_min, false)),
     };
-  }, [result, query, category, onlyNow, now]);
+  }, [result, query, category, onlyNow, now, onlyDiscount, kinds, band, dur, place, minRating]);
+
+  const activeFilters = Number(onlyNow) + Number(onlyDiscount) + kinds.length + Number(band !== null) + Number(dur !== null) + Number(place !== null) + Number(minRating !== null);
+  const resetFilters = () => {
+    setOnlyNow(false);
+    setOnlyDiscount(false);
+    setKinds([]);
+    setBand(null);
+    setDur(null);
+    setPlace(null);
+    setMinRating(null);
+  };
 
   // Persone disponibili ora che hanno almeno un servizio prenotabile.
   const nowPeople = useMemo(() => {
@@ -126,6 +159,7 @@ export default function ServicesScreen() {
       meta: `${t('explore.minutes', { n: o.duration_min })}`,
       price: formatEuro(finalPriceCents(o), i18n.language),
       badge: o.discount_pct ? `−${o.discount_pct}%` : null,
+      durationLabel: t('explore.minutes', { n: o.duration_min }),
       onPress: () => router.push({ pathname: '/book', params: { serviceId: o.service_id, offerId: o.id } }),
     })),
     ...filtered.services.map((s) => ({
@@ -139,6 +173,7 @@ export default function ServicesScreen() {
           ? t('explore.perMin', { price: formatEuro(s.rate_cents_per_min, i18n.language) })
           : formatEuro(s.price_cents, i18n.language),
       badge: null as string | null,
+      durationLabel: s.kind === 'package' ? t('book.packageShort', { count: s.sessions ?? 0 }) : isTimed(s) ? t('explore.timedRange', { min: s.duration_min, max: s.max_duration_min ?? s.duration_min }) : t('explore.minutes', { n: s.duration_min }),
       onPress: () => router.push({ pathname: '/service/[id]', params: { id: s.id } }),
     })),
   ];
@@ -170,8 +205,8 @@ export default function ServicesScreen() {
           accessibilityLabel={t('explore.search')}
           style={[styles.searchInput, { color: theme.text }]}
         />
-        <Pressable accessibilityRole="button" accessibilityLabel={t('explore.filters')} onPress={() => setFiltersOpen(true)} style={[styles.filterBtn, { backgroundColor: onlyNow ? theme.accent : theme.ink }]}>
-          <Ionicons name="options-outline" size={22} color={onlyNow ? theme.onAccent : theme.inkOn} />
+        <Pressable accessibilityRole="button" accessibilityLabel={t('explore.filters')} onPress={() => setFiltersOpen(true)} style={[styles.filterBtn, { backgroundColor: activeFilters > 0 ? theme.accent : theme.ink }]}>
+          <Ionicons name="options-outline" size={22} color={activeFilters > 0 ? theme.onAccent : theme.inkOn} />
         </Pressable>
       </View>
 
@@ -215,37 +250,84 @@ export default function ServicesScreen() {
 
       <Text style={[styles.perTe, type.section, { color: theme.text }]}>{t('explore.forYou')}</Text>
       {!result.errorKey && rows.length === 0 ? <Body muted>{result.services.length === 0 && result.offers.length === 0 ? t('book.noServices') : t('explore.noResults')}</Body> : null}
-      {rows.map((r) => {
-        const seller = result.sellers[r.sellerId];
-        const rating = result.ratings[r.serviceId];
-        const emoji = emojiOf(r.sellerId);
-        return (
-          <Pressable key={r.id} accessibilityRole="button" onPress={r.onPress} style={[styles.row, { backgroundColor: theme.surface }]}>
-            <View style={[styles.rowTile, { backgroundColor: pastelFor(r.serviceId) }]}>
-              <Emoji name={emoji} size={34} />
-            </View>
-            <View style={styles.rowBody}>
-              <Text numberOfLines={2} style={[styles.rowTitle, { color: theme.text }]}>{r.title}</Text>
-              <Text numberOfLines={1} style={[type.small, { color: theme.muted }]}>
-                {[seller?.full_name.split(/\s+/)[0], r.meta].filter(Boolean).join(' · ')}
-                {rating?.rating_avg ? ` · ★ ${Number(rating.rating_avg).toFixed(1).replace('.', ',')}` : ''}
-                {r.badge ? ` · ${r.badge}` : ''}
-              </Text>
-              
-            </View>
-            <Text style={[styles.rowPrice, { color: theme.text }]}>{r.price}</Text>
-          </Pressable>
-        );
-      })}
+      <View style={styles.grid}>
+        {rows.map((r) => {
+          const seller = result.sellers[r.sellerId];
+          const rating = result.ratings[r.serviceId];
+          const emoji = emojiOf(r.sellerId);
+          const cover = result.covers[r.serviceId];
+          const live = isAvailableNow(seller, now);
+          return (
+            <Pressable key={r.id} accessibilityRole="button" onPress={r.onPress} style={[styles.card, { backgroundColor: theme.surface }]}>
+              <View style={[styles.cardCover, { backgroundColor: pastelFor(r.serviceId) }]}>
+                {cover && cover.type === 'image' ? <Image source={{ uri: mediaUrl('service-media', cover.path) }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <Emoji name={emoji} size={44} />}
+                {live ? <View style={styles.liveChip}><View style={styles.liveGreen} /><Text style={styles.liveText}>{t('explore.nowShort')}</Text></View> : null}
+                {r.badge ? <View style={[styles.discChip, { backgroundColor: theme.accent }]}><Text style={[styles.liveText, { color: theme.onAccent }]}>{r.badge}</Text></View> : null}
+              </View>
+              <View style={styles.cardBody}>
+                <Text numberOfLines={2} style={[styles.cardTitle, { color: theme.text }]}>{r.title}</Text>
+                <View style={styles.cardWho}>
+                  <Avatar name={seller?.full_name ?? '?'} seed={r.sellerId} size={20} path={seller?.avatar_path} />
+                  <Text numberOfLines={1} style={[type.small, { color: theme.muted, flex: 1 }]}>
+                    {seller?.full_name.split(/\s+/)[0]}
+                    {rating?.rating_avg ? ` · ★ ${Number(rating.rating_avg).toFixed(1).replace('.', ',')}` : ''}
+                  </Text>
+                </View>
+                <View style={styles.cardFoot}>
+                  <View style={[styles.pricePill, { backgroundColor: theme.accent }]}><Text style={[styles.priceText, { color: theme.onAccent }]}>{r.price}</Text></View>
+                  <Text numberOfLines={1} style={[type.small, { color: theme.muted, flexShrink: 1 }]}>{r.durationLabel}</Text>
+                </View>
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
 
       <SheetModal visible={filtersOpen}  onRequestClose={() => setFiltersOpen(false)}>
         <Pressable style={[styles.scrim]} onPress={() => setFiltersOpen(false)} accessibilityLabel={t('common.close')} />
         <View style={[styles.sheet, { backgroundColor: theme.bg }]}>
-          <Text style={[type.section, { color: theme.text }]}>{t('explore.filters')}</Text>
-          <Spacer size={12} />
-          <Chip label={t('explore.onlyNow')} selected={onlyNow} onPress={() => setOnlyNow((v) => !v)} />
+          <View style={styles.sheetHead}>
+            <Text style={[type.section, { color: theme.text }]}>{t('explore.filters')}</Text>
+            <Pressable accessibilityRole="button" onPress={resetFilters}><Text style={[type.body, { color: theme.muted }]}>{t('explore.reset')}</Text></Pressable>
+          </View>
+          <ScrollView style={styles.sheetScroll} showsVerticalScrollIndicator={false}>
+            <ChipRow>
+              <Chip label={t('explore.onlyNow')} selected={onlyNow} onPress={() => setOnlyNow((v) => !v)} />
+              <Chip label={t('explore.onlyDiscount')} selected={onlyDiscount} onPress={() => setOnlyDiscount((v) => !v)} />
+            </ChipRow>
+            <Text style={[styles.fLabel, { color: theme.muted }]}>{t('explore.fType')}</Text>
+            <ChipRow>
+              {(['blocks', 'timed', 'package'] as KindKey[]).map((k) => (
+                <Chip key={k} label={t(`explore.kind_${k}`)} selected={kinds.includes(k)} onPress={() => setKinds((c) => (c.includes(k) ? c.filter((x) => x !== k) : [...c, k]))} />
+              ))}
+            </ChipRow>
+            <Text style={[styles.fLabel, { color: theme.muted }]}>{t('explore.fPrice')}</Text>
+            <ChipRow>
+              {(['lt25', '25-50', '50-100', 'gt100'] as PriceBand[]).map((b) => (
+                <Chip key={b} label={t(`explore.price_${b}`)} selected={band === b} onPress={() => setBand(band === b ? null : b)} />
+              ))}
+            </ChipRow>
+            <Text style={[styles.fLabel, { color: theme.muted }]}>{t('explore.fDuration')}</Text>
+            <ChipRow>
+              {(['le30', '45', '60', 'ge90'] as DurBand[]).map((b) => (
+                <Chip key={b} label={t(`explore.dur_${b}`)} selected={dur === b} onPress={() => setDur(dur === b ? null : b)} />
+              ))}
+            </ChipRow>
+            <Text style={[styles.fLabel, { color: theme.muted }]}>{t('explore.fPlace')}</Text>
+            <ChipRow>
+              {(['online', 'sede', 'domicilio'] as Place[]).map((p) => (
+                <Chip key={p} label={t(`svc.place_${p}`)} selected={place === p} onPress={() => setPlace(place === p ? null : p)} />
+              ))}
+            </ChipRow>
+            <Text style={[styles.fLabel, { color: theme.muted }]}>{t('explore.fRating')}</Text>
+            <ChipRow>
+              {[4, 4.5].map((r) => (
+                <Chip key={r} label={`★ ${String(r).replace('.', ',')}+`} selected={minRating === r} onPress={() => setMinRating(minRating === r ? null : r)} />
+              ))}
+            </ChipRow>
+          </ScrollView>
           <Spacer />
-          <Button title={t('explore.apply')} onPress={() => setFiltersOpen(false)} />
+          <Button title={t('explore.showResults', { count: rows.length })} onPress={() => setFiltersOpen(false)} />
         </View>
       </SheetModal>
     </Screen>
@@ -296,5 +378,21 @@ const styles = StyleSheet.create({
   rowBadge: { flexDirection: 'row', marginTop: 4 },
   rowPrice: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: -0.4 },
   scrim: { flex: 1 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  card: { width: '48.5%', flexGrow: 1, borderRadius: radius.card, overflow: 'hidden' },
+  cardCover: { height: 132, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  liveChip: { position: 'absolute', top: 8, left: 8, flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: '#FFFFFF', borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
+  liveGreen: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#34C759' },
+  liveText: { fontFamily: fonts.semibold, fontSize: 12, color: '#151515' },
+  discChip: { position: 'absolute', top: 8, right: 8, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 3 },
+  cardBody: { padding: 12, gap: 6 },
+  cardTitle: { fontFamily: fonts.semibold, fontSize: 15, lineHeight: 19, letterSpacing: -0.2, minHeight: 38 },
+  cardWho: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  cardFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
+  pricePill: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+  priceText: { fontFamily: fonts.semibold, fontSize: 15 },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  sheetScroll: { maxHeight: 460 },
+  fLabel: { fontFamily: fonts.semibold, fontSize: 13, marginTop: 18, marginBottom: 8 },
   sheet: { borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, padding: 24, paddingBottom: 40 },
 });
