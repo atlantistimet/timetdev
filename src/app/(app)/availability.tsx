@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, Text } from 'react-native';
+import { Pressable } from '@/components/Pressable';
+import { fonts, useTheme } from '@/theme';
 import { useTranslation } from 'react-i18next';
 import { AvailabilityPanel } from '@/components/AvailabilityPanel';
 import { AvailableNowCard } from '@/components/AvailableNowCard';
@@ -16,6 +19,7 @@ const nowMs = () => Date.now();
 /** Disponibilità generale: orario settimanale in un periodo, giorni chiusi e anteprima delle prossime due settimane. */
 export default function AvailabilityScreen() {
   const { t, i18n } = useTranslation();
+  const theme = useTheme();
   const { session } = useAuth();
   const userId = session?.user.id ?? null;
   const [draft, setDraft] = useState<ScheduleDraft | null>(null);
@@ -107,7 +111,13 @@ export default function AvailabilityScreen() {
   const dirty = JSON.stringify(draft) !== JSON.stringify(saved);
 
   return (
-    <Screen back>
+    <Screen
+      back
+      footer={
+        <Pressable accessibilityRole="button" disabled={saving} onPress={() => void save()} style={[saveStyles.btn, { backgroundColor: theme.primary, opacity: saving ? 0.6 : 1 }]}>
+          <Text style={[saveStyles.text, { color: theme.onPrimary }]}>{saving ? t('common.loading') : t('availability.saveCta')}</Text>
+        </Pressable>
+      }>
       <Title>{t('availability.title')}</Title>
       {userId ? <AvailableNowCard userId={userId} /> : null}
       <Spacer />
@@ -120,7 +130,6 @@ export default function AvailabilityScreen() {
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
       {message ? <Body>{message}</Body> : null}
       {outside ? <ErrorText>{t('availability.outside', { count: outside })}</ErrorText> : null}
-      <Button title={t('availability.save')} onPress={() => void save()} loading={saving} />
       {dirty ? <Body muted>{t('availability.unsaved')}</Body> : null}
 
       <Spacer />
@@ -153,3 +162,8 @@ export default function AvailabilityScreen() {
     </Screen>
   );
 }
+
+const saveStyles = StyleSheet.create({
+  btn: { height: 56, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  text: { fontFamily: fonts.semibold, fontSize: 17 },
+});
