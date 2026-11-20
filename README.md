@@ -115,8 +115,8 @@ cd ~/dev/timeet && git pull && npx expo start --clear     # con la build di svil
 
 ### Installare l'app su iPhone
 
-- Con l'account Apple gratuito ("Personal Team") la firma dell'app **scade dopo 7 giorni**: l'icona resta ma iOS dice che l'app non è più disponibile. Si risolve reinstallando con il cavo: `cd ~/dev/timeet && git pull && npx expo run:ios --device`. L'account Apple Developer a pagamento (Atlantis srl) porta la firma a un anno e permette TestFlight.
-- Se Xcode dice "No profiles for 'world.timeet.dev'": `cd ~/dev/timeet && xed ios`, poi target Timeet → Signing & Capabilities → "Automatically manage signing" e scegli il team; quindi ▶ con l'iPhone selezionato.
+- Con l'account Apple gratuito ("Personal Team") la firma dell'app **scade dopo 7 giorni**: l'icona resta ma iOS dice che l'app non è più disponibile. Si risolve reinstallando con il cavo: `cd ~/dev/timeet && git pull && npx expo run:ios --device`. L'account Apple Developer a pagamento di Atlantis srl è attivo (Team ID `4S9758D224`, in `app.json`): con quello la firma dura un anno e si può usare TestFlight. Se l'app era stata installata con il team personale, va prima eliminata dal telefono.
+- Se Xcode dice "No profiles for 'world.timeet.dev'": `cd ~/dev/timeet && xed ios`, poi target Timeet → Signing & Capabilities → "Automatically manage signing" e scegli **Atlantis srl**; quindi ▶ con l'iPhone selezionato (da Xcode il profilo viene creato; da Terminale `expo run:ios` non può).
 - Al primo avvio, Impostazioni → Generali → VPN e gestione dispositivo → profilo sviluppatore → Autorizza. La Modalità sviluppatore deve essere attiva.
 - La cartella `ios/` è generata (non è nel repository). Se manca o è vecchia: `npx expo prebuild --platform ios`. Il plugin `plugins/withNoScriptSandbox.js` (in `app.json`) spegne il sandbox degli script di Xcode, che altrimenti fa fallire la build con "Operation not permitted" su `ip.txt`.
 - Regola Hermes: nel codice niente `Intl` oltre a `DateTimeFormat` e `NumberFormat`.
