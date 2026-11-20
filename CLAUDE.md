@@ -7,7 +7,7 @@ Lo stato dei lavori, le decisioni e le specifiche non stanno in questo repositor
 
 ## Come lavora Nicolò (valgono sempre)
 - **Rispondi in italiano.** I testi dell'app sono in italiano e l'inglese è la seconda lingua: ogni chiave nuova va in `src/i18n/locales/it.json` **e** `en.json`. Nessun testo scritto nel codice.
-- **Cambi di grafica o di schermata: prima i disegni.** Mostra uno o più mockup (cornice da telefono verticale, icone Tabler, niente emoji nei mockup, colori lime `#E6FF5A`, inchiostro `#151515`, fondo `#F2F2EE`) e implementa solo dopo la sua scelta.
+- **Cambi di grafica o di schermata: prima i disegni.** I disegni si decidono nella chat di strategia: se Nicolò passa un disegno approvato, segui quello e non inventare grafica. Se per una parte il disegno non c'è ancora, mostra almeno due ipotesi di mockup (cornice da telefono verticale, icone Tabler, niente emoji nei mockup, colori di `src/theme.ts`: lime `#E7FF67`, inchiostro `#151515`, fondo `#F2F2EF`) e implementa solo dopo la sua scelta.
 - **Versione completa, non ridotta.** Se il disegno richiede campi o tabelle nuove, si fanno. Niente "per ora solo…".
 - **Dopo ogni modifica dagli sempre i comandi completi per vederla**, in ordine: `cd ~/dev/timeet && git pull && npx expo start --dev-client` (poi `r` per ricaricare, `w` per il browser). Se cambiano librerie native o `app.json`: `npx expo prebuild --platform ios` e `npx expo run:ios --device`. Non chiedergli di applicare file a mano: lo fai tu.
 - Non riproporgli di limitare i venditori ai soli con partita IVA: è deciso, tutti i tipi sono ammessi al lancio.
@@ -33,4 +33,4 @@ Lo stato dei lavori, le decisioni e le specifiche non stanno in questo repositor
 - Reanimated 4: `useSharedValue` con `.set()` / `.get()`.
 - Con Expo Router, senza `unstable_settings.initialRouteName` si apre la prima schermata dichiarata: in `(app)/_layout.tsx` è impostata su `(tabs)`.
 - Le librerie si aggiungono con `npx expo install`, mai con `npm add`. Non eseguire `npm audit fix --force`.
-- Con l'account Apple gratuito la firma sull'iPhone scade dopo 7 giorni: vedi "Installare l'app su iPhone" nel README.
+- L'app è firmata con il team Apple Developer di Atlantis srl (`4S9758D224`, in `app.json`): la firma dura un anno. Se l'iPhone ha ancora una copia installata con il team personale, va eliminata prima di reinstallare (vedi "Installare l'app su iPhone" nel README).
