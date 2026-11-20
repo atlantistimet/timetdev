@@ -45,6 +45,7 @@ src/i18n/                       configurazione lingue e file di traduzione (loca
 src/lib/                        accesso ai dati e logica per area (auth, consents, booking, calls, chat, feed, explore,
                                 availability, slots, offers, cancel-policy, notifications, safety, time, ...)
 src/theme.ts                    colori, caratteri, useTheme()
+supabase/checks/                controllo in sola lettura delle migrazioni applicate
 plugins/withNoScriptSandbox.js  plugin di configurazione: disattiva il sandbox degli script di build di Xcode
 supabase/functions/             funzioni server (Deno), vedi sotto
 supabase/migrations/            schema del database, numerate in ordine
@@ -52,7 +53,7 @@ supabase/migrations/            schema del database, numerate in ordine
 
 ## Migrazioni (`supabase/migrations`, 0001–0039)
 
-Si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Le migrazioni non registrano il loro stato nel database quando si applicano dall'editor, quindi **questo README non può dire cosa è applicato sul progetto**: lo stato verificato è nel documento `timeet-stato-lavori`. Al 20 novembre 2026 risultano applicate in produzione con certezza la 0001–0025 e la 0036–0039; la 0026–0035 è da confermare una per una. La prossima libera è la **0040**.
+Si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Le migrazioni non registrano il loro stato nel database quando si applicano dall'editor, quindi **questo README non può dire cosa è applicato sul progetto**: lo stato verificato è nel documento `timeet-stato-lavori`. Per verificare lo stato reale, incolla `supabase/checks/migrations_check.sql` nel SQL Editor di Supabase (sola lettura: dice per ogni migrazione 0026–0039 se i suoi oggetti esistono). Al 20 novembre 2026 risultano applicate in produzione con certezza la 0001–0025 e la 0036–0039; la 0026–0035 è da confermare una per una. La prossima libera è la **0040**.
 
 | Migrazione | Contenuto |
 |---|---|
