@@ -1,4 +1,4 @@
--- Controllo in SOLA LETTURA: dice quali migrazioni 0026-0039 hanno lasciato i loro oggetti nel database.
+-- Controllo in SOLA LETTURA: dice quali migrazioni 0026-0040 hanno lasciato i loro oggetti nel database.
 -- Si incolla nel SQL Editor di Supabase. Non modifica nulla.
 -- Le migrazioni 0001-0025 sono già confermate in produzione e non sono ricontrollate qui.
 -- Una migrazione è "ok" se TUTTI i suoi controlli sono veri; "mancanti" elenca quelli falsi.
@@ -46,7 +46,13 @@ with c(migrazione, controllo, ok) as (values
 
   ('0039', 'table legal_acceptances',       exists(select 1 from information_schema.tables where table_schema='public' and table_name='legal_acceptances')),
   ('0039', 'table consent_prefs',           exists(select 1 from information_schema.tables where table_schema='public' and table_name='consent_prefs')),
-  ('0039', 'function accept_legal',         exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='accept_legal'))
+  ('0039', 'function accept_legal',         exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='accept_legal')),
+
+  ('0040', 'bookings.checked_in_at',        exists(select 1 from information_schema.columns where table_schema='public' and table_name='bookings' and column_name='checked_in_at')),
+  ('0040', 'bookings.auto_no_show_at',      exists(select 1 from information_schema.columns where table_schema='public' and table_name='bookings' and column_name='auto_no_show_at')),
+  ('0040', 'function checkin_booking',      exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='checkin_booking')),
+  ('0040', 'function confirm_attended',     exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='confirm_attended')),
+  ('0040', 'job booking-checkin-sweep',     exists(select 1 from cron.job where jobname='booking-checkin-sweep'))
 )
 select migrazione,
        case when bool_and(ok) then 'ok' else 'MANCA' end as stato,

@@ -4,7 +4,9 @@
 //  - Annulla il venditore: rimborso sempre totale.
 //  - Prenotazione non ancora pagata: si annulla il pagamento, nessun rimborso.
 // Il rimborso è sull'account del venditore (addebito diretto) e include la quota proporzionale della commissione Timeet
-// (refund_application_fee). Non si annulla una sessione già iniziata.
+// (refund_application_fee). Non si annulla una sessione già finita.
+// Dopo il check-in (0040, sessioni in presenza) il cliente non può più annullare: anteprima e annullamento rispondono checked_in.
+// Il venditore sì, con rimborso totale come sempre.
 // Pacchetti: un solo pagamento per tutte le sessioni. Ogni sessione ha la sua quota (prezzo + extra + quota di commissione cliente);
 // si rimborsa solo la quota della sessione annullata. Se il pacchetto non è ancora pagato, si annulla per intero.
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -30,7 +32,7 @@ Deno.serve(async (req) => {
   const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const { data: booking } = await admin
     .from('bookings')
-    .select('id, client_id, seller_id, starts_at, ends_at, status, cancel_tiers, package_id, price_cents, extra_cents, client_fee_cents')
+    .select('id, client_id, seller_id, starts_at, ends_at, status, cancel_tiers, package_id, price_cents, extra_cents, client_fee_cents, checked_in_at')
     .eq('id', body.booking_id)
     .maybeSingle();
   // Non si rivela se la prenotazione esiste a chi non ne fa parte.
@@ -39,6 +41,9 @@ Deno.serve(async (req) => {
   const startsAt = new Date(booking.starts_at);
   // Una sessione già iniziata (es. "Prenota ora") si può annullare finché non è finita; la policy decide il rimborso (venditore: sempre totale).
   if (new Date(booking.ends_at).getTime() <= Date.now()) return json({ error: 'already_started' }, 409);
+  const byClient = booking.client_id === user.id;
+  // Con il check-in la sessione è iniziata davvero: il cliente non annulla più.
+  if (byClient && booking.checked_in_at) return json({ error: 'checked_in' }, 409);
 
   const { data: payment } = await admin
     .from('payments')
@@ -46,8 +51,7 @@ Deno.serve(async (req) => {
     .eq(booking.package_id ? 'package_id' : 'booking_id', booking.package_id ?? booking.id)
     .maybeSingle();
 
-  const byClient = booking.client_id === user.id;
-  const pct = byClient ? refundPercent(booking.cancel_tiers as Tier[], startsAt) : 100;
+  const pct =byClient ? refundPercent(booking.cancel_tiers as Tier[], startsAt) : 100;
   const paid = payment?.status === 'captured';
   // importo pagato per QUESTA sessione: per i pacchetti la sua quota del pagamento unico
   const shareCents = booking.package_id ? booking.price_cents + booking.extra_cents + booking.client_fee_cents : (payment?.amount_cents ?? 0);
@@ -62,6 +66,8 @@ Deno.serve(async (req) => {
     .from('bookings')
     .update({ status: 'cancelled', cancelled_at: new Date().toISOString(), cancelled_by: user.id, refund_cents: refundCents })
     .eq('status', 'confirmed');
+  // Un check-in arrivato nel frattempo vince sull'annullamento del cliente.
+  if (byClient) claimQuery.is('checked_in_at', null);
   const { data: claimed } = await (wholePackage ? claimQuery.eq('package_id', booking.package_id!) : claimQuery.eq('id', booking.id)).select('id');
   if (!claimed?.length) return json({ error: 'not_cancellable' }, 409);
 

@@ -21,7 +21,7 @@ Lo stato dei lavori, le decisioni e le specifiche non stanno in questo repositor
 
 ## Database e segreti
 - **Mai committare segreti** (il repository è pubblico). `.env` è ignorato; la service role key sta solo nelle edge functions.
-- Le migrazioni stanno in `supabase/migrations`, numerate; la prossima libera è la **0040**. Prima di scriverne una, verifica il numero con `ls supabase/migrations`.
+- Le migrazioni stanno in `supabase/migrations`, numerate; la prossima libera è la **0041**. Prima di scriverne una, verifica il numero con `ls supabase/migrations`.
 - **Applicare una migrazione in produzione solo dopo l'OK esplicito di Nicolò**, ogni volta. Per il token Supabase (`sbp_…`): chiedi il permesso ogni volta prima di usarlo, passalo solo come variabile d'ambiente, non stamparlo e non ripeterlo in chat né nei commit. Ricorda a Nicolò di revocarlo a fine lavoro.
 - Applicazione via API di gestione: `POST https://api.supabase.com/v1/projects/eyhloxoknuqezjhbkzst/database/query` con `{"query": "..."}` e `Authorization: Bearer $TOKEN` (aggiungi un `User-Agent`).
 - Stato verificato delle migrazioni: `supabase/checks/migrations_check.sql` (sola lettura, da incollare nel SQL Editor).

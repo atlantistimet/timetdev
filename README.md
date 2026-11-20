@@ -51,9 +51,9 @@ supabase/functions/             funzioni server (Deno), vedi sotto
 supabase/migrations/            schema del database, numerate in ordine
 ```
 
-## Migrazioni (`supabase/migrations`, 0001–0039)
+## Migrazioni (`supabase/migrations`, 0001–0040)
 
-Si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Le migrazioni non registrano il loro stato nel database quando si applicano dall'editor, quindi **questo README non può dire cosa è applicato sul progetto**: lo stato verificato è nel documento `timeet-stato-lavori`. Per verificare lo stato reale, incolla `supabase/checks/migrations_check.sql` nel SQL Editor di Supabase (sola lettura: dice per ogni migrazione 0026–0039 se i suoi oggetti esistono). Al 21 novembre 2026 risultano applicate in produzione tutte le migrazioni 0001–0039 (la 0026–0039 verificate con quella query, tutte ok). La prossima libera è la **0040**.
+Si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Le migrazioni non registrano il loro stato nel database quando si applicano dall'editor, quindi **questo README non può dire cosa è applicato sul progetto**: lo stato verificato è nel documento `timeet-stato-lavori`. Per verificare lo stato reale, incolla `supabase/checks/migrations_check.sql` nel SQL Editor di Supabase (sola lettura: dice per ogni migrazione 0026–0040 se i suoi oggetti esistono). Al 21 novembre 2026 risultano applicate in produzione tutte le migrazioni 0001–0039 (la 0026–0039 verificate con quella query, tutte ok); la **0040 è scritta ma non ancora applicata**. La prossima libera è la **0041**.
 
 | Migrazione | Contenuto |
 |---|---|
@@ -94,6 +94,7 @@ Si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supaba
 | 0037 `service_pricing` | modelli di prezzo: a blocchi o a tempo (`pricing`, `max_consecutive`, `max_duration_min`) |
 | 0038 `safety_support` | segnalazioni, blocchi, assistenza (`support_tickets`), eliminazione account (`profiles.deleted_at`) |
 | 0039 `legal_consents` | accettazioni dei documenti legali e consensi, con versione e data (`legal_acceptances`, `consent_prefs`, `consent_events`, funzioni `accept_legal` e `set_consent`) |
+| 0040 `booking_checkin` | check-in con QR per le sessioni in presenza (`bookings.checked_in_at`, `checked_in_by`, `auto_no_show_at`), funzioni `checkin_status` / `checkin_booking` (solo service role), no-show automatico con correzione del venditore (`confirm_attended`) e contestazione del cliente (`dispute_no_show`) entro 24 ore, notifica `booking_no_show`, job `booking-checkin-sweep` |
 
 ## Avvio
 
@@ -135,14 +136,15 @@ cd ~/dev/timeet && git pull && npx expo start --clear     # con la build di svil
 - `stripe-connect-onboarding`: chiamata dall'app con la sessione dell'utente (richiede 18+ dichiarato). `{action:'onboard'}` crea una sola volta l'account Stripe del venditore e restituisce il link all'onboarding ospitato; `{action:'refresh'}` rilegge lo stato da Stripe.
 - `stripe-webhook`: due destinazioni Stripe, due segreti di firma. "Il tuo account" (payload Thin, eventi `v2.core.account...`) aggiorna `stripe_accounts`; "Account connessi" (payload Snapshot, `payment_intent.succeeded|payment_failed|canceled`) aggiorna `payments` e libera lo slot se il pagamento è annullato.
 - `create-booking-payment`: l'app la chiama con la sessione dell'utente per prenotare uno slot; calcola le commissioni (`_shared/fees.ts`), crea la prenotazione e il PaymentIntent (addebito diretto con application fee), con luogo (online, sede, domicilio) ed extra di spazio o trasferta e restituisce il `client_secret`.
-- `cancel-booking`: annulla una prenotazione (cliente o venditore) e rimborsa secondo le fasce congelate nella prenotazione (`bookings.cancel_tiers`); se annulla il venditore il rimborso è totale. Il rimborso include la quota proporzionale della commissione Timeet. `preview:true` restituisce solo l'importo.
+- `cancel-booking`: annulla una prenotazione (cliente o venditore) e rimborsa secondo le fasce congelate nella prenotazione (`bookings.cancel_tiers`); se annulla il venditore il rimborso è totale. Il rimborso include la quota proporzionale della commissione Timeet. `preview:true` restituisce solo l'importo. Dopo il check-in il cliente non può più annullare (`checked_in`); il venditore sì.
+- `booking-checkin-token` e `booking-checkin`: check-in con QR delle sessioni in presenza (0040). Sede: mostra il venditore, scansiona il cliente; domicilio: il contrario. `booking-checkin-token` (chi mostra, `{booking_id}`) restituisce token, codice a 6 cifre, secondi alla rotazione e link `https://timeet.world/checkin/<booking>/<token>`; `booking-checkin` (chi arriva, `{booking_id, token}` oppure `{booking_id, code}`) verifica il token e registra il check-in. Token: HMAC-SHA256 di prenotazione + finestra di 60 s col segreto `CHECKIN_SECRET`, valgono la finestra corrente e la precedente; dopo 10 codici sbagliati il codice non si accetta più. Il check-in non muove denaro. Finestra: da 15 minuti prima dell'inizio alla fine.
 - `create-package-payment`: pagamento unico di un pacchetto (addebito diretto con application fee). Il pagamento reale è ancora da provare.
 - `create-tip-payment`: mancia a fine sessione o chiamata, anche con un tocco usando la carta salvata (commissione 5%, senza fisso).
 - `delete-account`: eliminazione dell'account su richiesta dell'utente (profilo anonimizzato, contenuti nascosti, email liberata); rifiutata con prenotazioni future o una chiamata in corso.
 - `call-action` e `sweep-calls`: chiamate al minuto (token LiveKit firmato dal server, avvio, risposta, aggiunta minuti, chiusura; `sweep-calls` chiude e incassa quelle scadute, una volta al minuto da pg_cron). Segreti `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `CRON_SECRET`.
 - `expire-unpaid-bookings`: annulla (PaymentIntent e prenotazione) i pagamenti non completati dopo 15 minuti. Protetta dal segreto `CRON_SECRET` (header `x-cron-secret`), chiamata ogni 5 minuti da pg_cron. Il job non sta nelle migrazioni perché contiene il segreto; per ricrearlo (SQL Editor, con pg_net e pg_cron attivi):
   `select cron.schedule('expire-unpaid-bookings','*/5 * * * *', $$select net.http_post(url:='https://<ref>.supabase.co/functions/v1/expire-unpaid-bookings', headers:=jsonb_build_object('x-cron-secret','<CRON_SECRET>','Content-Type','application/json'), body:='{}'::jsonb)$$);`
-- Segreti (Supabase → Edge Functions → Secrets): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_WEBHOOK_SECRET`, `CRON_SECRET`; facoltativi `PUBLIC_PROFILE_BASE_URL` (default `https://timeet.world`), `STRIPE_API_VERSION`, `ONBOARDING_RETURN_URL`, `ONBOARDING_REFRESH_URL` (di prova puntano a localhost:8081).
+- Segreti (Supabase → Edge Functions → Secrets): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_WEBHOOK_SECRET`, `CRON_SECRET`, `CHECKIN_SECRET` (check-in, stringa casuale lunga); facoltativi `PUBLIC_PROFILE_BASE_URL` (default `https://timeet.world`), `STRIPE_API_VERSION`, `ONBOARDING_RETURN_URL`, `ONBOARDING_REFRESH_URL` (di prova puntano a localhost:8081).
 - Funzioni pubblicate su Supabase e provate dal vivo sulla sandbox (onboarding, webhook, pagamento con carta di prova, scadenza). Stripe è chiamata via REST senza libreria. Le versioni API sono fissate in `_shared/stripe.ts`. Sono escluse da lint e typecheck dell'app (girano su Deno).
 
 ## Job pianificati (pg_cron)
@@ -153,6 +155,7 @@ cd ~/dev/timeet && git pull && npx expo start --clear     # con la build di svil
 | `sweep-calls` | ogni minuto | chiude e incassa le chiamate scadute o cadute |
 | `auto-complete-bookings` | ogni 30 minuti | conclude le sessioni dopo 24 ore |
 | `availability-expiry` | ogni giorno alle 7:00 UTC | avvisa i venditori la cui disponibilità sta per scadere |
+| `booking-checkin-sweep` | ogni 5 minuti | in presenza: conclude a fine sessione quelle con check-in, segna assenti quelle pagate senza check-in 15 minuti dopo l'inizio (prenota ora: a fine sessione) |
 
 I job che chiamano le funzioni contengono il segreto `CRON_SECRET` e per questo non sono creati dalle migrazioni dove serve il segreto (vedi `expire-unpaid-bookings`).
 
