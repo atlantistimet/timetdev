@@ -12,9 +12,9 @@ export const LEGAL_EFFECTIVE: L = { it: '7 novembre 2026', en: '7 November 2026'
 
 export const COMPANY = {
   name: 'Atlantis S.r.l.',
-  // Da completare con i dati ufficiali prima della pubblicazione.
-  address: '[indirizzo sede legale]',
-  vat: '[partita IVA]',
+  // Dati della società (documento delle decisioni MVP). Da far confermare al legale insieme ai testi.
+  address: 'Corso della Repubblica 19, 47121 Forlì (FC), Italia',
+  vat: '04789560408',
   email: 'legal@timeet.world',
   privacyEmail: 'privacy@timeet.world',
 };

@@ -126,7 +126,7 @@ cd ~/dev/timeet && git pull && npx expo start --clear     # con la build di svil
 - Registrazione in quattro passi (nome, email, password, consensi) e accesso con email e password. La registrazione richiede la dichiarazione di avere almeno 18 anni (`profiles.adult_confirmed_at`), l'accettazione di Regole e termini e della privacy; la ricezione di novità e offerte è facoltativa e spenta.
 - Chi ha un account ma non ha dichiarato la maggiore età passa dalla schermata `adult` prima di vedere l'app.
 - Le accettazioni sono registrate con versione, lingua e data in `legal_acceptances`. Alzando `LEGAL_VERSION` in `src/content/legal.ts` tutti gli utenti vedono `/terms-update` al successivo accesso e devono accettare di nuovo. Impostazioni → Privacy e legale contiene i documenti e il centro consensi.
-- I testi in `src/content/legal.ts` sono una **bozza** da far rivedere a un legale; sede legale e partita IVA sono ancora segnaposto.
+- I testi in `src/content/legal.ts` sono una **bozza** da far rivedere a un legale. Sede legale e partita IVA di Atlantis S.r.l. sono compilate in `COMPANY`.
 - Per ora la conferma email è **spenta** sul progetto Supabase (il mittente incluso è limitato a 2 email all'ora). Prima del lancio va riattivata insieme a un servizio SMTP proprio; l'app gestisce già il caso "controlla la tua email". Con la conferma attiva servono anche il Site URL e i Redirect URLs (`https://timeet.world/**` e `timeet://**`) in Authentication → URL Configuration.
 - La dichiarazione 18+ è un'autodichiarazione: le azioni sensibili (prenotare, vendere) vanno controllate di nuovo lato server su `adult_confirmed_at`.
 
