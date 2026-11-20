@@ -47,7 +47,7 @@ export function buzz(kind: Haptic = 'light'): void {
 export const Pressable = forwardRef<View, Props>(function Pressable({ style, scaleTo = 0.96, haptic, onPressIn, onPressOut, onPress, ...rest }, ref) {
   const scale = useSharedValue(1);
   const animated = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  const resolved: StyleProp<ViewStyle> = typeof style === 'function' ? style({ pressed: false }) : style;
+  const resolved: StyleProp<ViewStyle> = typeof style === 'function' ? style({ pressed: false, hovered: false }) : style;
   return (
     <AnimatedPressable
       ref={ref}
