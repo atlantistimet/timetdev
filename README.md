@@ -53,7 +53,7 @@ supabase/migrations/            schema del database, numerate in ordine
 
 ## Migrazioni (`supabase/migrations`, 0001–0040)
 
-Si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Le migrazioni non registrano il loro stato nel database quando si applicano dall'editor, quindi **questo README non può dire cosa è applicato sul progetto**: lo stato verificato è nel documento `timeet-stato-lavori`. Per verificare lo stato reale, incolla `supabase/checks/migrations_check.sql` nel SQL Editor di Supabase (sola lettura: dice per ogni migrazione 0026–0040 se i suoi oggetti esistono). Al 21 novembre 2026 risultano applicate in produzione tutte le migrazioni 0001–0039 (la 0026–0039 verificate con quella query, tutte ok); la **0040 è scritta ma non ancora applicata**. La prossima libera è la **0041**.
+Si applicano in ordine dal SQL editor di Supabase o con la Supabase CLI (`supabase db push`). Le migrazioni non registrano il loro stato nel database quando si applicano dall'editor, quindi **questo README non può dire cosa è applicato sul progetto**: lo stato verificato è nel documento `timeet-stato-lavori`. Per verificare lo stato reale, incolla `supabase/checks/migrations_check.sql` nel SQL Editor di Supabase (sola lettura: dice per ogni migrazione 0026–0040 se i suoi oggetti esistono). Al 21 novembre 2026 risultano applicate in produzione tutte le migrazioni 0001–0039 (la 0026–0039 verificate con quella query, tutte ok); la **0040** è applicata il 21 novembre 2026, con le funzioni `booking-checkin-token`, `booking-checkin` e la nuova `cancel-booking` pubblicate e il segreto `CHECKIN_SECRET` creato. La prossima libera è la **0041**.
 
 | Migrazione | Contenuto |
 |---|---|
