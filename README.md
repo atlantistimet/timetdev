@@ -12,6 +12,7 @@ App per prenotare il tempo delle persone (solo 18+). Un'unica base di codice per
 - **Videochiamate**: LiveKit (nativo su iPhone, browser sul web)
 - **Lingue**: i18next + expo-localization, italiano e inglese dal lancio
 - **Web**: export statico (`npm run build:web` → `dist`), ospitato su Vercel (`vercel.json`), dominio `timeet.world`
+- **Link che aprono l'app** (Universal Links): `public/.well-known/apple-app-site-association` (copiato in `dist` dall'export, servito come JSON da `vercel.json`) e `ios.associatedDomains` in `app.json` per `timeet.world` e `www.timeet.world`. Percorsi: `/checkin/*`, `/s/*`, `/u/*`, `/o/*`, `/p/*`, `/service/*`. Nel file c'è l'app `4S9758D224.world.timeet.dev`: quando cambia l'identificativo dell'app va aggiunto quello nuovo. Funzionano solo se il dominio serve davvero il sito su Vercel e dopo una nuova build dell'app.
 
 ## Struttura
 

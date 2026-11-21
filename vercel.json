@@ -1,5 +1,11 @@
 {
   "buildCommand": "npx expo export -p web",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/((?!\\.well-known/).*)", "destination": "/index.html" }]
+  "rewrites": [{ "source": "/((?!\\.well-known/).*)", "destination": "/index.html" }],
+  "headers": [
+    {
+      "source": "/.well-known/apple-app-site-association",
+      "headers": [{ "key": "Content-Type", "value": "application/json" }]
+    }
+  ]
 }

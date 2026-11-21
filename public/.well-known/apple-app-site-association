@@ -1,0 +1,22 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["4S9758D224.world.timeet.dev"],
+        "components": [
+          { "/": "/checkin/*", "comment": "QR del check-in: /checkin/<prenotazione>/<token>" },
+          { "/": "/s/*", "comment": "Slot singolo" },
+          { "/": "/u/*", "comment": "Profilo pubblico" },
+          { "/": "/o/*", "comment": "Offerta" },
+          { "/": "/p/*", "comment": "Post" },
+          { "/": "/service/*", "comment": "Servizio" }
+        ]
+      },
+      {
+        "appID": "4S9758D224.world.timeet.dev",
+        "paths": ["/checkin/*", "/s/*", "/u/*", "/o/*", "/p/*", "/service/*"]
+      }
+    ]
+  }
+}

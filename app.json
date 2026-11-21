@@ -17,7 +17,8 @@
         "UIBackgroundModes": ["audio"],
         "UIDesignRequiresCompatibility": true
       },
-      "appleTeamId": "4S9758D224"
+      "appleTeamId": "4S9758D224",
+      "associatedDomains": ["applinks:timeet.world", "applinks:www.timeet.world"]
     },
     "android": {
       "adaptiveIcon": {
