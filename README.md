@@ -25,7 +25,7 @@ src/app/                        schermate (Expo Router): ogni file è una route
   (app)/                        area protetta: sessione, 18+ confermato e documenti accettati
     (tabs)/                     Esplora/feed, servizi, messaggi, prenotazioni, profilo
     service, s, o, p, u,        pagine di servizio, slot singolo (/s/<codice>), offerta, post, profilo pubblico
-    book, session               prenotazione e pagina della sessione
+    book, session, checkin      prenotazione, pagina della sessione, link del QR del check-in (/checkin/<prenotazione>/<token>)
     call, call-start            chiamate al minuto
     chat                        conversazioni
     my-services, service-edit,  strumenti del venditore: servizi, offerte, link "Slot singolo", disponibilità,

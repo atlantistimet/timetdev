@@ -3,7 +3,7 @@ import * as Linking from 'expo-linking';
 
 // Chi apre un link dell'app (es. /s/<codice>) senza essere entrato viene portato al login: qui ricordiamo dove voleva andare,
 // per riportarlo lì appena ha accesso.
-const SHAREABLE = /^\/(s|u|service|p)\/[^/?#]+/;
+const SHAREABLE = /^\/(s|u|service|p|checkin)\/[^/?#]+/;
 let pending: string | null = null;
 
 const remember = (path: string | null | undefined) => {

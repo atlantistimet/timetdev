@@ -10,8 +10,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "world.timeet.dev",
       "infoPlist": {
-        "NSCameraUsageDescription": "Timeet usa la fotocamera per le videochiamate.",
-        "NSMicrophoneUsageDescription": "Timeet usa il microfono per le chiamate.",
+        "NSCameraUsageDescription": "Timeet usa la fotocamera per le videochiamate e per leggere il QR del check-in.",
+        "NSMicrophoneUsageDescription": "Timeet usa il microfono per i messaggi vocali e le chiamate.",
+        "CFBundleAllowMixedLocalizations": true,
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": ["audio"],
         "UIDesignRequiresCompatibility": true
@@ -72,8 +73,20 @@
         {
           "microphonePermission": "Timeet usa il microfono per i messaggi vocali e le chiamate."
         }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Timeet usa la fotocamera per le videochiamate e per leggere il QR del check-in.",
+          "microphonePermission": "Timeet usa il microfono per i messaggi vocali e le chiamate.",
+          "barcodeScannerEnabled": true
+        }
       ]
     ],
+    "locales": {
+      "it": "./src/i18n/native/it.json",
+      "en": "./src/i18n/native/en.json"
+    },
     "scheme": "timeet",
     "experiments": {
       "typedRoutes": true

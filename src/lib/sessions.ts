@@ -20,6 +20,9 @@ export type SessionDetail = {
   status: 'confirmed' | 'completed' | 'cancelled' | 'no_show';
   refund_cents: number;
   package_id: string | null;
+  checked_in_at: string | null; // check-in con QR (sessioni in presenza)
+  checked_in_by: string | null;
+  auto_no_show_at: string | null; // assenza segnata in automatico: 24 ore per correggere o contestare
   packagePosition: { index: number; total: number } | null;
   client: { full_name: string; handle: string | null; avatar_path: string | null };
   seller: { full_name: string; handle: string | null; avatar_path: string | null };
@@ -40,7 +43,7 @@ export async function loadSession(id: string): Promise<SessionDetail | null> {
   const { data } = await supabase
     .from('bookings')
     .select(
-      'id, client_id, seller_id, service_id, service_title, starts_at, ends_at, place, client_address, price_cents, extra_cents, client_fee_cents, seller_fee_cents, status, refund_cents, package_id, clientp:profiles!bookings_client_id_fkey(full_name, handle, avatar_path), sellerp:profiles!bookings_seller_id_fkey(full_name, handle, avatar_path)',
+      'id, client_id, seller_id, service_id, service_title, starts_at, ends_at, place, client_address, price_cents, extra_cents, client_fee_cents, seller_fee_cents, status, refund_cents, package_id, checked_in_at, checked_in_by, auto_no_show_at, clientp:profiles!bookings_client_id_fkey(full_name, handle, avatar_path), sellerp:profiles!bookings_seller_id_fkey(full_name, handle, avatar_path)',
     )
     .eq('id', id)
     .maybeSingle();

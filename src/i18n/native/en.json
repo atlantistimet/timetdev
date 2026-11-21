@@ -1,0 +1,7 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Timeet uses the camera for video calls and to read the check-in QR code.",
+    "NSMicrophoneUsageDescription": "Timeet uses the microphone for voice messages and calls.",
+    "NSPhotoLibraryUsageDescription": "Timeet uses your photos and videos for services, posts and previews."
+  }
+}

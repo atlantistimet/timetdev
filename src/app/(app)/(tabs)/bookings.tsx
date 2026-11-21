@@ -11,6 +11,7 @@ import { Emoji } from '@/components/Emoji';
 import { ErrorText, LoadingView, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { listMyBookings, type MyBooking } from '@/lib/booking';
+import { confirmAttended, isInProgress, loadSeenNoShows, markNoShowSeen, noShowLeftMs } from '@/lib/checkin';
 import { fonts, useTheme } from '@/theme';
 
 type Tab = 'upcoming' | 'past' | 'cancelled';
@@ -28,6 +29,17 @@ export default function BookingsScreen() {
   const [tab, setTab] = useState<Tab>('upcoming');
   const [filter, setFilter] = useState<Filter>('all');
   const [outcomeFor, setOutcomeFor] = useState<MyBooking | null>(null);
+  const [seenNoShows, setSeenNoShows] = useState<string[]>([]);
+  const [attendBusy, setAttendBusy] = useState<string | null>(null);
+  const [attendError, setAttendError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    void loadSeenNoShows().then((list) => alive && setSeenNoShows(list));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -52,7 +64,8 @@ export default function BookingsScreen() {
     const list = bookings ?? [];
     const upcoming = (b: MyBooking) => b.status === 'confirmed' && new Date(b.ends_at).getTime() > now;
     const byStart = (a: MyBooking, b: MyBooking) => a.starts_at.localeCompare(b.starts_at);
-    const pendingOutcome = list.filter((b) => b.status === 'confirmed' && b.seller_id === userId && new Date(b.ends_at).getTime() <= now);
+    // con il check-in la sessione si conclude da sola: niente domanda sull'esito
+    const pendingOutcome = list.filter((b) => b.status === 'confirmed' && !b.checked_in_at && b.seller_id === userId && new Date(b.ends_at).getTime() <= now);
     const inFilter = (b: MyBooking) => (filter === 'bought' ? b.client_id === userId : filter === 'sold' ? b.seller_id === userId : true);
     const base =
       tab === 'cancelled'
@@ -94,6 +107,22 @@ export default function BookingsScreen() {
   const sheetWho = (b: MyBooking) => ({ id: b.id, title: b.service_title, startsAt: b.starts_at, otherName: otherOf(b).name, otherAvatar: otherOf(b).avatar, otherSeed: otherOf(b).id });
 
   const next = [...(bookings ?? [])].filter((b) => b.status === 'confirmed' && new Date(b.ends_at).getTime() > now).sort((x, y) => x.starts_at.localeCompare(y.starts_at))[0] ?? null;
+  const nextLive = next ? isInProgress(next, now) : false;
+  const liveMin = next?.checked_in_at ? Math.max(0, Math.floor((now - new Date(next.checked_in_at).getTime()) / 60_000)) : 0;
+  // assenze segnate in automatico, ancora correggibili (venditore) o contestabili (cliente)
+  const noShows = (bookings ?? []).filter((b) => noShowLeftMs(b, now) > 0 && !seenNoShows.includes(b.id));
+  const dismissNoShow = (id: string) => {
+    setSeenNoShows((l) => [id, ...l]);
+    void markNoShowSeen(id);
+  };
+  const attended = async (b: MyBooking) => {
+    setAttendBusy(b.id);
+    setAttendError(null);
+    const e = await confirmAttended(b.id);
+    setAttendBusy(null);
+    if (e) setAttendError(e);
+    else setReloadKey((k) => k + 1);
+  };
   const countdownText = (() => {
     if (!next) return '';
     const mins = Math.round((new Date(next.starts_at).getTime() - now) / 60000);
@@ -124,14 +153,63 @@ export default function BookingsScreen() {
 
       {tab === 'upcoming' && next ? (
         <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/session/[id]', params: { id: next.id } })} style={[styles.countdown, { backgroundColor: theme.ink }]}>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[styles.cdLabel, { color: theme.accent }]}>{t('bookings.nextSession')}</Text>
-            <Text style={[styles.cdBig, { color: theme.inkOn }]}>{countdownText}</Text>
-            <Text numberOfLines={1} style={[styles.cdSub, { color: theme.inkOn }]}>{`${next.service_title} · ${otherOf(next).name.split(' ')[0]}`}</Text>
-          </View>
+          {nextLive && next.checked_in_at ? (
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={[styles.cdLabel, { color: theme.inkMuted }]}>{t('checkin.inProgressSince')}</Text>
+              <Text style={[styles.liveBig, { color: theme.accent }]}>{`${liveMin}'`}</Text>
+              <Text numberOfLines={1} style={[styles.cdSub, { color: theme.inkOn }]}>{next.service_title}</Text>
+              <Text numberOfLines={1} style={[styles.cdSub, { color: theme.inkSoft }]}>
+                {t('checkin.agendaLiveSub', { name: otherOf(next).name.split(' ')[0], time: timeFmt.format(new Date(next.checked_in_at)), end: timeFmt.format(new Date(next.ends_at)) })}
+              </Text>
+            </View>
+          ) : (
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={[styles.cdLabel, { color: theme.accent }]}>{t('bookings.nextSession')}</Text>
+              <Text style={[styles.cdBig, { color: theme.inkOn }]}>{countdownText}</Text>
+              <Text numberOfLines={1} style={[styles.cdSub, { color: theme.inkOn }]}>{`${next.service_title} · ${otherOf(next).name.split(' ')[0]}`}</Text>
+            </View>
+          )}
           <Ionicons name="chevron-forward" size={22} color={theme.inkOn} />
         </Pressable>
       ) : null}
+
+      {tab === 'upcoming'
+        ? noShows.map((b) => {
+            const seller = b.seller_id === userId;
+            const name = otherOf(b).name.split(' ')[0];
+            const hours = Math.max(1, Math.ceil(noShowLeftMs(b, now) / 3_600_000));
+            return (
+              <View key={b.id} style={[styles.noShow, { backgroundColor: theme.errorSoft }]}>
+                <Pressable accessibilityRole="button" onPress={() => open(b)} style={styles.noShowHead}>
+                  <View style={[styles.noShowIcon, { backgroundColor: theme.surface }]}>
+                    <Ionicons name="person-remove-outline" size={22} color={theme.errorText} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={[styles.noShowTitle, { color: theme.errorText }]}>{t(seller ? 'checkin.noShowSellerTitle' : 'checkin.noShowClientTitle', { name })}</Text>
+                    <Text style={[styles.noShowBody, { color: theme.text }]}>
+                      {t(seller ? 'checkin.agendaNoShowSeller' : 'checkin.agendaNoShowClient', { title: b.service_title, time: timeFmt.format(new Date(b.starts_at)), count: hours })}
+                    </Text>
+                  </View>
+                </Pressable>
+                {attendError && attendBusy === null ? <ErrorText>{t(attendError)}</ErrorText> : null}
+                <View style={styles.noShowBtns}>
+                  {seller ? (
+                    <Pressable accessibilityRole="button" disabled={attendBusy === b.id} onPress={() => void attended(b)} style={[styles.noShowBtn, { backgroundColor: theme.ink }]}>
+                      <Text style={[styles.noShowBtnText, { color: theme.inkOn }]}>{t('checkin.attended')}</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable accessibilityRole="button" onPress={() => open(b)} style={[styles.noShowBtn, { backgroundColor: theme.ink }]}>
+                      <Text style={[styles.noShowBtnText, { color: theme.inkOn }]}>{t('checkin.dispute')}</Text>
+                    </Pressable>
+                  )}
+                  <Pressable accessibilityRole="button" onPress={() => dismissNoShow(b.id)} style={[styles.noShowBtn, { backgroundColor: theme.surface }]}>
+                    <Text style={[styles.noShowBtnText, { color: theme.text }]}>{t(seller ? 'checkin.wasAbsent' : 'checkin.okGotIt')}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })
+        : null}
 
       {pending.map((b) => (
         <Pressable key={b.id} accessibilityRole="button" onPress={() => setOutcomeFor(b)} style={[styles.pending, { backgroundColor: theme.accent }]}>
@@ -158,6 +236,15 @@ export default function BookingsScreen() {
                     <Text numberOfLines={1} style={[styles.itemTitle, { color: theme.text }]}>{b.service_title}</Text>
                     <Text numberOfLines={1} style={[styles.itemSub, { color: theme.muted }]}>{sub}</Text>
                   </View>
+                  {isInProgress(b, now) ? (
+                    <View style={[styles.badge, { backgroundColor: theme.accent }]}>
+                      <Text style={[styles.badgeText, { color: theme.onAccent }]}>{t('checkin.inProgress')}</Text>
+                    </View>
+                  ) : b.status === 'no_show' ? (
+                    <View style={[styles.badge, { backgroundColor: theme.errorSoft }]}>
+                      <Text style={[styles.badgeText, { color: theme.errorText }]}>{t('checkin.absent')}</Text>
+                    </View>
+                  ) : null}
                   <Ionicons name="chevron-forward" size={18} color={theme.muted} />
                 </Pressable>
               );
@@ -166,7 +253,7 @@ export default function BookingsScreen() {
         </View>
       ))}
 
-      {empty ? (
+      {empty && (tab !== 'upcoming' || noShows.length === 0) ? (
         <View style={[styles.empty, { backgroundColor: theme.surface }]}>
           <View style={[styles.emptyIcon, { backgroundColor: theme.bg }]}>
             <Emoji name="stopwatch" size={60} />
@@ -201,6 +288,17 @@ const styles = StyleSheet.create({
   cdLabel: { fontFamily: fonts.semibold, fontSize: 13 },
   cdBig: { fontFamily: fonts.semibold, fontSize: 28, letterSpacing: -1 },
   cdSub: { fontFamily: fonts.regular, fontSize: 14, opacity: 0.8 },
+  liveBig: { fontFamily: fonts.semibold, fontSize: 56, lineHeight: 54, letterSpacing: -3.4, fontVariant: ['tabular-nums'] },
+  noShow: { borderRadius: 32, padding: 16, gap: 12, marginTop: 12 },
+  noShowHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  noShowIcon: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  noShowTitle: { fontFamily: fonts.semibold, fontSize: 16 },
+  noShowBody: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 19 },
+  noShowBtns: { flexDirection: 'row', gap: 8 },
+  noShowBtn: { flex: 1, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  noShowBtnText: { fontFamily: fonts.semibold, fontSize: 15 },
+  badge: { height: 26, paddingHorizontal: 10, borderRadius: 13, justifyContent: 'center' },
+  badgeText: { fontFamily: fonts.semibold, fontSize: 12 },
   title: { fontFamily: fonts.semibold, fontSize: 32, letterSpacing: -1.2, marginTop: 8, paddingHorizontal: 4 },
   tabsRow: { flexDirection: 'row', gap: 22, marginTop: 10, marginHorizontal: 4, borderBottomWidth: 1 },
   tabItem: { paddingBottom: 9, marginBottom: -1, borderBottomWidth: 2, borderBottomColor: 'transparent' },

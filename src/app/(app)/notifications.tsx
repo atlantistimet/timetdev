@@ -35,7 +35,9 @@ export default function NotificationsScreen() {
   const when = (iso: string) => new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
   const text = (n: Notif) => {
     const p = n.payload as Record<string, string | number | undefined>;
-    return t(`notifications.kind.${n.kind}`, {
+    // l'assenza automatica arriva a entrambi: il testo cambia per venditore e cliente
+    const key = n.kind === 'booking_no_show' ? `booking_no_show_${p.role === 'seller' ? 'seller' : 'client'}` : n.kind;
+    return t(`notifications.kind.${key}`, {
       name: p.name ?? '',
       title: p.title ?? '',
       count: Number(p.count ?? 1),
@@ -54,6 +56,7 @@ export default function NotificationsScreen() {
     switch (n.kind) {
       case 'booking_new':
       case 'booking_cancelled':
+      case 'booking_no_show':
       case 'tip':
       case 'review':
         if (n.ref_id) router.push(n.ref_table === 'calls' ? { pathname: '/call/[id]', params: { id: n.ref_id } } : { pathname: '/session/[id]', params: { id: n.ref_id } });
@@ -86,7 +89,7 @@ export default function NotificationsScreen() {
   const EMOJI: Record<string, string> = {
     review_shared: 'star', booking_new: 'party_popper', package_new: 'gift', booking_cancelled: 'calendar', tip: 'money_bag', message: 'speech_balloon', comment: 'speech_balloon',
     follow: 'waving_hand', review: 'raising_hands', call_missed: 'telephone_receiver', availability_expiring: 'stopwatch', tag_request: 'heart_hands',
-    review_reply: 'speech_balloon', tag_accepted: 'heart_hands',
+    review_reply: 'speech_balloon', tag_accepted: 'heart_hands', booking_no_show: 'stopwatch',
   };
   const ago = (iso: string) => {
     const min = Math.max(0, Math.round((loaded.nowMs - new Date(iso).getTime()) / 60000));

@@ -204,6 +204,8 @@ export type MyBooking = {
   client_name: string | null;
   seller_name: string | null;
   package_id: string | null;
+  checked_in_at: string | null;
+  auto_no_show_at: string | null;
   client_avatar: string | null;
   seller_avatar: string | null;
 };
@@ -213,7 +215,7 @@ export async function listMyBookings(): Promise<{ bookings: MyBooking[]; errorKe
   const { data, error } = await supabase
     .from('bookings')
     .select(
-      'id, client_id, seller_id, service_title, starts_at, ends_at, status, price_cents, refund_cents, place, client_address, extra_cents, seller_fee_cents, package_id, client:profiles!bookings_client_id_fkey(full_name, avatar_path), seller:profiles!bookings_seller_id_fkey(full_name, avatar_path)',
+      'id, client_id, seller_id, service_title, starts_at, ends_at, status, price_cents, refund_cents, place, client_address, extra_cents, seller_fee_cents, package_id, checked_in_at, auto_no_show_at, client:profiles!bookings_client_id_fkey(full_name, avatar_path), seller:profiles!bookings_seller_id_fkey(full_name, avatar_path)',
     )
     .order('starts_at', { ascending: false })
     .limit(100);

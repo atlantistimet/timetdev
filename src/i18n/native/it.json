@@ -1,0 +1,7 @@
+{
+  "ios": {
+    "NSCameraUsageDescription": "Timeet usa la fotocamera per le videochiamate e per leggere il QR del check-in.",
+    "NSMicrophoneUsageDescription": "Timeet usa il microfono per i messaggi vocali e le chiamate.",
+    "NSPhotoLibraryUsageDescription": "Timeet usa le tue foto e i tuoi video per servizi, post e anteprime."
+  }
+}

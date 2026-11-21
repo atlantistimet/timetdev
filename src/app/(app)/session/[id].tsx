@@ -7,11 +7,13 @@ import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { ProfileTap } from '@/components/ProfileTap';
 import { CancelSheet } from '@/components/BookingSheets';
+import { CheckinSection } from '@/components/CheckinSection';
 import { PaymentForm } from '@/components/PaymentForm';
 import { ReviewForm } from '@/components/ReviewForm';
 import { Body, Button, Card, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { formatEuro } from '@/lib/booking';
+import { isInProgress } from '@/lib/checkin';
 import { type CancelPreview } from '@/lib/cancel-policy';
 import { fonts, pastelFor, useTheme } from '@/theme';
 import { parseEuroToCents } from '@/lib/my-services';
@@ -56,6 +58,12 @@ export default function SessionScreen() {
       alive = false;
     };
   }, [id, reloadKey]);
+
+  // Il check-in apre e chiude a orari precisi, e "in corso" conta i minuti: l'ora corrente si aggiorna da sola.
+  useEffect(() => {
+    const tick = setInterval(() => setNowMs(Date.now()), 20_000);
+    return () => clearInterval(tick);
+  }, []);
 
   if (!data) return <LoadingView />;
   if (data === 'missing') {
@@ -182,8 +190,57 @@ export default function SessionScreen() {
     );
   }
 
+  const inProgress = isInProgress(s, nowMs);
+  const sinceMin = s.checked_in_at ? Math.max(0, Math.floor((nowMs - new Date(s.checked_in_at).getTime()) / 60_000)) : 0;
+  const totalMs = new Date(s.ends_at).getTime() - new Date(s.checked_in_at ?? s.starts_at).getTime();
+  const progress = s.checked_in_at && totalMs > 0 ? Math.min(1, Math.max(0, (nowMs - new Date(s.checked_in_at).getTime()) / totalMs)) : 0;
+  const hhmm = (iso: string) => new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
+  const row = (icon: keyof typeof Ionicons.glyphMap, label: string, onPress: () => void, sub?: string) => (
+    <Pressable accessibilityRole="button" onPress={onPress} style={[styles.card, styles.cancelRow, { backgroundColor: theme.surface }]}>
+      <View style={[styles.cancelIcon, { backgroundColor: theme.bg }]}>
+        <Ionicons name={icon} size={18} color={theme.ink} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.cancelText, { color: theme.text }]}>{label}</Text>
+        {sub ? <Text style={[styles.rowSub, { color: theme.muted }]}>{sub}</Text> : null}
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={theme.muted} />
+    </Pressable>
+  );
+
   return (
     <Screen bare>
+      {inProgress && s.checked_in_at ? (
+        <View style={[styles.hero, { backgroundColor: theme.ink }]}>
+          <View style={styles.heroTop}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={back} style={[styles.heroBack, { backgroundColor: theme.inkSurface }]}>
+              <Ionicons name="chevron-back" size={22} color={theme.inkOn} />
+            </Pressable>
+            <View style={[styles.statusTag, styles.liveTag, { backgroundColor: theme.accent }]}>
+              <View style={[styles.liveDot, { backgroundColor: theme.onAccent }]} />
+              <Text style={[styles.statusText, { color: theme.onAccent }]}>{t('checkin.inProgress')}</Text>
+            </View>
+          </View>
+          <View style={{ gap: 2 }}>
+            <Text style={[styles.liveLabel, { color: theme.inkMuted }]}>{t('checkin.inProgressSince')}</Text>
+            <Text style={[styles.liveBig, { color: theme.accent }]}>{`${sinceMin}'`}</Text>
+          </View>
+          <View style={styles.liveWho}>
+            <Pressable accessibilityRole="button" onPress={() => openPerson(other.handle)}>
+              <Avatar name={other.full_name} seed={other.id} size={48} round={18} path={other.avatar_path} />
+            </Pressable>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.liveTitle, { color: theme.inkOn }]}>{s.service_title}</Text>
+              <Text style={[styles.liveSub, { color: theme.inkSoft }]}>
+                {t(s.checked_in_by === me ? 'checkin.youArrivedAt' : 'checkin.arrivedAt', { name: first, time: hhmm(s.checked_in_at), end: hhmm(s.ends_at) })}
+              </Text>
+            </View>
+          </View>
+          <View style={[styles.bar, { backgroundColor: theme.inkSurface2 }]}>
+            <View style={[styles.barFill, { backgroundColor: theme.accent, width: `${Math.round(progress * 100)}%` }]} />
+          </View>
+        </View>
+      ) : (
       <View style={[styles.hero, { backgroundColor: pastelFor(other.id) }]}>
         <View style={styles.heroTop}>
           <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={back} style={styles.heroBack}>
@@ -211,8 +268,18 @@ export default function SessionScreen() {
           {tile(t('session.where'), t(`bookings.placeShort.${s.place}`))}
         </View>
       </View>
+      )}
       <View style={styles.body}>
-        {s.description ? <Text style={[styles.desc, { color: theme.muted }]}>{s.description}</Text> : null}
+        <CheckinSection
+          booking={s}
+          paid={s.paid}
+          me={me}
+          nowMs={nowMs}
+          other={other}
+          placeLabel={t(`bookings.placeShort.${s.place}`)}
+          onChanged={() => setReloadKey((k) => k + 1)}
+        />
+        {s.description && !inProgress ? <Text style={[styles.desc, { color: theme.muted }]}>{s.description}</Text> : null}
         {s.place === 'domicilio' && s.client_address ? <Text style={[styles.desc, { color: theme.muted }]}>{s.client_address}</Text> : null}
         <View style={[styles.card, { backgroundColor: theme.surface }]}>
           {isClient ? (
@@ -232,7 +299,14 @@ export default function SessionScreen() {
           {s.refund_cents > 0 ? line(t('session.refunded'), fmt(s.refund_cents)) : null}
           {s.tipsCents > 0 ? line(t(isClient ? 'session.tipSent' : 'session.tipReceived', { amount: '' }).replace(/[:\s]+$/, ''), fmt(s.tipsCents)) : null}
         </View>
-        {canCancel && isClient ? (
+        {inProgress ? (
+          <>
+            {row('chatbubble-ellipses-outline', t('checkin.writeTo', { name: first }), () => router.push({ pathname: '/chat/[userId]', params: { userId: other.id } }))}
+            {row('alert-circle-outline', t('safety.support.reportProblem'), () => router.push({ pathname: '/support', params: { kind: 'session', refType: 'booking', refId: s.id } }))}
+            {/* Dopo il check-in annulla solo il venditore, con rimborso totale (cancel-booking). */}
+            {!isClient && canCancel ? row('close', t('checkin.cancelRefund'), () => setShowCancel(true), t('checkin.cancelRefundSub', { name: first })) : null}
+          </>
+        ) : canCancel && isClient && !s.checked_in_at ? (
           <Pressable accessibilityRole="button" onPress={() => setShowCancel(true)} style={[styles.card, styles.cancelRow, { backgroundColor: theme.surface }]}>
             <View style={[styles.cancelIcon, { backgroundColor: theme.bg }]}>
               <Ionicons name="close" size={18} color={theme.ink} />
@@ -360,6 +434,16 @@ const styles = StyleSheet.create({
   cancelRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cancelIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   cancelText: { flex: 1, fontFamily: fonts.medium, fontSize: 15 },
+  rowSub: { fontFamily: fonts.regular, fontSize: 13 },
+  liveTag: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  liveDot: { width: 8, height: 8, borderRadius: 4 },
+  liveLabel: { fontFamily: fonts.medium, fontSize: 14 },
+  liveBig: { fontFamily: fonts.semibold, fontSize: 96, lineHeight: 92, letterSpacing: -6, fontVariant: ['tabular-nums'] },
+  liveWho: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  liveTitle: { fontFamily: fonts.semibold, fontSize: 17 },
+  liveSub: { fontFamily: fonts.regular, fontSize: 14 },
+  bar: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  barFill: { height: 8, borderRadius: 4 },
   doneWrap: { flex: 1, padding: 8, paddingBottom: 24, gap: 10, maxWidth: 440, width: '100%', alignSelf: 'center' },
   donePanel: { borderRadius: 40, padding: 22, paddingTop: 56, gap: 22 },
   okIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
