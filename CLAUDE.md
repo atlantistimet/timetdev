@@ -33,4 +33,7 @@ Lo stato dei lavori, le decisioni e le specifiche non stanno in questo repositor
 - Reanimated 4: `useSharedValue` con `.set()` / `.get()`.
 - Con Expo Router, senza `unstable_settings.initialRouteName` si apre la prima schermata dichiarata: in `(app)/_layout.tsx` è impostata su `(tabs)`.
 - Le librerie si aggiungono con `npx expo install`, mai con `npm add`. Non eseguire `npm audit fix --force`.
+- iPhone: una sola build alla volta (due `run:ios` insieme → "database is locked"); se la scelta del dispositivo dice "no matches" usa `--device 00008130-000A556E3E8B803A`. Una nuova funzione Apple in `app.json` (es. Associated Domains, notifiche push) va prima attivata sull'identificativo `world.timeet.dev` nel portale Apple, altrimenti la firma fallisce.
+- Sito web: ogni push su `main` pubblica `timeet.world` su Vercel. Il DNS sta su Hostinger: non toccare i record della posta (MX, SPF, DKIM, DMARC, autodiscover/autoconfig).
+- `git push` da Claude non ha credenziali: lancialo nel terminale di Nicolò (token GitHub nel Portachiavi).
 - L'app è firmata con il team Apple Developer di Atlantis srl (`4S9758D224`, in `app.json`): la firma dura un anno. Se l'iPhone ha ancora una copia installata con il team personale, va eliminata prima di reinstallare (vedi "Installare l'app su iPhone" nel README).
