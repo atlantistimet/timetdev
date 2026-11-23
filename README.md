@@ -179,4 +179,4 @@ I job che chiamano le funzioni contengono il segreto `CRON_SECRET` e per questo 
 - Le scritture di denaro (prenotazioni, chiamate, movimenti) passano solo dal server con service role: per gli utenti ci sono solo policy di lettura.
 - Ogni testo scritto dagli utenti porta la propria lingua; le traduzioni automatiche sono in cache nella tabella `content_versions`.
 - Non committare mai chiavi segrete (`.env` è ignorato). La service role key va solo nelle edge functions.
-- Prima di dichiarare finito un lavoro: `npx tsc --noEmit` e `npx expo lint` senza errori.
+- Prima di dichiarare finito un lavoro: `npx tsc --noEmit` e `npx eslint .` senza errori.
