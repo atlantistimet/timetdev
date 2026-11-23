@@ -46,3 +46,4 @@ supabase/.temp/
 
 # documenti privati di progetto (strategia, fiscale, specifiche): mai nel repository pubblico
 /docs-private/
+/uxui/

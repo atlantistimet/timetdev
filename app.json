@@ -91,6 +91,12 @@
     "scheme": "timeet",
     "experiments": {
       "typedRoutes": true
+    },
+    "owner": "atlantis_it",
+    "extra": {
+      "eas": {
+        "projectId": "03e2b0b8-0bfc-4883-9633-f095f864c188"
+      }
     }
   }
 }
