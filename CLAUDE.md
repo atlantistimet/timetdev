@@ -8,6 +8,7 @@ Lo stato dei lavori, le decisioni e le specifiche (strategia, fiscale, Team, che
 - **Non committare mai nulla di `docs-private/`** (è in `.gitignore`: controlla con `git status` prima di ogni commit) e non copiarne il contenuto in README, commenti nel codice, messaggi di commit o altri file tracciati.
 - **`docs-private/` è la base dei documenti** (vale più della copia nel Project). A ogni lavoro chiuso aggiorna `docs-private/timeet-stato-lavori.md`: cosa è stato fatto, migrazioni applicate, decisioni prese, cosa resta. Se una specifica cambia, aggiorna il suo file. Non toccare gli altri.
 - Se il documento di stato e il codice si contraddicono, dimmelo invece di scegliere.
+- I documenti **già nel repository** (`README.md`, `CLAUDE.md`, `AGENTS.md`, `supabase/checks/`) si aggiornano invece su git, nello stesso commit del lavoro: per esempio la tabella delle migrazioni del README a ogni nuova migrazione. Sono pubblici: niente di riservato.
 
 ## Come lavora Nicolò (valgono sempre)
 - **Rispondi in italiano.** I testi dell'app sono in italiano e l'inglese è la seconda lingua: ogni chiave nuova va in `src/i18n/locales/it.json` **e** `en.json`. Nessun testo scritto nel codice.
