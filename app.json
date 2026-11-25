@@ -52,6 +52,13 @@
         }
       ],
       "expo-dev-client",
+      [
+        "expo-notifications",
+        {
+          "color": "#E7FF67",
+          "defaultChannel": "default"
+        }
+      ],
       "./plugins/withNoScriptSandbox",
       "@livekit/react-native-expo-plugin",
       "@config-plugins/react-native-webrtc",

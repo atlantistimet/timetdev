@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { requestPushPrompt } from '@/lib/push';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -62,6 +63,11 @@ export default function ServiceEditScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryKey, setCategoryKey] = useState<string | null>(null);
   const [done, setDone] = useState<{ id: string; note: string | null } | null>(null);
+  const doneId = done?.id ?? null;
+  // appena pubblicato il servizio, se serve, si propone di attivare le notifiche
+  useEffect(() => {
+    if (doneId) void requestPushPrompt('seller');
+  }, [doneId]);
   const availability = useSpecificAvailability({ sellerId: userId, scope: 'service', targetId: id ?? null, inheritServiceId: null });
 
   useEffect(() => {

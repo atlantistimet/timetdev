@@ -1553,5 +1553,13 @@
       "already_disputed": "Hai già contestato questa assenza.",
       "not_disputable": "Questa assenza non si può contestare."
     }
+  },
+  "push": {
+    "channelName": "Notifiche di Timeet",
+    "promptTitle": "Resta aggiornato",
+    "prompt_client": "Ti avvisiamo quando il professionista risponde e prima dell’appuntamento.",
+    "prompt_seller": "Ti avvisiamo appena arriva una prenotazione o un messaggio.",
+    "enable": "Attiva le notifiche",
+    "notNow": "Non ora"
   }
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
 export type Notif = {
@@ -20,6 +21,48 @@ export async function listNotifications(userId: string): Promise<{ items: Notif[
     .limit(60);
   if (error) return { items: [], errorKey: 'errors.generic' };
   return { items: (data ?? []) as Notif[], errorKey: null };
+}
+
+export async function getNotification(id: string): Promise<Notif | null> {
+  const { data } = await supabase.from('notifications').select('id, kind, ref_table, ref_id, payload, read_at, created_at').eq('id', id).maybeSingle();
+  return (data as Notif | null) ?? null;
+}
+
+/** La si segna letta e si apre la schermata giusta. Ritorna false se il tipo non ha una destinazione (la lista va ricaricata). */
+export async function openNotification(n: Notif): Promise<boolean> {
+  await markRead(n.id);
+  const p = n.payload as Record<string, string | undefined>;
+  switch (n.kind) {
+    case 'booking_new':
+    case 'booking_cancelled':
+    case 'booking_no_show':
+    case 'tip':
+    case 'review':
+      if (n.ref_id) router.push(n.ref_table === 'calls' ? { pathname: '/call/[id]', params: { id: n.ref_id } } : { pathname: '/session/[id]', params: { id: n.ref_id } });
+      return true;
+    case 'package_new':
+      router.push('/bookings');
+      return true;
+    case 'message':
+      if (p.sender_id) router.push({ pathname: '/chat/[userId]', params: { userId: p.sender_id } });
+      return true;
+    case 'comment':
+    case 'tag_request':
+    case 'tag_accepted':
+      if (n.ref_id) router.push({ pathname: '/p/[id]', params: { id: n.ref_id } });
+      return true;
+    case 'review_shared':
+      return true;
+    case 'review_reply':
+    case 'follow':
+      if (p.handle) router.push({ pathname: '/u/[handle]', params: { handle: p.handle } });
+      return true;
+    case 'availability_expiring':
+      router.push('/availability');
+      return true;
+    default:
+      return false;
+  }
 }
 
 export async function countUnread(userId: string): Promise<number> {

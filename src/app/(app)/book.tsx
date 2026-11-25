@@ -35,6 +35,7 @@ import {
   type SlotService,
 } from '@/lib/booking';
 import { discountedCents, offerApplies, type Validity } from '@/lib/validity';
+import { requestPushPrompt } from '@/lib/push';
 import { loadLinkByCode, type SlotLink } from '@/lib/slot-links';
 import { finalPriceCents, loadOffer, type Offer } from '@/lib/offers';
 import { loadServiceTiers, type Tier } from '@/lib/cancel-policy';
@@ -104,6 +105,11 @@ export default function BookScreen() {
       active = false;
     };
   }, [serviceId, offerId, code, i18n.language]);
+
+  // dopo il pagamento, se serve, si propone di attivare le notifiche (la schermata compare solo la prima volta)
+  useEffect(() => {
+    if (paid) void requestPushPrompt('client');
+  }, [paid]);
 
   useEffect(() => {
     if (!loaded || loaded === 'missing' || units === null) return;

@@ -1553,5 +1553,13 @@
       "already_disputed": "You've already disputed this no-show.",
       "not_disputable": "This no-show can't be disputed."
     }
+  },
+  "push": {
+    "channelName": "Timeet notifications",
+    "promptTitle": "Stay in the loop",
+    "prompt_client": "We’ll let you know when the professional replies and before your appointment.",
+    "prompt_seller": "We’ll let you know as soon as a booking or message comes in.",
+    "enable": "Turn on notifications",
+    "notNow": "Not now"
   }
 }

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
@@ -9,7 +8,7 @@ import { ErrorText, LoadingView, Screen } from '@/components/ui';
 import { fonts, useTheme } from '@/theme';
 import { useAuth } from '@/lib/auth';
 import { formatEuro } from '@/lib/booking';
-import { answerReviewPublicity, listNotifications, markAllRead, markRead, type Notif } from '@/lib/notifications';
+import { answerReviewPublicity, listNotifications, markAllRead, openNotification, type Notif } from '@/lib/notifications';
 
 type Loaded = { items: Notif[]; errorKey: string | null; nowMs: number };
 
@@ -51,39 +50,7 @@ export default function NotificationsScreen() {
   };
 
   const open = async (n: Notif) => {
-    await markRead(n.id);
-    const p = n.payload as Record<string, string | undefined>;
-    switch (n.kind) {
-      case 'booking_new':
-      case 'booking_cancelled':
-      case 'booking_no_show':
-      case 'tip':
-      case 'review':
-        if (n.ref_id) router.push(n.ref_table === 'calls' ? { pathname: '/call/[id]', params: { id: n.ref_id } } : { pathname: '/session/[id]', params: { id: n.ref_id } });
-        break;
-      case 'package_new':
-        router.push('/bookings');
-        break;
-      case 'message':
-        if (p.sender_id) router.push({ pathname: '/chat/[userId]', params: { userId: p.sender_id } });
-        break;
-      case 'comment':
-      case 'tag_request':
-      case 'tag_accepted':
-        if (n.ref_id) router.push({ pathname: '/p/[id]', params: { id: n.ref_id } });
-        break;
-      case 'review_shared':
-        break;
-      case 'review_reply':
-      case 'follow':
-        if (p.handle) router.push({ pathname: '/u/[handle]', params: { handle: p.handle } });
-        break;
-      case 'availability_expiring':
-        router.push('/availability');
-        break;
-      default:
-        setReloadKey((k) => k + 1);
-    }
+    if (!(await openNotification(n))) setReloadKey((k) => k + 1);
   };
 
   const EMOJI: Record<string, string> = {
