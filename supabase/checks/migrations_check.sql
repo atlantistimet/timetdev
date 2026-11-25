@@ -52,7 +52,11 @@ with c(migrazione, controllo, ok) as (values
   ('0040', 'bookings.auto_no_show_at',      exists(select 1 from information_schema.columns where table_schema='public' and table_name='bookings' and column_name='auto_no_show_at')),
   ('0040', 'function checkin_booking',      exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='checkin_booking')),
   ('0040', 'function confirm_attended',     exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='confirm_attended')),
-  ('0040', 'job booking-checkin-sweep',     exists(select 1 from cron.job where jobname='booking-checkin-sweep'))
+  ('0040', 'job booking-checkin-sweep',     exists(select 1 from cron.job where jobname='booking-checkin-sweep')),
+
+  ('0042', 'table push_devices',            exists(select 1 from information_schema.tables where table_schema='public' and table_name='push_devices')),
+  ('0042', 'function register_push_device', exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='register_push_device')),
+  ('0042', 'function unregister_push_device', exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='unregister_push_device'))
 )
 select migrazione,
        case when bool_and(ok) then 'ok' else 'MANCA' end as stato,
