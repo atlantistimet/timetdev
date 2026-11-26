@@ -1051,7 +1051,10 @@
     "report": "Segnala un problema",
     "support": "Assistenza",
     "soon": "in arrivo",
-    "soonNote": "Questa funzione arriverà presto."
+    "soonNote": "Questa funzione arriverà presto.",
+    "paymentSection": "Pagamento",
+    "actionsSection": "Azioni",
+    "reviewSection": "Recensione"
   },
   "calls": {
     "rateLine": "{{price}} al minuto",

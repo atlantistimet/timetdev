@@ -23,7 +23,7 @@ export default function Home() {
   const { session } = useAuth();
   const [creating, setCreating] = useState(false);
   const userId = session?.user.id ?? null;
-  const unread = useUnreadCount(userId);
+  const unread = useUnreadCount(userId, 0, true);
   const [scope, setScope] = useState<'all' | 'following'>('all');
   const [loaded, setLoaded] = useState<{ posts: Post[]; errorKey: string | null; nowMs: number; scope: string } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -90,10 +90,14 @@ export default function Home() {
           </View>
         </View>
         <View style={styles.headerBtns}>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('notifications.title')} onPress={() => router.push('/notifications')} style={[styles.round, { backgroundColor: theme.surface }]}>
-            <Ionicons name="notifications-outline" size={22} color={theme.text} />
-            {unread > 0 ? <View style={[styles.dot, { backgroundColor: theme.accent, borderColor: theme.ink }]} /> : null}
-          </Pressable>
+          {unread > 0 ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={t('notifications.title')} onPress={() => router.push('/notifications')} style={[styles.round, { backgroundColor: theme.surface }]}>
+              <Ionicons name="notifications-outline" size={22} color={theme.text} />
+              <View style={[styles.count, { backgroundColor: theme.ink, borderColor: theme.surface }]}>
+                <Text style={[styles.countText, { color: theme.accent }]}>{unread > 9 ? '9+' : unread}</Text>
+              </View>
+            </Pressable>
+          ) : null}
           <Pressable accessibilityRole="button" accessibilityLabel={t('tabs.profile')} onPress={() => router.push('/profile')}>
             <Avatar name={me?.name || '?'} seed={userId} size={46} path={me?.avatar} />
           </Pressable>
@@ -161,7 +165,8 @@ const styles = StyleSheet.create({
   addCircle: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center' },
   headerBtns: { flexDirection: 'row', gap: 8 },
   round: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
-  dot: { position: 'absolute', top: 10, right: 11, width: 10, height: 10, borderRadius: 5, borderWidth: 1.5 },
+  count: { position: 'absolute', top: -2, right: -2, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  countText: { fontFamily: fonts.semibold, fontSize: 11 },
   people: { gap: 12, paddingVertical: 16, paddingHorizontal: 24 },
   person: { width: 64, alignItems: 'center', gap: 5 },
   ring: { padding: 3, borderRadius: 40, borderWidth: 2.5, borderColor: 'transparent' },

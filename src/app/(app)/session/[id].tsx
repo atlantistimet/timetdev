@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -8,6 +8,7 @@ import { Avatar } from '@/components/Avatar';
 import { ProfileTap } from '@/components/ProfileTap';
 import { CancelSheet } from '@/components/BookingSheets';
 import { CheckinSection } from '@/components/CheckinSection';
+import { Group, GroupRow, Section } from '@/components/settings';
 import { PaymentForm } from '@/components/PaymentForm';
 import { ReviewForm } from '@/components/ReviewForm';
 import { Body, Button, Card, Chip, ChipRow, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
@@ -139,7 +140,7 @@ export default function SessionScreen() {
     </View>
   );
   const line = (label: string, value: string, strong?: boolean) => (
-    <View style={[styles.line, strong && { paddingTop: 8, borderTopWidth: 1, borderTopColor: theme.fill }]}>
+    <View key={label} style={styles.line}>
       <Text style={[styles.lineText, { color: strong ? theme.text : theme.muted, fontFamily: strong ? fonts.semibold : fonts.regular }]}>{label}</Text>
       <Text style={[styles.lineText, { color: theme.text, fontFamily: strong ? fonts.semibold : fonts.regular }]}>{value}</Text>
     </View>
@@ -195,18 +196,33 @@ export default function SessionScreen() {
   const totalMs = new Date(s.ends_at).getTime() - new Date(s.checked_in_at ?? s.starts_at).getTime();
   const progress = s.checked_in_at && totalMs > 0 ? Math.min(1, Math.max(0, (nowMs - new Date(s.checked_in_at).getTime()) / totalMs)) : 0;
   const hhmm = (iso: string) => new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
-  const row = (icon: keyof typeof Ionicons.glyphMap, label: string, onPress: () => void, sub?: string) => (
-    <Pressable accessibilityRole="button" onPress={onPress} style={[styles.card, styles.cancelRow, { backgroundColor: theme.surface }]}>
-      <View style={[styles.cancelIcon, { backgroundColor: theme.bg }]}>
-        <Ionicons name={icon} size={18} color={theme.ink} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.cancelText, { color: theme.text }]}>{label}</Text>
-        {sub ? <Text style={[styles.rowSub, { color: theme.muted }]}>{sub}</Text> : null}
-      </View>
-      <Ionicons name="chevron-forward" size={16} color={theme.muted} />
-    </Pressable>
-  );
+  const row = (icon: keyof typeof Ionicons.glyphMap, label: string, onPress: () => void, sub?: string) => <GroupRow key={label} icon={icon} label={label} sub={sub} onPress={onPress} />;
+  const payRows: ReactNode[] = isClient
+    ? [
+        line(t('book.session'), fmt(s.price_cents)),
+        s.extra_cents > 0 ? line(t('book.spaceRow'), fmt(s.extra_cents)) : null,
+        line(t('book.feeRow'), fmt(s.client_fee_cents)),
+        line(s.paid ? t('session.amountPaid') : t('session.notPaid'), fmt(paidByClient), true),
+      ]
+    : [
+        line(t('book.session'), fmt(s.price_cents + s.extra_cents)),
+        line(t('book.feeRow'), `−${fmt(s.seller_fee_cents)}`),
+        line(t('session.sellerNet'), fmt(sellerNet), true),
+      ];
+  if (s.refund_cents > 0) payRows.push(line(t('session.refunded'), fmt(s.refund_cents)));
+  if (s.tipsCents > 0) payRows.push(line(t(isClient ? 'session.tipSent' : 'session.tipReceived', { amount: '' }).replace(/[:\s]+$/, ''), fmt(s.tipsCents)));
+  // dopo il check-in annulla solo il venditore, con rimborso totale (cancel-booking)
+  const actions: ReactNode[] = [
+    row('chatbubble-ellipses-outline', t('checkin.writeTo', { name: first }), () => router.push({ pathname: '/chat/[userId]', params: { userId: other.id } })),
+    row('alert-circle-outline', t('safety.support.reportProblem'), () => router.push({ pathname: '/support', params: { kind: 'session', refType: 'booking', refId: s.id } })),
+    ...(inProgress
+      ? !isClient && canCancel
+        ? [row('close', t('checkin.cancelRefund'), () => setShowCancel(true), t('checkin.cancelRefundSub', { name: first }))]
+        : []
+      : canCancel && isClient && !s.checked_in_at
+        ? [row('close', t('bookings.cancel'), () => setShowCancel(true))]
+        : []),
+  ];
 
   return (
     <Screen bare>
@@ -281,61 +297,39 @@ export default function SessionScreen() {
         />
         {s.description && !inProgress ? <Text style={[styles.desc, { color: theme.muted }]}>{s.description}</Text> : null}
         {s.place === 'domicilio' && s.client_address ? <Text style={[styles.desc, { color: theme.muted }]}>{s.client_address}</Text> : null}
-        <View style={[styles.card, { backgroundColor: theme.surface }]}>
-          {isClient ? (
-            <>
-              {line(t('book.session'), fmt(s.price_cents))}
-              {s.extra_cents > 0 ? line(t('book.spaceRow'), fmt(s.extra_cents)) : null}
-              {line(t('book.feeRow'), fmt(s.client_fee_cents))}
-              {line(s.paid ? t('session.amountPaid') : t('session.notPaid'), fmt(paidByClient), true)}
-            </>
-          ) : (
-            <>
-              {line(t('book.session'), fmt(s.price_cents + s.extra_cents))}
-              {line(t('book.feeRow'), `−${fmt(s.seller_fee_cents)}`)}
-              {line(t('session.sellerNet'), fmt(sellerNet), true)}
-            </>
-          )}
-          {s.refund_cents > 0 ? line(t('session.refunded'), fmt(s.refund_cents)) : null}
-          {s.tipsCents > 0 ? line(t(isClient ? 'session.tipSent' : 'session.tipReceived', { amount: '' }).replace(/[:\s]+$/, ''), fmt(s.tipsCents)) : null}
-        </View>
-        {inProgress ? (
-          <>
-            {row('chatbubble-ellipses-outline', t('checkin.writeTo', { name: first }), () => router.push({ pathname: '/chat/[userId]', params: { userId: other.id } }))}
-            {row('alert-circle-outline', t('safety.support.reportProblem'), () => router.push({ pathname: '/support', params: { kind: 'session', refType: 'booking', refId: s.id } }))}
-            {/* Dopo il check-in annulla solo il venditore, con rimborso totale (cancel-booking). */}
-            {!isClient && canCancel ? row('close', t('checkin.cancelRefund'), () => setShowCancel(true), t('checkin.cancelRefundSub', { name: first })) : null}
-          </>
-        ) : canCancel && isClient && !s.checked_in_at ? (
-          <Pressable accessibilityRole="button" onPress={() => setShowCancel(true)} style={[styles.card, styles.cancelRow, { backgroundColor: theme.surface }]}>
-            <View style={[styles.cancelIcon, { backgroundColor: theme.bg }]}>
-              <Ionicons name="close" size={18} color={theme.ink} />
-            </View>
-            <Text style={[styles.cancelText, { color: theme.text }]}>{t('bookings.cancel')}</Text>
-            <Ionicons name="chevron-forward" size={16} color={theme.muted} />
-          </Pressable>
+        <Section label={t('session.paymentSection')}>
+          <Group>{payRows}</Group>
+        </Section>
+        {actions.length > 0 ? (
+          <Section label={t('session.actionsSection')}>
+            <Group>{actions}</Group>
+          </Section>
         ) : null}
       {s.review ? (
+        <Section label={t('session.reviewSection')}>
         <Card>
           <Body muted>{t('session.rating')}</Body>
           <Body>{stars(s.review.rating)}</Body>
           {s.review.body ? <Body muted>{s.review.body}</Body> : null}
         </Card>
+        </Section>
       ) : null}
       {canReview ? (
+        <Section label={t('session.reviewSection')}>
         <Card>
           <ReviewForm bookingId={s.id} authorId={me} sellerId={s.seller_id} onDone={() => setReloadKey((k) => k + 1)} />
         </Card>
+        </Section>
       ) : null}
 
       {note ? <Body muted>{note}</Body> : null}
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
 
+      <View style={styles.more}>
       <Button title={t('session.print')} variant="ghost" onPress={() => void printSummary(t('session.summaryTitle'), summaryLines())} />
 
       {isClient ? (
         <>
-          <Spacer size={8} />
           {s.requests.length > 0 ? (
             <Body muted>{s.requests.map((r) => `${t(`session.kind.${r.kind}`)}: ${t(`session.requestStatus.${r.status}`)}`).join(' · ')}</Body>
           ) : null}
@@ -356,7 +350,6 @@ export default function SessionScreen() {
 
       {canTip ? (
         <>
-          <Spacer size={8} />
           {tipPayment ? (
             <Card>
               <Body>{t('session.tipPay', { amount: fmt(tipPayment.amount_cents) })}</Body>
@@ -382,8 +375,7 @@ export default function SessionScreen() {
               </ChipRow>
               {tipChoice === 'custom' ? <TextField label={t('session.tipCustom')} value={customTip} onChangeText={setCustomTip} keyboardType="decimal-pad" hint={t('session.tipRange')} /> : null}
               <Body muted>{t('session.tipNoFee')}</Body>
-              <Spacer size={8} />
-              <Button title={t('session.tipContinue')} onPress={() => void startTip()} loading={busy} />
+                  <Button title={t('session.tipContinue')} onPress={() => void startTip()} loading={busy} />
             </Card>
           ) : (
             <Button title={t('session.addTip')} variant="ghost" onPress={() => setShowTip(true)} />
@@ -391,10 +383,7 @@ export default function SessionScreen() {
         </>
       ) : null}
 
-      <Spacer size={8} />
-      <Button title={`${t('session.report')} · ${t('session.soon')}`} variant="ghost" onPress={() => setNote(t('session.soonNote'))} />
-      <Spacer size={8} />
-      <Button title={`${t('session.support')} · ${t('session.soon')}`} variant="ghost" onPress={() => setNote(t('session.soonNote'))} />
+      </View>
       </View>
       {showCancel ? (
         <CancelSheet
@@ -426,10 +415,11 @@ const styles = StyleSheet.create({
   tile: { flex: 1, backgroundColor: 'rgba(255,255,255,0.65)', borderRadius: 20, paddingVertical: 10, paddingHorizontal: 12 },
   tileSmall: { fontFamily: fonts.medium, fontSize: 11 },
   tileBig: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: -0.7 },
-  body: { paddingHorizontal: 16, gap: 10 },
+  body: { paddingHorizontal: 16, gap: 22 },
+  more: { gap: 8 },
   desc: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, paddingHorizontal: 4 },
   card: { borderRadius: 28, paddingVertical: 14, paddingHorizontal: 16, gap: 8 },
-  line: { flexDirection: 'row', justifyContent: 'space-between' },
+  line: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 13 },
   lineText: { fontSize: 15 },
   cancelRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   cancelIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },

@@ -8,6 +8,7 @@ import { Avatar } from '@/components/Avatar';
 import { ProfileTap } from '@/components/ProfileTap';
 import { Emoji } from '@/components/Emoji';
 import { LoadingView, Screen } from '@/components/ui';
+import { Group } from '@/components/settings';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { listConversations, type ConversationItem } from '@/lib/chat';
@@ -96,7 +97,7 @@ export default function MessagesScreen() {
           </Pressable>
         </View>
       ) : (
-        <View style={[styles.list, { backgroundColor: theme.surface }]}>
+        <Group>
           {shown.map((c) => (
             <Pressable key={c.id} accessibilityRole="button" onPress={() => router.push({ pathname: '/chat/[userId]', params: { userId: c.otherId } })} style={styles.row}>
               <View style={[c.availableNow && [styles.ring, { borderColor: theme.ink }]]}>
@@ -119,21 +120,21 @@ export default function MessagesScreen() {
               </View>
             </Pressable>
           ))}
-        </View>
+        </Group>
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { fontFamily: fonts.semibold, fontSize: 36, letterSpacing: -1.4, marginTop: 8, paddingHorizontal: 4 },
+  title: { fontFamily: fonts.semibold, fontSize: 28, letterSpacing: -0.9, marginTop: 8, paddingHorizontal: 4 },
   search: { height: 52, borderRadius: 26, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 18, marginTop: 12 },
   searchInput: { flex: 1, fontFamily: fonts.regular, fontSize: 16 },
   chips: { flexDirection: 'row', gap: 8, marginVertical: 14 },
   chip: { height: 40, paddingHorizontal: 16, borderRadius: 20, justifyContent: 'center' },
   chipText: { fontFamily: fonts.medium, fontSize: 15 },
   list: { borderRadius: 32, padding: 6 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 24 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   ring: { borderWidth: 2, borderRadius: 999, padding: 0 },
   live: { position: 'absolute', right: 0, bottom: 0, width: 14, height: 14, borderRadius: 7, borderWidth: 2.5 },
   line: { flexDirection: 'row', alignItems: 'center', gap: 8 },

@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
 import Svg, { Path } from 'react-native-svg';
 import { router, usePathname, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/lib/auth';
-import { useUnreadCount } from '@/lib/notifications';
+import { useUnreadMessages } from '@/lib/chat';
 import Animated, { Easing, interpolate, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { barCompact, resetBar } from '@/lib/chrome';
-import { useTheme } from '@/theme';
+import { fonts, useTheme } from '@/theme';
 
 type TabKey = 'services' | 'index' | 'bookings' | 'messages' | 'profile';
 
@@ -45,7 +45,7 @@ export function TabBar() {
   const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const { session } = useAuth();
-  const unread = useUnreadCount(session?.user.id ?? null);
+  const unread = useUnreadMessages(session?.user.id ?? null);
   const [lastTab, setLastTab] = useState<TabKey>('index');
   const here = ROOTS[pathname];
   if (here && here !== lastTab) setLastTab(here);
@@ -84,7 +84,11 @@ export function TabBar() {
               <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={focused ? theme.onAccent : theme.inkMuted} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <Path d={ICONS[tab.key]} />
               </Svg>
-              {tab.key === 'profile' && unread > 0 ? <View style={[styles.badge, { backgroundColor: theme.accent, borderColor: theme.ink }]} /> : null}
+              {tab.key === 'messages' && unread > 0 ? (
+                <View style={[styles.badge, { backgroundColor: theme.accent, borderColor: theme.ink }]}>
+                  <Text style={[styles.badgeText, { color: theme.onAccent }]}>{unread > 9 ? '9+' : unread}</Text>
+                </View>
+              ) : null}
             </Pressable>
           );
         })}
@@ -111,5 +115,6 @@ const styles = StyleSheet.create({
   },
   circle: { position: 'absolute', left: 6, top: 6, width: 54, height: 54, borderRadius: 999 },
   item: { width: 54, height: 54, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
-  badge: { position: 'absolute', top: 12, right: 12, width: 10, height: 10, borderRadius: 5, borderWidth: 2 },
+  badge: { position: 'absolute', top: 5, right: 3, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 3, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  badgeText: { fontFamily: fonts.semibold, fontSize: 11 },
 });

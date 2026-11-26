@@ -54,17 +54,20 @@ export function Group({ children }: { children: ReactNode }) {
   );
 }
 
-type RowProps = { icon: keyof typeof Ionicons.glyphMap; label: string; value?: string; danger?: boolean; chevron?: boolean; /** frase lunga: testo normale su più righe */ plain?: boolean; onPress?: () => void };
+type RowProps = { icon: keyof typeof Ionicons.glyphMap; label: string; /** riga piccola sotto il titolo */ sub?: string; value?: string; danger?: boolean; chevron?: boolean; /** frase lunga: testo normale su più righe */ plain?: boolean; onPress?: () => void };
 
 /** Riga di una scheda: icona in un riquadro, titolo, valore e freccia. Senza `onPress` non è toccabile. */
-export function GroupRow({ icon, label, value, danger, chevron = true, plain, onPress }: RowProps) {
+export function GroupRow({ icon, label, sub, value, danger, chevron = true, plain, onPress }: RowProps) {
   const theme = useTheme();
   const body = (
     <View style={styles.row}>
       <View style={[styles.chip, { backgroundColor: theme.bg }]}>
         <Ionicons name={icon} size={18} color={danger ? theme.danger : theme.ink} />
       </View>
-      <Text style={[styles.rowLabel, plain && styles.rowPlain, { color: danger ? theme.danger : theme.text }]}>{label}</Text>
+      <View style={styles.rowText}>
+        <Text style={[styles.rowLabel, plain && styles.rowPlain, { color: danger ? theme.danger : theme.text }]}>{label}</Text>
+        {sub ? <Text style={[styles.rowSub, { color: theme.muted }]}>{sub}</Text> : null}
+      </View>
       {value ? <Text style={[styles.rowValue, { color: theme.muted }]}>{value}</Text> : null}
       {onPress && chevron ? <Ionicons name="chevron-forward" size={18} color={theme.muted} /> : null}
     </View>
@@ -87,7 +90,9 @@ const styles = StyleSheet.create({
   group: { borderRadius: 22, paddingHorizontal: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   chip: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  rowLabel: { flex: 1, fontFamily: fonts.semibold, fontSize: 15 },
+  rowText: { flex: 1, gap: 1 },
+  rowLabel: { fontFamily: fonts.semibold, fontSize: 15 },
+  rowSub: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 18 },
   rowPlain: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 20 },
   rowValue: { fontFamily: fonts.medium, fontSize: 14 },
 });

@@ -6,7 +6,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { ProfileTap } from '@/components/ProfileTap';
-import { AvailableNowCard } from '@/components/AvailableNowCard';
 import { Button, ErrorText, LoadingView, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { cleanTitle, formatEuro, listMyBookings, type MyBooking } from '@/lib/booking';
@@ -35,6 +34,8 @@ export default function SellerScreen() {
   const [rating, setRating] = useState<{ avg: number | null; count: number }>({ avg: null, count: 0 });
   const [until, setUntil] = useState<string | null>(null);
   const [nowMs, setNowMs] = useState(0);
+  const [choice, setChoice] = useState<1 | 2 | 4 | 'today'>(2);
+  const [availErrorKey, setAvailErrorKey] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const [startErrorKey, setStartErrorKey] = useState<string | null>(null);
 
@@ -111,10 +112,19 @@ export default function SellerScreen() {
 
   const state = sellerState(account.account);
   const available = !!until && new Date(until).getTime() > nowMs;
-  const toggle = async () => {
-    await setAvailableNow(userId, available ? null : 2);
+  // durata: 1, 2 o 4 ore oppure fino a fine giornata; spegnere azzera
+  const setFor = async (c: 1 | 2 | 4 | 'today' | null) => {
+    const midnight = new Date();
+    midnight.setHours(23, 59, 0, 0);
+    const hours = c === null ? null : c === 'today' ? Math.max(0.25, (midnight.getTime() - Date.now()) / 3_600_000) : c;
+    const failure = await setAvailableNow(userId, hours);
+    setAvailErrorKey(failure);
+    if (c) setChoice(c);
     apply(await fetchAll());
   };
+  const toggle = () => setFor(available ? null : choice);
+  const untilText = until ? new Date(until).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' }) : '';
+  const choices: [1 | 2 | 4 | 'today', string][] = [[1, '1 h'], [2, '2 h'], [4, '4 h'], ['today', t('explore.today')]];
 
   const countdown = (() => {
     if (!summary.next) return null;
@@ -137,6 +147,26 @@ export default function SellerScreen() {
           <Text style={[styles.switchLabel, { color: theme.text }]}>{available ? t('seller.panel.available') : t('seller.panel.unavailable')}</Text>
         </Pressable>
       </View>
+
+      {available ? (
+        <View style={[styles.avail, { backgroundColor: theme.accent }]}>
+          <View>
+            <Text style={[styles.availTitle, { color: theme.onAccent }]}>{t('explore.availableNow')}</Text>
+            <Text style={[styles.availSub, { color: theme.onAccent }]}>{t('explore.activeUntil', { time: untilText })}</Text>
+          </View>
+          <View style={styles.availRow}>
+            {choices.map(([c, label]) => {
+              const on = choice === c;
+              return (
+                <Pressable key={String(c)} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => void setFor(c)} style={[styles.availChip, { backgroundColor: on ? theme.ink : 'rgba(255,255,255,0.65)' }]}>
+                  <Text style={[styles.availChipText, { color: on ? '#FFFFFF' : theme.ink }]}>{label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          {availErrorKey ? <ErrorText>{t(availErrorKey)}</ErrorText> : null}
+        </View>
+      ) : null}
 
       {state !== 'ready' ? (
         <View style={[styles.stripe, { backgroundColor: theme.accent }]}>
@@ -222,7 +252,6 @@ export default function SellerScreen() {
         ))}
       </View>
 
-      <AvailableNowCard key={String(until)} userId={userId} />
     </Screen>
   );
 }
@@ -235,6 +264,12 @@ const styles = StyleSheet.create({
   track: { width: 64, height: 38, borderRadius: 999, padding: 4, flexDirection: 'row', alignItems: 'center' },
   knob: { width: 30, height: 30, borderRadius: 999 },
   switchLabel: { fontFamily: fonts.semibold, fontSize: 12 },
+  avail: { borderRadius: 28, padding: 14, gap: 12, marginBottom: 10 },
+  availTitle: { fontFamily: fonts.semibold, fontSize: 18, letterSpacing: -0.3 },
+  availSub: { fontFamily: fonts.medium, fontSize: 14 },
+  availRow: { flexDirection: 'row', gap: 6 },
+  availChip: { flex: 1, height: 38, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  availChipText: { fontFamily: fonts.semibold, fontSize: 14 },
   stripe: { borderRadius: 30, padding: 16, gap: 12, marginBottom: 10 },
   stripeText: { fontFamily: fonts.medium, fontSize: 14 },
   next: { borderRadius: 34, paddingVertical: 16, paddingHorizontal: 18, flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 10 },

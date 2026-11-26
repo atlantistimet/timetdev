@@ -4,7 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Emoji } from '@/components/Emoji';
 import { ServiceHero } from '@/components/ServiceHero';
-import { TierLines } from '@/components/TierLines';
+import { TierRows } from '@/components/TierLines';
+import { Group, GroupRow, Section } from '@/components/settings';
 import { ActionBar, Body, Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/components/ui';
 import { loadCategories, loadSellerStats, loadSellers, type Seller } from '@/lib/explore';
 import { fonts, pastelFor, radius, useTheme } from '@/theme';
@@ -115,28 +116,37 @@ export default function ServiceDetailScreen() {
           </View>
         ) : null}
         {service.kind === 'per_minute' ? (
-          <View style={[styles.card, { backgroundColor: theme.surface }]}>
-            <Text style={[styles.h2, { color: theme.text }]}>{t('calls.howItWorksTitle')}</Text>
-            <Body muted>{t('calls.howItWorks')}</Body>
-          </View>
+          <Section label={t('calls.howItWorksTitle')}>
+            <View style={[styles.card, { backgroundColor: theme.surface }]}>
+              <Body muted>{t('calls.howItWorks')}</Body>
+            </View>
+          </Section>
         ) : (
           <>
-            <Text style={[styles.h2, { color: theme.text }]}>{t('book.where')}</Text>
-            <View style={[styles.card, { backgroundColor: theme.surface }]}>
-              {service.places.map((p) => (
-                <Body key={p} muted>
-                  {t(`places.${p}`)}
-                  {p === 'sede' && place.place_address ? ` · ${place.place_address}` : ''}
-                  {p === 'sede' && service.space_fee_cents > 0 ? ` · +${fmt(service.space_fee_cents)}` : ''}
-                  {p === 'domicilio' && place.service_area ? ` · ${place.service_area}` : ''}
-                  {p === 'domicilio' && place.travel_fee_cents > 0 ? ` · +${fmt(place.travel_fee_cents)}` : ''}
-                </Body>
-              ))}
-            </View>
-            <Text style={[styles.h2, { color: theme.text }]}>{t('policy.cancelRules')}</Text>
-            <View style={[styles.card, { backgroundColor: theme.surface }]}>
-              <TierLines tiers={tiers} />
-            </View>
+            <Section label={t('book.where')}>
+              <Group>
+                {service.places.map((p) => (
+                  <GroupRow
+                    key={p}
+                    icon={p === 'sede' ? 'storefront-outline' : p === 'domicilio' ? 'home-outline' : 'videocam-outline'}
+                    label={t(`places.${p}`)}
+                    sub={
+                      [
+                        p === 'sede' && place.place_address ? place.place_address : null,
+                        p === 'sede' && service.space_fee_cents > 0 ? `+${fmt(service.space_fee_cents)}` : null,
+                        p === 'domicilio' && place.service_area ? place.service_area : null,
+                        p === 'domicilio' && place.travel_fee_cents > 0 ? `+${fmt(place.travel_fee_cents)}` : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ') || undefined
+                    }
+                  />
+                ))}
+              </Group>
+            </Section>
+            <Section label={t('policy.cancelRules')}>
+              <TierRows tiers={tiers} />
+            </Section>
           </>
         )}
         <Spacer size={4} />
@@ -146,9 +156,8 @@ export default function ServiceDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: 16, paddingTop: 6, gap: 12 },
+  body: { paddingHorizontal: 16, paddingTop: 6, gap: 22 },
   desc: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, paddingHorizontal: 4 },
-  h2: { fontFamily: fonts.semibold, fontSize: 22, letterSpacing: -0.45, marginTop: 4 },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   pill: { height: 34, paddingLeft: 6, paddingRight: 12, borderRadius: radius.pill, flexDirection: 'row', alignItems: 'center', gap: 6 },
   pillText: { fontFamily: fonts.medium, fontSize: 14 },

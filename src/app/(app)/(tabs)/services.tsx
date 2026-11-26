@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { ServiceCard } from '@/components/ServiceCard';
 import { Emoji } from '@/components/Emoji';
-import { Body, Button, Chip, ChipRow, ErrorText, LoadingView, Pill, Screen, Spacer } from '@/components/ui';
+import { Body, Button, Chip, ChipRow, ErrorText, LoadingView, Pill, Screen, SectionLabel, Spacer } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { cleanTitle, formatEuro, isTimed, listSlotServices, type SlotService } from '@/lib/booking';
 import {
@@ -214,7 +214,7 @@ export default function ServicesScreen() {
         </Pressable>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.pillsRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bleed} contentContainerStyle={styles.pillsRow}>
         <CategoryPill label={t('explore.allCategories')} selected={category === null} onPress={() => setCategory(null)} />
         {result.categories.map((c) => (
           <CategoryPill key={c.key} label={c.name} emoji={c.emoji} selected={category === c.key} onPress={() => setCategory(category === c.key ? null : c.key)} />
@@ -228,11 +228,10 @@ export default function ServicesScreen() {
           <View style={styles.sectionHead}>
             <View style={styles.sectionTitle}>
               <View style={[styles.liveDot, { backgroundColor: theme.accent, borderColor: theme.ink }]} />
-              <Text style={[type.section, { color: theme.text }]}>{t('explore.nowTitle')}</Text>
+              <SectionLabel>{t('explore.nowTitle')}</SectionLabel>
             </View>
-            <Text style={[type.body, { color: theme.muted }]}>{t('explore.seeAll')}</Text>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tilesRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bleed} contentContainerStyle={styles.tilesRow}>
             {nowPeople.map(({ seller, service }) => (
               <Pressable key={seller.id} accessibilityRole="button" onPress={() => openSeller(seller.id)} style={[styles.tile, { backgroundColor: pastelFor(seller.id) }]}>
                 <View style={styles.tileTop}>
@@ -252,7 +251,9 @@ export default function ServicesScreen() {
         </>
       ) : null}
 
-      <Text style={[styles.perTe, type.section, { color: theme.text }]}>{t('explore.forYou')}</Text>
+      <View style={styles.perTe}>
+        <SectionLabel>{t('explore.forYou')}</SectionLabel>
+      </View>
       {!result.errorKey && rows.length === 0 ? <Body muted>{result.services.length === 0 && result.offers.length === 0 ? t('book.noServices') : t('explore.noResults')}</Body> : null}
       <View style={styles.grid}>
         {rows.map((r) => {
@@ -350,21 +351,22 @@ const styles = StyleSheet.create({
   search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 54, borderRadius: radius.pill, paddingLeft: 18, paddingRight: 8, marginTop: 16 },
   searchInput: { flex: 1, fontFamily: fonts.medium, fontSize: 16, minHeight: 44 },
   filterBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  pillsRow: { gap: 8, paddingVertical: 16 },
+  bleed: { marginHorizontal: -20 },
+  pillsRow: { gap: 8, paddingVertical: 12, paddingHorizontal: 20 },
   catPill: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 42, paddingLeft: 6, paddingRight: 16, borderRadius: radius.pill },
   catIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   catText: { fontFamily: fonts.medium, fontSize: 15, paddingLeft: 2 },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 12 },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, marginBottom: 8 },
   sectionTitle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   liveDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
-  tilesRow: { gap: 10 },
+  tilesRow: { gap: 10, paddingHorizontal: 20 },
   tile: { width: 152, height: 200, borderRadius: 30, padding: 14, justifyContent: 'space-between' },
   tileTop: { flexDirection: 'row', justifyContent: 'space-between' },
   tileEmoji: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   tileBottom: { gap: 2 },
   tileName: { fontFamily: fonts.semibold, fontSize: 18 },
   tileRole: { fontFamily: fonts.medium, fontSize: 13, opacity: 0.75, marginBottom: 6 },
-  perTe: { marginTop: 24, marginBottom: 12 },
+  perTe: { marginTop: 22, marginBottom: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: radius.card, padding: 14, marginBottom: 12 },
   rowTile: { width: 58, height: 58, borderRadius: 20, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   rowBody: { flex: 1, gap: 2 },

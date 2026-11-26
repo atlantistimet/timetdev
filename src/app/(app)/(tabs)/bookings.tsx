@@ -9,6 +9,7 @@ import { ProfileTap } from '@/components/ProfileTap';
 import { OutcomeSheet } from '@/components/BookingSheets';
 import { Emoji } from '@/components/Emoji';
 import { ErrorText, LoadingView, Screen } from '@/components/ui';
+import { Group, Section } from '@/components/settings';
 import { useAuth } from '@/lib/auth';
 import { listMyBookings, type MyBooking } from '@/lib/booking';
 import { confirmAttended, isInProgress, loadSeenNoShows, markNoShowSeen, noShowLeftMs } from '@/lib/checkin';
@@ -134,6 +135,8 @@ export default function BookingsScreen() {
 
   return (
     <Screen tabs>
+      <View style={styles.stack}>
+      <View style={styles.head}>
       <Text style={[styles.title, { color: theme.text }]}>{t('tabs.agenda')}</Text>
       <View style={[styles.tabsRow, { borderBottomColor: theme.fill }]}>
         {toggles.map(([key, label]) => (
@@ -149,8 +152,11 @@ export default function BookingsScreen() {
           </Pressable>
         ))}
       </View>
+      </View>
       {listError ? <ErrorText>{t(listError)}</ErrorText> : null}
 
+      {(tab === 'upcoming' && (next || noShows.length > 0)) || pending.length > 0 ? (
+        <View style={styles.alerts}>
       {tab === 'upcoming' && next ? (
         <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/session/[id]', params: { id: next.id } })} style={[styles.countdown, { backgroundColor: theme.ink }]}>
           {nextLive && next.checked_in_at ? (
@@ -221,16 +227,17 @@ export default function BookingsScreen() {
           <Ionicons name="chevron-forward" size={20} color={theme.onAccent} />
         </Pressable>
       ))}
+        </View>
+      ) : null}
 
       {groups.map((g) => (
-        <View key={g.key}>
-          <Text style={[styles.dayHeader, { color: theme.muted }]}>{g.label}</Text>
-          <View style={[styles.list, { backgroundColor: theme.surface }]}>
-            {g.items.map((b, i) => {
+        <Section key={g.key} label={g.label}>
+          <Group>
+            {g.items.map((b) => {
               const o = otherOf(b);
               const sub = `${timeFmt.format(new Date(b.starts_at))} · ${o.name.split(' ')[0]} · ${role(b)}${tab === 'upcoming' ? '' : ` · ${t(`bookings.status.${b.status}`)}`}${b.package_id ? ` · ${t('bookings.package')}` : ''}`;
               return (
-                <Pressable key={b.id} accessibilityRole="button" onPress={() => open(b)} style={[styles.item, i > 0 && { borderTopWidth: 1, borderTopColor: theme.fill }]}>
+                <Pressable key={b.id} accessibilityRole="button" onPress={() => open(b)} style={styles.item}>
                   <ProfileTap userId={o.id}><Avatar name={o.name} seed={o.id} size={44} path={o.avatar} /></ProfileTap>
                   <View style={{ flex: 1 }}>
                     <Text numberOfLines={1} style={[styles.itemTitle, { color: theme.text }]}>{b.service_title}</Text>
@@ -249,8 +256,8 @@ export default function BookingsScreen() {
                 </Pressable>
               );
             })}
-          </View>
-        </View>
+          </Group>
+        </Section>
       ))}
 
       {empty && (tab !== 'upcoming' || noShows.length === 0) ? (
@@ -267,6 +274,8 @@ export default function BookingsScreen() {
           ) : null}
         </View>
       ) : null}
+
+      </View>
 
       {outcomeFor ? (
         <OutcomeSheet
@@ -289,7 +298,7 @@ const styles = StyleSheet.create({
   cdBig: { fontFamily: fonts.semibold, fontSize: 28, letterSpacing: -1 },
   cdSub: { fontFamily: fonts.regular, fontSize: 14, opacity: 0.8 },
   liveBig: { fontFamily: fonts.semibold, fontSize: 56, lineHeight: 54, letterSpacing: -3.4, fontVariant: ['tabular-nums'] },
-  noShow: { borderRadius: 32, padding: 16, gap: 12, marginTop: 12 },
+  noShow: { borderRadius: 32, padding: 16, gap: 12 },
   noShowHead: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   noShowIcon: { width: 44, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   noShowTitle: { fontFamily: fonts.semibold, fontSize: 16 },
@@ -299,23 +308,26 @@ const styles = StyleSheet.create({
   noShowBtnText: { fontFamily: fonts.semibold, fontSize: 15 },
   badge: { height: 26, paddingHorizontal: 10, borderRadius: 13, justifyContent: 'center' },
   badgeText: { fontFamily: fonts.semibold, fontSize: 12 },
-  title: { fontFamily: fonts.semibold, fontSize: 32, letterSpacing: -1.2, marginTop: 8, paddingHorizontal: 4 },
+  stack: { gap: 22 },
+  head: { gap: 12 },
+  alerts: { gap: 12 },
+  title: { fontFamily: fonts.semibold, fontSize: 28, letterSpacing: -0.9, marginTop: 8, paddingHorizontal: 4 },
   tabsRow: { flexDirection: 'row', gap: 22, marginTop: 10, marginHorizontal: 4, borderBottomWidth: 1 },
   tabItem: { paddingBottom: 9, marginBottom: -1, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabText: { fontSize: 15 },
-  filters: { flexDirection: 'row', gap: 8, marginVertical: 14, paddingHorizontal: 4 },
+  filters: { flexDirection: 'row', gap: 8, paddingHorizontal: 4 },
   filter: { height: 36, paddingHorizontal: 14, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
   filterText: { fontSize: 14 },
   dayHeader: { fontFamily: fonts.medium, fontSize: 13, marginTop: 10, marginBottom: 6, marginLeft: 6 },
-  pending: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 32, padding: 16, marginBottom: 12 },
+  pending: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 32, padding: 16 },
   pendingTitle: { fontFamily: fonts.semibold, fontSize: 16 },
   pendingSub: { fontFamily: fonts.medium, fontSize: 13 },
   nextMainText: { fontFamily: fonts.semibold, fontSize: 16 },
   list: { borderRadius: 26, padding: 6 },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10 },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   itemTitle: { fontFamily: fonts.semibold, fontSize: 16 },
   itemSub: { fontFamily: fonts.regular, fontSize: 13, marginTop: 1 },
-  empty: { borderRadius: 40, paddingVertical: 36, paddingHorizontal: 22, alignItems: 'center', gap: 20, marginTop: 8 },
+  empty: { borderRadius: 40, paddingVertical: 36, paddingHorizontal: 22, alignItems: 'center', gap: 20 },
   emptyIcon: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { fontFamily: fonts.semibold, fontSize: 28, lineHeight: 30, letterSpacing: -1.1, textAlign: 'center' },
   emptyBody: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 21, textAlign: 'center' },

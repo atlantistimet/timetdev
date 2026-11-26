@@ -65,8 +65,10 @@ export async function openNotification(n: Notif): Promise<boolean> {
   }
 }
 
-export async function countUnread(userId: string): Promise<number> {
-  const { count } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).is('read_at', null);
+export async function countUnread(userId: string, withoutMessages = false): Promise<number> {
+  let q = supabase.from('notifications').select('id', { count: 'exact', head: true }).eq('user_id', userId).is('read_at', null);
+  if (withoutMessages) q = q.neq('kind', 'message'); // i messaggi hanno il loro numero sulla tab Messaggi
+  const { count } = await q;
   return count ?? 0;
 }
 
@@ -79,12 +81,12 @@ export async function markAllRead(userId: string): Promise<void> {
 }
 
 /** Numero di notifiche non lette, riletto ogni 20 secondi (e subito all'apertura). */
-export function useUnreadCount(userId: string | null, reloadKey = 0): number {
+export function useUnreadCount(userId: string | null, reloadKey = 0, withoutMessages = false): number {
   const [count, setCount] = useState(0);
   useEffect(() => {
     if (!userId) return;
     let alive = true;
-    const load = () => void countUnread(userId).then((n) => alive && setCount(n));
+    const load = () => void countUnread(userId, withoutMessages).then((n) => alive && setCount(n));
     const first = setTimeout(load, 0);
     const poll = setInterval(load, 20_000);
     return () => {
@@ -92,7 +94,7 @@ export function useUnreadCount(userId: string | null, reloadKey = 0): number {
       clearTimeout(first);
       clearInterval(poll);
     };
-  }, [userId, reloadKey]);
+  }, [userId, reloadKey, withoutMessages]);
   return userId ? count : 0;
 }
 

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '@/lib/supabase';
 
@@ -41,6 +42,33 @@ export async function sendMessage(conversationId: string, senderId: string, body
   if (!text) return null;
   const { error } = await supabase.from('messages').insert({ conversation_id: conversationId, sender_id: senderId, body: text, lang });
   return error ? 'errors.generic' : null;
+}
+
+/** Messaggi ricevuti e non ancora letti, in tutte le conversazioni (numero sulla tab Messaggi). */
+export async function countUnreadMessages(me: string): Promise<number> {
+  const { count } = await supabase.from('messages').select('id', { count: 'exact', head: true }).neq('sender_id', me).is('read_at', null);
+  return count ?? 0;
+}
+
+export function useUnreadMessages(me: string | null): number {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!me) return;
+    let alive = true;
+    const load = () => void countUnreadMessages(me).then((n) => alive && setCount(n));
+    load();
+    const channel = supabase
+      .channel(`unread-${me}-${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, load)
+      .subscribe();
+    const poll = setInterval(load, 30_000);
+    return () => {
+      alive = false;
+      clearInterval(poll);
+      void supabase.removeChannel(channel);
+    };
+  }, [me]);
+  return me ? count : 0;
 }
 
 export async function markRead(conversationId: string, me: string): Promise<void> {
