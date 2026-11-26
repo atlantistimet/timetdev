@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Pressable } from '@/components/Pressable';
 import { useAuth } from '@/lib/auth';
-import { callsSupported, loadLiveCall, type CallRow } from '@/lib/calls';
+import { callsSupported, cancelCall, loadLiveCall, type CallRow } from '@/lib/calls';
 import { fonts, useTheme } from '@/theme';
 
 // All'apertura dell'app, se hai una chiamata in corso, ti ci porta una sola volta.
@@ -52,7 +52,34 @@ export function ActiveCallBar() {
     };
   }, [me]);
 
-  if (!call || pathname.startsWith('/call/')) return null;
+  if (!call || pathname.startsWith('/call/') || pathname.startsWith('/call-start')) return null;
+  // pagamento rimasto a metà: si può riprendere (stessa chiamata) o annullare
+  if (call.status === 'awaiting_payment') {
+    return (
+      <View style={[styles.wrap, { top: insets.top + 6 }]} pointerEvents="box-none">
+        <View style={[styles.bar, { backgroundColor: theme.accent }]}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push({ pathname: '/call-start', params: { serviceId: call.service_id ?? '', resume: call.id } })}
+            style={styles.payMain}>
+            <View style={[styles.dot, { backgroundColor: theme.ink }]} />
+            <Text style={[styles.text, { color: theme.ink }]}>{t('calls.liveBarPay')}</Text>
+            <Text style={[styles.action, { color: theme.ink }]}>{t('calls.resumePay')}</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t('calls.cancelPay')}
+            onPress={() => {
+              setCall(null);
+              void cancelCall(call.id);
+            }}
+            style={[styles.cancel, { backgroundColor: theme.ink }]}>
+            <Text style={[styles.cancelText, { color: theme.accent }]}>{t('calls.cancelPay')}</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
   return (
     <View style={[styles.wrap, { top: insets.top + 6 }]} pointerEvents="box-none">
       <Pressable
@@ -74,4 +101,7 @@ const styles = StyleSheet.create({
   dot: { width: 8, height: 8, borderRadius: 4 },
   text: { flex: 1, fontFamily: fonts.semibold, fontSize: 14 },
   action: { fontFamily: fonts.semibold, fontSize: 14 },
+  payMain: { flex: 1, height: 44, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cancel: { height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: 'center', marginRight: -8 },
+  cancelText: { fontFamily: fonts.semibold, fontSize: 13 },
 });

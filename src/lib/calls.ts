@@ -58,7 +58,7 @@ const ROW_COLUMNS = 'id, client_id, seller_id, service_title, rate_cents_per_min
 
 const KNOWN_ERRORS = [
   'adult_required', 'service_not_found', 'own_service', 'rate_too_low', 'seller_not_ready', 'seller_unavailable', 'seller_busy',
-  'call_in_progress', 'bad_minutes', 'limit_reached', 'extend_failed', 'busy', 'not_authorized', 'not_ringing', 'not_active', 'livekit_not_configured', 'stripe_error',
+  'call_in_progress', 'not_awaiting', 'bad_minutes', 'limit_reached', 'extend_failed', 'busy', 'not_authorized', 'not_ringing', 'not_active', 'livekit_not_configured', 'stripe_error',
 ];
 
 async function invoke<T>(body: Record<string, unknown>): Promise<{ data: T | null; errorKey: string | null }> {
@@ -71,9 +71,10 @@ async function invoke<T>(body: Record<string, unknown>): Promise<{ data: T | nul
   return { data: null, errorKey: 'errors.generic' };
 }
 
-export type StartedCall = { call_id: string; client_secret: string; stripe_account: string; amount_cents: number; ring_seconds: number };
+export type StartedCall = { call_id: string; client_secret: string; stripe_account: string; amount_cents: number; ring_seconds: number; /** solo in `resume`: la carta risulta già bloccata, resta solo da confermare */ authorized?: boolean; minutes?: number };
 
 export const startCall = (serviceId: string, minutes: number) => invoke<StartedCall>({ action: 'start', service_id: serviceId, minutes });
+export const resumeCall = (callId: string) => invoke<StartedCall>({ action: 'resume', call_id: callId });
 export const extendCall = (callId: string, minutes: number) => invoke<CallState>({ action: 'extend', call_id: callId, minutes });
 export const confirmHold = (callId: string) => invoke<CallState>({ action: 'confirm_hold', call_id: callId });
 export const acceptCall = (callId: string) => invoke<CallState>({ action: 'accept', call_id: callId });
@@ -97,9 +98,9 @@ export async function loadIncomingCall(sellerId: string): Promise<(CallRow & { c
   return { ...call, client_name: (profile?.full_name as string | undefined) ?? null };
 }
 
-/** Chiamata ancora aperta (in pagamento, squillo o in corso) dell'utente: per riprenderla se chiude l'app. */
+/** Chiamata ancora aperta (pagamento da completare, squillo o in corso) dell'utente: per riprenderla se chiude l'app. */
 export async function loadLiveCall(userId: string): Promise<CallRow | null> {
-  const { data } = await supabase.from('calls').select(ROW_COLUMNS).or(`client_id.eq.${userId},seller_id.eq.${userId}`).in('status', ['ringing', 'active']).order('created_at', { ascending: false }).limit(1);
+  const { data } = await supabase.from('calls').select(ROW_COLUMNS).or(`client_id.eq.${userId},seller_id.eq.${userId}`).in('status', ['awaiting_payment', 'ringing', 'active']).order('created_at', { ascending: false }).limit(1);
   return (data?.[0] as CallRow | undefined) ?? null;
 }
 

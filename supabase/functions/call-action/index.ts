@@ -2,6 +2,7 @@
 // Corpo: { action, ... }
 //  - start        { service_id, minutes }  il cliente avvia la chiamata: crea il blocco sulla carta (minuti scelti, 5–60, × tariffa) → { call_id, client_secret, stripe_account, amount_cents }
 //  - confirm_hold { call_id }     il cliente ha confermato la carta: la chiamata squilla per 60 secondi
+//  - resume       { call_id }     il cliente riprende un pagamento rimasto a metà (stessa chiamata, stesso blocco) → come start, più `authorized` se la carta è già bloccata
 //  - accept       { call_id }     il venditore risponde: parte il conteggio dei minuti
 //  - decline      { call_id }     il venditore rifiuta (nessun addebito)
 //  - cancel       { call_id }     il cliente annulla prima della risposta (nessun addebito)
@@ -72,6 +73,18 @@ Deno.serve(async (req) => {
           return json({ error: error.code === '23505' ? 'seller_busy' : 'server_error' }, error.code === '23505' ? 409 : 500);
         }
         return json(publicState((up ?? call) as CallRow));
+      }
+      case 'resume': {
+        if (!isClient) return json({ error: 'forbidden' }, 403);
+        if (call.status !== 'awaiting_payment') return json({ error: 'not_awaiting' }, 409);
+        const { data: pay } = await admin.from('payments').select('stripe_payment_intent_id, stripe_account_id, amount_cents').eq('call_id', call.id).eq('call_block', 0).single();
+        if (!pay) return json({ error: 'server_error' }, 500);
+        const pi = await stripeRequest<PI>('GET', `/v1/payment_intents/${pay.stripe_payment_intent_id}`, undefined, { stripeAccount: pay.stripe_account_id });
+        if (pi.status === 'canceled') {
+          await closeWithoutCharge(admin, call, 'cancelled');
+          return json({ error: 'not_awaiting' }, 409);
+        }
+        return json({ call_id: call.id, client_secret: pi.client_secret, stripe_account: pay.stripe_account_id, amount_cents: pay.amount_cents, ring_seconds: CALL_RING_SECONDS, minutes: call.block_minutes, authorized: pi.status === 'requires_capture' });
       }
       case 'accept': {
         if (isClient) return json({ error: 'forbidden' }, 403);

@@ -1102,6 +1102,7 @@
       "seller_unavailable": "The seller is not available now.",
       "seller_busy": "The seller is already on a call or has a session soon. Try again in a few minutes.",
       "call_in_progress": "You already have a call in progress.",
+      "not_awaiting": "This call is no longer waiting for payment.",
       "not_authorized": "The card hold didn't go through. Try again.",
       "not_ringing": "The call is no longer waiting for an answer.",
       "not_active": "The call is not in progress.",
@@ -1183,7 +1184,10 @@
     "hangupConfirm": "End call",
     "liveBar": "Call in progress",
     "liveBarRinging": "Calling…",
-    "rejoin": "Rejoin"
+    "rejoin": "Rejoin",
+    "liveBarPay": "Payment to complete",
+    "resumePay": "Resume",
+    "cancelPay": "Cancel"
   },
   "delete": {
     "yes": "Yes, delete",

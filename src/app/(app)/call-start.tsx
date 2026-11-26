@@ -12,7 +12,7 @@ import { Button, ErrorText, LoadingView, Screen, Spacer, Title } from '@/compone
 import { fonts, useTheme } from '@/theme';
 import { formatEuro } from '@/lib/booking';
 import {
-  CALL_BLOCK_MIN, CALL_MAX_MIN, CALL_MIN_BILLED_MIN, callsSupported, clientCallTotal, confirmHold, loadCallService, startCall, type CallService, type StartedCall,
+  CALL_BLOCK_MIN, CALL_MAX_MIN, CALL_MIN_BILLED_MIN, callsSupported, clientCallTotal, confirmHold, loadCallService, resumeCall, startCall, type CallService, type StartedCall,
 } from '@/lib/calls';
 import { loadProfileById, type PublicProfile } from '@/lib/public-profile';
 
@@ -21,7 +21,7 @@ type Loaded = { service: CallService; seller: PublicProfile | null } | 'missing'
 /** Il cliente vede come funziona, conferma la carta (blocco del primo quarto d'ora) e la chiamata parte. */
 export default function CallStartScreen() {
   const { t, i18n } = useTranslation();
-  const { serviceId } = useLocalSearchParams<{ serviceId: string }>();
+  const { serviceId, resume } = useLocalSearchParams<{ serviceId: string; resume?: string }>();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [started, setStarted] = useState<StartedCall | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,6 +40,27 @@ export default function CallStartScreen() {
       alive = false;
     };
   }, [serviceId]);
+
+  // pagamento rimasto a metà: si riprende la stessa chiamata (barra «Pagamento da completare»)
+  useEffect(() => {
+    if (!resume) return;
+    let alive = true;
+    (async () => {
+      const r = await resumeCall(resume);
+      if (!alive) return;
+      if (!r.data) return setErrorKey(r.errorKey);
+      if (r.data.minutes) setMinutes(r.data.minutes);
+      if (r.data.authorized) {
+        // la carta era già bloccata: resta solo da far partire la chiamata
+        const c = await confirmHold(r.data.call_id);
+        if (alive && c.data) router.replace({ pathname: '/call/[id]', params: { id: r.data.call_id } });
+        else if (alive) setErrorKey(c.errorKey);
+      } else setStarted(r.data);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [resume]);
 
   if (!loaded) return <LoadingView />;
   if (loaded === 'missing') {

@@ -1102,6 +1102,7 @@
       "seller_unavailable": "Il venditore non è disponibile ora.",
       "seller_busy": "Il venditore è già in chiamata o ha una sessione tra poco. Riprova fra qualche minuto.",
       "call_in_progress": "Hai già una chiamata in corso.",
+      "not_awaiting": "Questa chiamata non è più in attesa di pagamento.",
       "not_authorized": "Il blocco sulla carta non è andato a buon fine. Riprova.",
       "not_ringing": "La chiamata non è più in attesa di risposta.",
       "not_active": "La chiamata non è in corso.",
@@ -1183,7 +1184,10 @@
     "hangupConfirm": "Chiudi",
     "liveBar": "Chiamata in corso",
     "liveBarRinging": "Stai chiamando…",
-    "rejoin": "Rientra"
+    "rejoin": "Rientra",
+    "liveBarPay": "Pagamento da completare",
+    "resumePay": "Riprendi",
+    "cancelPay": "Annulla"
   },
   "delete": {
     "yes": "Sì, elimina",
