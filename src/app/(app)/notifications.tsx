@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { Pressable } from '@/components/Pressable';
@@ -19,6 +20,9 @@ export default function NotificationsScreen() {
   const userId = session?.user.id ?? null;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+
+  // ogni volta che la schermata torna in primo piano l'elenco si rilegge (era rimasto quello di prima)
+  useFocusEffect(useCallback(() => setReloadKey((k) => k + 1), []));
 
   useEffect(() => {
     if (!userId) return;

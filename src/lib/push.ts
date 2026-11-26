@@ -16,9 +16,10 @@ const SNOOZE_MS = 30 * 86_400_000;
 const CHANNEL_ID = 'default';
 
 if (PUSH_SUPPORTED) {
-  // Con l'app aperta la notifica compare come banner, senza suono.
+  // Con l'app aperta la notifica compare come banner, senza suono e senza restare nell'elenco del telefono:
+  // dentro l'app c'è già il badge, e una copia rimasta sul blocco schermo dopo averla letta confonde.
   Notifications.setNotificationHandler({
-    handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
+    handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: false, shouldPlaySound: false, shouldSetBadge: false }),
   });
 }
 
@@ -133,14 +134,25 @@ export function usePushSync(userId: string | null): void {
   }, [userId]);
 
   useEffect(() => {
-    if (userId) void Notifications.setBadgeCountAsync(unread);
+    if (!userId) return;
+    void Notifications.setBadgeCountAsync(unread);
+    // tutto letto: via anche le notifiche rimaste sul blocco schermo
+    if (unread === 0) void Notifications.dismissAllNotificationsAsync();
   }, [userId, unread]);
 
   useEffect(() => {
     if (!userId || !last || last.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
     const id = last.notification.request.content.data?.id;
     void Notifications.clearLastNotificationResponseAsync();
-    if (typeof id !== 'string') return;
-    void getNotification(id).then((n) => n && openNotification(n));
+    if (typeof id !== 'string') {
+      console.warn('[push] tocco su una notifica senza id', JSON.stringify(last.notification.request.content.data));
+      return;
+    }
+    getNotification(id)
+      .then((n) => {
+        if (!n) console.warn('[push] notifica non trovata', id);
+        else return openNotification(n);
+      })
+      .catch((e) => console.warn('[push] apertura della notifica fallita', e));
   }, [userId, last]);
 }
