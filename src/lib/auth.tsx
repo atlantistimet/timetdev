@@ -11,7 +11,7 @@ import * as Linking from 'expo-linking';
 import { Platform } from 'react-native';
 import type { Session } from '@supabase/supabase-js';
 import i18n, { supportedLanguages } from '@/i18n';
-import { unregisterPushDevice } from '@/lib/push';
+import { forgetPushDevice } from '@/lib/push';
 import { authErrorKey } from '@/lib/auth-errors';
 import { supabase } from '@/lib/supabase';
 import { LEGAL_VERSION } from '@/content/legal';
@@ -171,7 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     // prima di chiudere la sessione, perché serve per scollegare il dispositivo dalle notifiche push
-    await unregisterPushDevice();
+    await forgetPushDevice();
     await supabase.auth.signOut();
   }, []);
 

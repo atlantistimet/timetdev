@@ -12,6 +12,7 @@ export const PUSH_SUPPORTED = Platform.OS === 'ios' || Platform.OS === 'android'
 
 const TOKEN_KEY = 'push.token';
 const SNOOZE_KEY = 'push.snoozeUntil';
+const OFF_KEY = 'push.off'; // l'utente ha spento le notifiche su questo telefono
 const SNOOZE_MS = 30 * 86_400_000;
 const CHANNEL_ID = 'default';
 
@@ -46,6 +47,7 @@ async function ensureChannel(): Promise<void> {
 export async function registerPushDevice(): Promise<string | null> {
   if (!PUSH_SUPPORTED) return null;
   try {
+    if ((await AsyncStorage.getItem(OFF_KEY)) === '1') return null;
     if ((await getPushPermission()).state !== 'granted') return null;
     await ensureChannel();
     const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
@@ -73,9 +75,46 @@ export async function unregisterPushDevice(): Promise<void> {
   }
 }
 
+/** Alla disconnessione: scollega il dispositivo e dimentica anche la scelta «spente», che era di chi se ne va. */
+export async function forgetPushDevice(): Promise<void> {
+  await unregisterPushDevice();
+  await AsyncStorage.removeItem(OFF_KEY).catch(() => undefined);
+}
+
+/** Stato per la schermata delle impostazioni: permesso del sistema e scelta dell'utente su questo telefono. */
+export async function getPushStatus(): Promise<{ state: PushState; on: boolean }> {
+  const { state } = await getPushPermission();
+  const off = (await AsyncStorage.getItem(OFF_KEY).catch(() => null)) === '1';
+  return { state, on: state === 'granted' && !off };
+}
+
+/** Interruttore spento: il telefono non riceve più nulla finché non lo si riaccende (il permesso di sistema resta com'è). */
+export async function disablePush(): Promise<void> {
+  await AsyncStorage.setItem(OFF_KEY, '1');
+  await unregisterPushDevice();
+}
+
+/** Interruttore acceso. Ritorna 'denied' se il sistema non permette più di chiedere: serve passare dalle Impostazioni del telefono. */
+export async function turnOnPush(): Promise<'on' | 'denied'> {
+  await AsyncStorage.removeItem(OFF_KEY);
+  const { state, canAskAgain } = await getPushPermission();
+  if (state === 'granted') return (await registerPushDevice()) ? 'on' : 'denied';
+  if (state === 'undetermined' && canAskAgain) return (await enablePush()) === 'granted' ? 'on' : 'denied';
+  return 'denied';
+}
+
+/** Notifica di prova ai propri dispositivi. 'none' = nessun dispositivo registrato. */
+export async function sendTestPush(): Promise<'sent' | 'none' | 'failed'> {
+  const { data, error } = await supabase.functions.invoke<{ sent: number; devices: number }>('push-test');
+  if (error || !data) return 'failed';
+  if (data.devices === 0) return 'none';
+  return data.sent > 0 ? 'sent' : 'failed';
+}
+
 /** Chiede il permesso al sistema (dopo la nostra schermata) e registra il dispositivo. */
 export async function enablePush(): Promise<'granted' | 'denied'> {
   if (!PUSH_SUPPORTED) return 'denied';
+  await AsyncStorage.removeItem(OFF_KEY);
   await ensureChannel();
   const p = await Notifications.requestPermissionsAsync();
   if (!p.granted) return 'denied';
@@ -142,8 +181,10 @@ export function usePushSync(userId: string | null): void {
 
   useEffect(() => {
     if (!userId || !last || last.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
-    const id = last.notification.request.content.data?.id;
+    const data = last.notification.request.content.data;
+    const id = data?.id;
     void Notifications.clearLastNotificationResponseAsync();
+    if (data?.test) return; // la notifica di prova non apre nulla
     if (typeof id !== 'string') {
       console.warn('[push] tocco su una notifica senza id', JSON.stringify(last.notification.request.content.data));
       return;
