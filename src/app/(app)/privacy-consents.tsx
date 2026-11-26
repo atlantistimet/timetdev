@@ -3,15 +3,19 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable } from '@/components/Pressable';
-import { Body, ErrorText, LoadingView, Screen, Title } from '@/components/ui';
+import { ErrorText, LoadingView } from '@/components/ui';
+import { Group, Section, SettingsPage } from '@/components/settings';
 import { useAuth } from '@/lib/auth';
 import { createTicket } from '@/lib/safety';
 import { loadConsents, setConsent, type ConsentKey, type ConsentPrefs } from '@/lib/consents';
 import { fonts, useTheme } from '@/theme';
 
-const items: { key: ConsentKey; title: string; text: string }[] = [
+type Item = { key: ConsentKey; title: string; text: string };
+const comms: Item[] = [
   { key: 'marketing_email', title: 'consents.emailTitle', text: 'consents.emailText' },
   { key: 'marketing_push', title: 'consents.pushTitle', text: 'consents.pushText' },
+];
+const data: Item[] = [
   { key: 'personalization', title: 'consents.personalTitle', text: 'consents.personalText' },
   { key: 'analytics', title: 'consents.analyticsTitle', text: 'consents.analyticsText' },
 ];
@@ -44,12 +48,10 @@ export default function PrivacyConsents() {
     if (failure) setPrefs(before);
   };
 
-  return (
-    <Screen back>
-      <Title>{t('consents.title')}</Title>
-      <Body muted>{t('consents.intro')}</Body>
+  const group = (items: Item[]) => (
+    <Group>
       {items.map((it) => (
-        <View key={it.key} style={[styles.row, { backgroundColor: theme.surface }]}>
+        <View key={it.key} style={styles.row}>
           <View style={styles.flex}>
             <Text style={[styles.rowTitle, { color: theme.text }]}>{t(it.title)}</Text>
             <Text style={[styles.rowText, { color: theme.muted }]}>{t(it.text)}</Text>
@@ -63,28 +65,40 @@ export default function PrivacyConsents() {
           />
         </View>
       ))}
+    </Group>
+  );
+
+  return (
+    <SettingsPage title={t('consents.title')} subtitle={t('consents.intro')}>
+      <Section label={t('consents.sectionComms')} note={t('consents.serviceNote')}>
+        {group(comms)}
+      </Section>
+      <Section label={t('consents.sectionData')}>{group(data)}</Section>
       {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
-      <Body muted>{t('consents.serviceNote')}</Body>
-      <Pressable accessibilityRole="button" onPress={async () => {
-          if (!me) return;
-          const failure = await createTicket({ me, kind: 'other', reason: 'data_export', body: 'Richiesta copia dei dati personali (GDPR)' });
-          setNote(failure ? t(failure) : t('safety.exportSent'));
-        }} style={[styles.action, { backgroundColor: theme.surface }]}>
-        <Text style={[styles.actionText, { color: theme.text }]}>{t('consents.download')}</Text>
-      </Pressable>
-      {note ? <Body muted>{note}</Body> : null}
-      <Pressable accessibilityRole="button" onPress={() => router.push('/delete-account')} style={[styles.action, { backgroundColor: theme.surface }]}>
-        <Text style={[styles.actionText, { color: theme.danger }]}>{t('consents.delete')}</Text>
-      </Pressable>
-    </Screen>
+      <Section>
+        <Pressable accessibilityRole="button" onPress={async () => {
+            if (!me) return;
+            const failure = await createTicket({ me, kind: 'other', reason: 'data_export', body: 'Richiesta copia dei dati personali (GDPR)' });
+            setNote(failure ? t(failure) : t('safety.exportSent'));
+          }} style={[styles.action, { backgroundColor: theme.surface }]}>
+          <Text style={[styles.actionText, { color: theme.text }]}>{t('consents.download')}</Text>
+        </Pressable>
+        {note ? <Text style={[styles.note, { color: theme.muted }]}>{note}</Text> : null}
+        <Pressable accessibilityRole="button" onPress={() => router.push('/delete-account')} style={styles.delete}>
+          <Text style={[styles.actionText, { color: theme.danger }]}>{t('consents.delete')}</Text>
+        </Pressable>
+      </Section>
+    </SettingsPage>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 22, padding: 16 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14 },
   rowTitle: { fontFamily: fonts.semibold, fontSize: 16 },
   rowText: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 18, marginTop: 2 },
+  note: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 18, marginLeft: 6 },
   action: { borderRadius: 999, paddingVertical: 15, alignItems: 'center' },
   actionText: { fontFamily: fonts.semibold, fontSize: 15 },
+  delete: { paddingVertical: 14, alignItems: 'center' },
 });

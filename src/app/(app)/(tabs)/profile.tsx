@@ -7,6 +7,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { Avatar } from '@/components/Avatar';
 import { Screen } from '@/components/ui';
+import { Group, GroupRow, Section } from '@/components/settings';
 import { createTicket } from '@/lib/safety';
 import { useAuth } from '@/lib/auth';
 import { loadMyProfile, loadMyStats, type MyProfile, type MyStats } from '@/lib/profile-edit';
@@ -69,17 +70,27 @@ export default function ProfileScreen() {
     { key: 'payments', icon: 'card-outline', label: t('profile.payments'), value: 'Stripe', onPress: () => router.push('/earnings') },
     { key: 'notifications', icon: 'notifications-outline', label: t('notifications.title'), badge: unread > 0, value: unread > 0 ? String(unread) : undefined, onPress: () => router.push('/notifications') },
   ];
-  const settings: Row[] = [
-    { key: 'language', icon: 'language-outline', label: t('settings.language'), value: languageNames[i18n.language] ?? i18n.language, onPress: () => setLangOpen(true) },
-    { key: 'export', icon: 'download-outline', label: t('safety.exportRow'), onPress: () => void requestExport() },
-    { key: 'blocked', icon: 'ban-outline', label: t('safety.blockedRow'), onPress: () => router.push('/blocked') },
-    { key: 'legal', icon: 'shield-checkmark-outline', label: t('settings.privacyLegal'), onPress: () => router.push('/legal') },
-    { key: 'support', icon: 'help-buoy-outline', label: t('safety.supportRow'), onPress: () => router.push('/support') },
-    { key: 'signout', icon: 'log-out-outline', label: t('settings.signOut'), danger: true, onPress: () => void signOut() },
-    { key: 'delete', icon: 'trash-outline', label: t('safety.deleteRow'), danger: true, onPress: () => router.push('/delete-account') },
+  const lang: Row = { key: 'language', icon: 'language-outline', label: t('settings.language'), value: languageNames[i18n.language] ?? i18n.language, onPress: () => setLangOpen(true) };
+  // Impostazioni a gruppi (disegno del 26 novembre): preferenze, privacy e sicurezza, aiuto, account.
+  const settingsGroups: { label: string; rows: Row[] }[] = [
+    { label: t('settings.sectionPrefs'), rows: [lang, { key: 'pushSettings', icon: 'notifications-outline', label: t('push.settingsRow'), onPress: () => router.push('/notification-settings') }] },
+    {
+      label: t('settings.sectionPrivacy'),
+      rows: [
+        { key: 'legal', icon: 'shield-checkmark-outline', label: t('settings.privacyLegal'), onPress: () => router.push('/legal') },
+        { key: 'blocked', icon: 'ban-outline', label: t('safety.blockedRow'), onPress: () => router.push('/blocked') },
+        { key: 'export', icon: 'download-outline', label: t('safety.exportRow'), onPress: () => void requestExport() },
+      ],
+    },
+    { label: t('settings.sectionHelp'), rows: [{ key: 'support', icon: 'help-buoy-outline', label: t('safety.supportRow'), onPress: () => router.push('/support') }] },
+    {
+      label: t('settings.sectionAccount'),
+      rows: [
+        { key: 'signout', icon: 'log-out-outline', label: t('settings.signOut'), onPress: () => void signOut() },
+        { key: 'delete', icon: 'trash-outline', label: t('safety.deleteRow'), danger: true, onPress: () => router.push('/delete-account') },
+      ],
+    },
   ];
-  const rows = section === 'space' ? space : settings;
-
   return (
     <Screen tabs>
       <View style={styles.top}>
@@ -123,19 +134,33 @@ export default function ProfileScreen() {
           </Pressable>
         ))}
       </View>
-      <View style={[styles.list, { backgroundColor: theme.surface }]}>
-        {rows.map((r, i) => (
-          <Pressable key={r.key} accessibilityRole="button" onPress={r.onPress} style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.fill }]}>
-            <View style={[styles.icon, { backgroundColor: theme.bg }]}>
-              <Ionicons name={r.icon} size={20} color={r.danger ? theme.danger : theme.ink} />
-              {r.badge ? <View style={[styles.dot, { backgroundColor: theme.accent, borderColor: theme.surface }]} /> : null}
-            </View>
-            <Text style={[styles.rowLabel, { color: r.danger ? theme.danger : theme.text }]}>{r.label}</Text>
-            {r.value ? <Text style={[styles.rowValue, { color: theme.muted }]}>{r.value}</Text> : null}
-            <Ionicons name="chevron-forward" size={18} color={theme.muted} />
-          </Pressable>
-        ))}
-      </View>
+      {section === 'space' ? (
+        <View style={[styles.list, { backgroundColor: theme.surface }]}>
+          {space.map((r, i) => (
+            <Pressable key={r.key} accessibilityRole="button" onPress={r.onPress} style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.fill }]}>
+              <View style={[styles.icon, { backgroundColor: theme.bg }]}>
+                <Ionicons name={r.icon} size={20} color={r.danger ? theme.danger : theme.ink} />
+                {r.badge ? <View style={[styles.dot, { backgroundColor: theme.accent, borderColor: theme.surface }]} /> : null}
+              </View>
+              <Text style={[styles.rowLabel, { color: r.danger ? theme.danger : theme.text }]}>{r.label}</Text>
+              {r.value ? <Text style={[styles.rowValue, { color: theme.muted }]}>{r.value}</Text> : null}
+              <Ionicons name="chevron-forward" size={18} color={theme.muted} />
+            </Pressable>
+          ))}
+        </View>
+      ) : (
+        <View style={styles.groups}>
+          {settingsGroups.map((g) => (
+            <Section key={g.label} label={g.label}>
+              <Group>
+                {g.rows.map((r) => (
+                  <GroupRow key={r.key} icon={r.icon} label={r.label} value={r.value} danger={r.danger} chevron={r.key !== 'signout'} onPress={r.onPress} />
+                ))}
+              </Group>
+            </Section>
+          ))}
+        </View>
+      )}
 
       <SheetModal visible={langOpen}  onRequestClose={() => setLangOpen(false)}>
         <Pressable style={[styles.backdrop]} onPress={() => setLangOpen(false)} />
@@ -174,6 +199,7 @@ const styles = StyleSheet.create({
   tabItem: { paddingBottom: 9, marginBottom: -1, borderBottomWidth: 2, borderBottomColor: 'transparent' },
   tabText: { fontSize: 15 },
   list: { borderRadius: 26, padding: 6, marginTop: 12 },
+  groups: { gap: 24, marginTop: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, paddingHorizontal: 6 },
   icon: { width: 40, height: 40, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   dot: { position: 'absolute', top: 6, right: 6, width: 10, height: 10, borderRadius: 5, borderWidth: 2 },

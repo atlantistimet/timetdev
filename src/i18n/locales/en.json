@@ -26,7 +26,11 @@
   "settings": {
     "language": "Language",
     "signOut": "Sign out",
-    "privacyLegal": "Privacy and legal"
+    "privacyLegal": "Privacy and legal",
+    "sectionPrefs": "Preferences",
+    "sectionPrivacy": "Privacy and safety",
+    "sectionHelp": "Help",
+    "sectionAccount": "Account"
   },
   "auth": {
     "email": "Email",
@@ -1364,7 +1368,7 @@
     },
     "delete": {
       "title": "Delete your account?",
-      "intro": "Deleting is permanent. What happens:",
+      "intro": "Deleting your account is permanent and can’t be undone.",
       "l1": "Your profile, posts and services disappear right away and your name is no longer shown.",
       "l2": "You can't have upcoming bookings or a call in progress: cancel them first.",
       "l3": "Past payments and invoices are kept as required by law, without your personal data where possible.",
@@ -1372,7 +1376,9 @@
       "confirmLabel": "Type ELIMINA to confirm",
       "confirm": "Delete permanently",
       "errBookings": "You have upcoming bookings: cancel them before deleting your account.",
-      "errCalls": "You have a call in progress: wait until it ends."
+      "errCalls": "You have a call in progress: wait until it ends.",
+      "what": "What happens",
+      "confirmSection": "Confirm"
     },
     "support": {
       "title": "Support",
@@ -1396,14 +1402,17 @@
       "reason_wrongCharge": "Wrong charge",
       "reason_behavior": "Inappropriate behavior",
       "reportProblem": "Report a problem",
-      "reason_data_export": "Data copy request"
+      "reason_data_export": "Data copy request",
+      "newRequest": "New request",
+      "reasonTitle": "What happened"
     },
     "settingsTitle": "Privacy and help",
     "blockedRow": "Blocked profiles",
     "supportRow": "Support",
     "deleteRow": "Delete account",
     "exportRow": "Download my data",
-    "exportSent": "Request sent: you'll receive a copy of your data by email within 30 days."
+    "exportSent": "Request sent: you'll receive a copy of your data by email within 30 days.",
+    "blockedList": "Blocked people"
   },
   "connections": {
     "title": "People",
@@ -1449,7 +1458,12 @@
     "report": "Report a problem with this document",
     "notFound": "Document not found",
     "termsRequired": "To sign up you need to accept the terms and rules.",
-    "draftNote": "Text under legal review before publication."
+    "draftNote": "Text under legal review before publication.",
+    "hubSub": "Documents, versions and your choices about your data.",
+    "choices": "Your choices",
+    "choicesSub": "Email, notifications, data",
+    "documents": "Documents",
+    "sections": "Sections"
   },
   "consents": {
     "title": "Privacy and consents",
@@ -1464,7 +1478,9 @@
     "analyticsText": "They help us improve the app.",
     "serviceNote": "Service notifications (bookings, messages, payments) are not marketing and stay on.",
     "download": "Download my data",
-    "delete": "Delete account"
+    "delete": "Delete account",
+    "sectionComms": "Communications",
+    "sectionData": "Your data"
   },
   "terms": {
     "updateTitle": "We’ve updated our terms",
@@ -1560,6 +1576,30 @@
     "prompt_client": "We’ll let you know when the professional replies and before your appointment.",
     "prompt_seller": "We’ll let you know as soon as a booking or message comes in.",
     "enable": "Turn on notifications",
-    "notNow": "Not now"
+    "notNow": "Not now",
+    "settingsRow": "Notification settings",
+    "settingsTitle": "Notifications",
+    "promoTitle": "Invites and offers",
+    "promoText": "Only if you want. Turn them off anytime.",
+    "deniedTitle": "Turned off in Settings",
+    "deniedText": "To receive them, allow notifications for Timeet in your phone’s Settings.",
+    "openSettings": "Open Settings",
+    "webNote": "Phone notifications are managed from the iPhone and Android app.",
+    "heroOn": "Notifications on",
+    "heroOff": "Notifications off",
+    "heroOnText": "On this phone we let you know as soon as something happens.",
+    "heroOffText": "You won’t get alerts on this phone. You can turn them back on anytime.",
+    "receiveTitle": "What you get",
+    "rcvBookings": "Bookings",
+    "rcvMessages": "Messages",
+    "rcvPayments": "Payments and tips",
+    "rcvCalls": "Missed calls",
+    "promoSection": "Promotions",
+    "testSection": "Test",
+    "testTitle": "Send me a test notification",
+    "testText": "To check that it arrives.",
+    "testSent": "Sent: it should arrive in a few seconds.",
+    "testNone": "This phone isn’t registered: turn the switch off and on again, then retry.",
+    "testFailed": "Couldn’t send it. Try again shortly."
   }
 }

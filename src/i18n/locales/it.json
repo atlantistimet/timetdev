@@ -26,7 +26,11 @@
   "settings": {
     "language": "Lingua",
     "signOut": "Esci",
-    "privacyLegal": "Privacy e legale"
+    "privacyLegal": "Privacy e legale",
+    "sectionPrefs": "Preferenze",
+    "sectionPrivacy": "Privacy e sicurezza",
+    "sectionHelp": "Aiuto",
+    "sectionAccount": "Account"
   },
   "auth": {
     "email": "Email",
@@ -1364,7 +1368,7 @@
     },
     "delete": {
       "title": "Eliminare l'account?",
-      "intro": "L'eliminazione è definitiva. Cosa succede:",
+      "intro": "L'eliminazione è definitiva e non si può annullare.",
       "l1": "Profilo, post e servizi spariscono subito e il tuo nome non compare più.",
       "l2": "Per eliminare l'account non devi avere prenotazioni future né chiamate in corso: prima annullale.",
       "l3": "I pagamenti e le fatture già fatti restano conservati per legge, senza i tuoi dati personali dove possibile.",
@@ -1372,7 +1376,9 @@
       "confirmLabel": "Scrivi ELIMINA per confermare",
       "confirm": "Elimina definitivamente",
       "errBookings": "Hai prenotazioni future: annullale prima di eliminare l'account.",
-      "errCalls": "Hai una chiamata in corso: attendi che finisca."
+      "errCalls": "Hai una chiamata in corso: attendi che finisca.",
+      "what": "Cosa succede",
+      "confirmSection": "Conferma"
     },
     "support": {
       "title": "Assistenza",
@@ -1396,14 +1402,17 @@
       "reason_wrongCharge": "Addebito sbagliato",
       "reason_behavior": "Comportamento scorretto",
       "reportProblem": "Segnala un problema",
-      "reason_data_export": "Richiesta copia dati"
+      "reason_data_export": "Richiesta copia dati",
+      "newRequest": "Nuova richiesta",
+      "reasonTitle": "Cosa è successo"
     },
     "settingsTitle": "Privacy e aiuto",
     "blockedRow": "Profili bloccati",
     "supportRow": "Assistenza",
     "deleteRow": "Elimina account",
     "exportRow": "Scarica i miei dati",
-    "exportSent": "Richiesta inviata: riceverai una copia dei tuoi dati via email entro 30 giorni."
+    "exportSent": "Richiesta inviata: riceverai una copia dei tuoi dati via email entro 30 giorni.",
+    "blockedList": "Persone bloccate"
   },
   "connections": {
     "title": "Persone",
@@ -1449,7 +1458,12 @@
     "report": "Segnala un problema con questo documento",
     "notFound": "Documento non trovato",
     "termsRequired": "Per registrarti devi accettare i termini e le regole.",
-    "draftNote": "Testo in revisione legale prima della pubblicazione."
+    "draftNote": "Testo in revisione legale prima della pubblicazione.",
+    "hubSub": "Documenti, versioni e le tue scelte sui dati.",
+    "choices": "Le tue scelte",
+    "choicesSub": "Email, notifiche, dati",
+    "documents": "Documenti",
+    "sections": "Sezioni"
   },
   "consents": {
     "title": "Privacy e consensi",
@@ -1464,7 +1478,9 @@
     "analyticsText": "Ci aiutano a migliorare l’app.",
     "serviceNote": "Le notifiche di servizio (prenotazioni, messaggi, pagamenti) non sono marketing e restano attive.",
     "download": "Scarica i miei dati",
-    "delete": "Elimina account"
+    "delete": "Elimina account",
+    "sectionComms": "Comunicazioni",
+    "sectionData": "I tuoi dati"
   },
   "terms": {
     "updateTitle": "Abbiamo aggiornato i termini",
@@ -1560,6 +1576,30 @@
     "prompt_client": "Ti avvisiamo quando il professionista risponde e prima dell’appuntamento.",
     "prompt_seller": "Ti avvisiamo appena arriva una prenotazione o un messaggio.",
     "enable": "Attiva le notifiche",
-    "notNow": "Non ora"
+    "notNow": "Non ora",
+    "settingsRow": "Impostazioni notifiche",
+    "settingsTitle": "Notifiche",
+    "promoTitle": "Inviti e offerte",
+    "promoText": "Solo se vuoi. Le togli quando vuoi.",
+    "deniedTitle": "Disattivate nelle Impostazioni",
+    "deniedText": "Per riceverle devi consentirle a Timeet dalle Impostazioni del telefono.",
+    "openSettings": "Apri Impostazioni",
+    "webNote": "Le notifiche sul telefono si gestiscono dall’app per iPhone e Android.",
+    "heroOn": "Notifiche attive",
+    "heroOff": "Notifiche spente",
+    "heroOnText": "Su questo telefono ti avvisiamo appena succede qualcosa.",
+    "heroOffText": "Su questo telefono non ricevi avvisi. Le puoi riaccendere quando vuoi.",
+    "receiveTitle": "Cosa ricevi",
+    "rcvBookings": "Prenotazioni",
+    "rcvMessages": "Messaggi",
+    "rcvPayments": "Pagamenti e mance",
+    "rcvCalls": "Chiamate perse",
+    "promoSection": "Promozioni",
+    "testSection": "Prova",
+    "testTitle": "Mandami una notifica di prova",
+    "testText": "Per controllare che arrivi.",
+    "testSent": "Inviata: dovrebbe arrivare tra pochi secondi.",
+    "testNone": "Questo telefono non è registrato: spegni e riaccendi l’interruttore, poi riprova.",
+    "testFailed": "Non sono riuscito a inviarla. Riprova tra poco."
   }
 }

@@ -8,7 +8,7 @@ import { reportScroll } from '@/lib/chrome';
 import { fonts, radius, type as typo, useTheme } from '@/theme';
 
 /** Contenitore di schermata: area sicura, tastiera che non copre i campi, contenuto centrato e largo al massimo 440. */
-export function Screen({ children, tabs, wide, bare, footer, back, flush, scrollRef }: { children: ReactNode; tabs?: boolean; wide?: boolean; bare?: boolean; footer?: ReactNode; back?: boolean; flush?: boolean; scrollRef?: Ref<ScrollView> }) {
+export function Screen({ children, tabs, top, wide, bare, footer, back, flush, scrollRef }: { children: ReactNode; tabs?: boolean; top?: boolean; wide?: boolean; bare?: boolean; footer?: ReactNode; back?: boolean; flush?: boolean; scrollRef?: Ref<ScrollView> }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   // a tutto schermo: il contenuto scorre fino ai bordi (sotto l'orologio e sotto la barra in basso), come su Instagram
@@ -38,7 +38,7 @@ export function Screen({ children, tabs, wide, bare, footer, back, flush, scroll
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           ref={scrollRef}
-          contentContainerStyle={[styles.screenContent, tabs && styles.screenTabs, (bare || flush) && styles.screenBare, footer ? styles.screenFooter : null, flush ? { paddingTop: insets.top } : null]}
+          contentContainerStyle={[styles.screenContent, (tabs || top) && styles.screenTabs, (bare || flush) && styles.screenBare, footer ? styles.screenFooter : null, flush ? { paddingTop: insets.top } : null]}
           keyboardShouldPersistTaps="handled"
           scrollEventThrottle={16}
           onScroll={tabs ? (e) => reportScroll(e.nativeEvent.contentOffset.y) : undefined}
@@ -62,6 +62,12 @@ export function Title({ children }: { children: ReactNode }) {
       {children}
     </Text>
   );
+}
+
+/** Etichetta di sezione sopra un gruppo di schede (impostazioni). */
+export function SectionLabel({ children }: { children: ReactNode }) {
+  const theme = useTheme();
+  return <Text style={[styles.sectionLabel, { color: theme.muted }]}>{String(children).toUpperCase()}</Text>;
 }
 
 export function Body({ children, muted }: { children: ReactNode; muted?: boolean }) {
@@ -109,13 +115,13 @@ type ButtonProps = {
   onPress: () => void;
   loading?: boolean;
   /** primary = nero (azione principale) · accent = lime (azione chiave) · dark = nero (alias di primary) · ghost = grigio pieno. */
-  variant?: 'primary' | 'accent' | 'dark' | 'ghost';
+  variant?: 'primary' | 'accent' | 'dark' | 'ghost' | 'danger';
 };
 
 export function Button({ title, onPress, loading, variant = 'primary' }: ButtonProps) {
   const theme = useTheme();
-  const bg = variant === 'accent' ? theme.accent : variant === 'ghost' ? theme.fill : theme.primary;
-  const fg = variant === 'accent' ? theme.onAccent : variant === 'ghost' ? theme.text : theme.onPrimary;
+  const bg = variant === 'accent' ? theme.accent : variant === 'ghost' ? theme.fill : variant === 'danger' ? theme.danger : theme.primary;
+  const fg = variant === 'accent' ? theme.onAccent : variant === 'ghost' ? theme.text : variant === 'danger' ? '#FFFFFF' : theme.onPrimary;
   return (
     <Pressable
       accessibilityRole="button"
@@ -319,6 +325,7 @@ const styles = StyleSheet.create({
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   card: { borderRadius: radius.card, padding: 18, marginBottom: 8 },
   cardTitle: { fontSize: 18, fontFamily: fonts.semibold, letterSpacing: -0.3, marginBottom: 2 },
+  sectionLabel: { fontFamily: fonts.medium, fontSize: 12, letterSpacing: 0.4, marginLeft: 6 },
   screenColumn: { width: '100%', maxWidth: 440, alignSelf: 'center' },
   screenColumnWide: { maxWidth: 960 },
   title: { ...typo.title, marginBottom: 10 },

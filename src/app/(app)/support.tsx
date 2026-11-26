@@ -4,7 +4,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable } from '@/components/Pressable';
-import { Body, Button, ErrorText, LoadingView, Screen, Spacer, TextField, Title } from '@/components/ui';
+import { Button, ErrorText, LoadingView, TextField } from '@/components/ui';
+import { Group, GroupRow, Section, SettingsPage } from '@/components/settings';
 import { useAuth } from '@/lib/auth';
 import { createTicket, listTickets, type Ticket, type TicketKind } from '@/lib/safety';
 import { fonts, radius, useTheme } from '@/theme';
@@ -59,23 +60,19 @@ export default function SupportScreen() {
 
   const statusLabel = (s: Ticket['status']) => t(`safety.support.status_${s}`);
 
-  return (
-    <Screen back>
-      <Title>{t('safety.support.title')}</Title>
-      {sent ? <View style={[styles.note, { backgroundColor: theme.accent }]}><Text style={[styles.noteText, { color: theme.onAccent }]}>{t('safety.support.sent')}</Text></View> : null}
-      {kind === null ? (
-        <>
-          <View style={[styles.card, { backgroundColor: theme.surface }]}>
-            {KINDS.map((k, i) => (
-              <Pressable key={k.kind} accessibilityRole="button" onPress={() => { setKind(k.kind); setSent(false); }} style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.fill }]}>
-                <Ionicons name={k.icon} size={22} color={theme.text} />
-                <Text style={[styles.rowText, { color: theme.text }]}>{t(`safety.support.kind_${k.kind}`)}</Text>
-                <Ionicons name="chevron-forward" size={18} color={theme.muted} />
-              </Pressable>
+  if (kind === null) {
+    return (
+      <SettingsPage title={t('safety.support.title')} subtitle={t('safety.support.eta')}>
+        {sent ? <View style={[styles.note, { backgroundColor: theme.accent }]}><Text style={[styles.noteText, { color: theme.onAccent }]}>{t('safety.support.sent')}</Text></View> : null}
+        <Section label={t('safety.support.newRequest')}>
+          <Group>
+            {KINDS.map((k) => (
+              <GroupRow key={k.kind} icon={k.icon} label={t(`safety.support.kind_${k.kind}`)} onPress={() => { setKind(k.kind); setSent(false); }} />
             ))}
-          </View>
-          <Text style={[styles.section, { color: theme.text }]}>{t('safety.support.mine')}</Text>
-          {tickets.length === 0 ? <Body muted>{t('safety.support.none')}</Body> : null}
+          </Group>
+        </Section>
+        <Section label={t('safety.support.mine')}>
+          {tickets.length === 0 ? <Text style={[styles.meta, { color: theme.muted, marginLeft: 6 }]}>{t('safety.support.none')}</Text> : null}
           {tickets.map((x) => (
             <View key={x.id} style={[styles.ticket, { backgroundColor: theme.surface }]}>
               <View style={styles.ticketHead}>
@@ -87,36 +84,36 @@ export default function SupportScreen() {
               {x.admin_reply ? <View style={[styles.reply, { backgroundColor: theme.bg }]}><Text style={[styles.meta, { color: theme.text }]}>{x.admin_reply}</Text></View> : null}
             </View>
           ))}
-          <Body muted>{t('safety.support.eta')}</Body>
-        </>
-      ) : (
-        <>
-          <Text style={[styles.section, { color: theme.text }]}>{t(`safety.support.kind_${kind}`)}</Text>
-          {kind === 'session' && params.refId ? (
-            <View style={{ gap: 8 }}>
-              {SESSION_REASONS.map((r) => (
-                <Pressable key={r} accessibilityRole="radio" accessibilityState={{ selected: reason === r }} onPress={() => setReason(r)} style={[styles.choice, { backgroundColor: theme.surface, borderColor: reason === r ? theme.ink : 'transparent' }]}>
-                  <Text style={[styles.rowText, { color: theme.text }]}>{t(`safety.support.reason_${r}`)}</Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-          <TextField label={t('safety.support.tell')} value={body} onChangeText={setBody} multiline maxLength={2000} style={{ minHeight: 110, textAlignVertical: 'top' }} />
-          {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
-          <Spacer size={4} />
-          <Button title={t('safety.support.submit')} onPress={() => void send()} loading={busy} />
-          <Button title={t('common.cancel')} variant="ghost" onPress={() => setKind(null)} />
-        </>
-      )}
-    </Screen>
+        </Section>
+      </SettingsPage>
+    );
+  }
+
+  return (
+    <SettingsPage title={t(`safety.support.kind_${kind}`)}>
+      {kind === 'session' && params.refId ? (
+        <Section label={t('safety.support.reasonTitle')}>
+          {SESSION_REASONS.map((r) => (
+            <Pressable key={r} accessibilityRole="radio" accessibilityState={{ selected: reason === r }} onPress={() => setReason(r)} style={[styles.choice, { backgroundColor: theme.surface, borderColor: reason === r ? theme.ink : 'transparent' }]}>
+              <Text style={[styles.rowText, { color: theme.text }]}>{t(`safety.support.reason_${r}`)}</Text>
+            </Pressable>
+          ))}
+        </Section>
+      ) : null}
+      <Section>
+        <TextField label={t('safety.support.tell')} value={body} onChangeText={setBody} multiline maxLength={2000} style={{ minHeight: 110, textAlignVertical: 'top' }} />
+        {errorKey ? <ErrorText>{t(errorKey)}</ErrorText> : null}
+      </Section>
+      <Section>
+        <Button title={t('safety.support.submit')} onPress={() => void send()} loading={busy} />
+        <Button title={t('common.cancel')} variant="ghost" onPress={() => setKind(null)} />
+      </Section>
+    </SettingsPage>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 24, paddingHorizontal: 16 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16 },
   rowText: { flex: 1, fontFamily: fonts.semibold, fontSize: 16 },
-  section: { fontFamily: fonts.semibold, fontSize: 20, letterSpacing: -0.4, marginTop: 8 },
   ticket: { borderRadius: radius.card, padding: 16, gap: 6 },
   ticketHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   pill: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
