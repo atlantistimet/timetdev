@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Platform, StyleSheet, Text, View } from 'react-native';
+import { glassColor, TopFade } from '@/components/TopFade';
 import { Pressable } from '@/components/Pressable';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder } from 'expo-audio';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Bubble, Composer, GiftedChat, InputToolbar, Send, type IMessage } from 'react-native-gifted-chat';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +25,7 @@ import { REACTIONS, isBlockedByMe, loadChatBookings, loadMessages, loadReactions
 import { useChatPresence } from '@/lib/chat-presence';
 import { loadProfileById } from '@/lib/public-profile';
 import { supabase } from '@/lib/supabase';
-import { fonts, pastelFor, useTheme } from '@/theme';
+import { fonts, useTheme } from '@/theme';
 
 type ChatItem = IMessage & { attPath?: string; attName?: string; attSize?: number; fileUrl?: string; fileName?: string; audioUrl?: string; durationMs?: number; card?: ProfileCard | SlotCard; booking?: ChatBooking; readAt?: string | null };
 type Panel = null | 'menu' | { report: string };
@@ -55,6 +56,9 @@ export default function ChatScreen() {
   const [recMs, setRecMs] = useState(0);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const convRef = useRef<string | null>(null);
+  const insets = useSafeAreaInsets();
+  // la testata galleggia sopra la lista: in cima ai messaggi resta uno spazio alto quanto i pulsanti, così il primo messaggio non nasce sotto
+  const listProps = useMemo(() => ({ ListFooterComponent: <View style={{ height: insets.top + 60 }} /> }), [insets.top]);
 
   useEffect(() => {
     if (!me || !userId) return;
@@ -263,33 +267,35 @@ export default function ChatScreen() {
   if (!messages) return <LoadingView />;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
+    <SafeAreaView edges={['left', 'right', 'bottom']} style={{ flex: 1, backgroundColor: theme.bg }}>
       <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={0} style={{ flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center' }}>
-        <View style={[headerStyles.head, { backgroundColor: pastelFor(userId) }]}>
-          <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={headerStyles.back}>
-            <Ionicons name="chevron-back" size={22} color={theme.ink} />
-          </Pressable>
-          <ProfileTap userId={userId} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-          <Avatar name={name || '?'} seed={userId} size={46} path={avatar} />
-          <View style={{ flex: 1 }}>
-            <Text numberOfLines={1} style={[headerStyles.name, { color: theme.ink }]}>{name}</Text>
-            {otherTyping || otherOnline ? (
-              <View style={headerStyles.status}>
-                <View style={[headerStyles.dot, { backgroundColor: theme.accent, borderColor: theme.ink }]} />
-                <Text style={[headerStyles.statusText, { color: theme.ink }]}>{otherTyping ? t('chat.typing') : t('chat.online')}</Text>
-              </View>
-            ) : null}
-          </View>
-          </ProfileTap>
-          {callServiceId ? (
-            <Pressable accessibilityRole="button" accessibilityLabel={t('chat.callName', { name })} onPress={() => router.push({ pathname: '/call-start', params: { serviceId: callServiceId } })} style={[headerStyles.call, { backgroundColor: theme.ink }]}>
-              <Ionicons name="call" size={20} color="#FFFFFF" />
+        <View pointerEvents="box-none" style={headerStyles.layer}>
+          <TopFade height={insets.top + 76} />
+          <View pointerEvents="box-none" style={[headerStyles.row, { paddingTop: insets.top + 8 }]}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('common.back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={[headerStyles.round, { backgroundColor: glassColor(theme.surface) }]}>
+              <Ionicons name="chevron-back" size={22} color={theme.ink} />
             </Pressable>
-          ) : null}
-          <Pressable accessibilityRole="button" accessibilityLabel={t('chat.menu')} onPress={() => setPanel(panel === 'menu' ? null : 'menu')} style={headerStyles.back}>
-            <Ionicons name="ellipsis-horizontal" size={20} color={theme.ink} />
-          </Pressable>
-        </View>
+            <ProfileTap userId={userId} style={[headerStyles.pill, { backgroundColor: glassColor(theme.surface) }]}>
+              <Avatar name={name || '?'} seed={userId} size={36} path={avatar} />
+              <View style={{ flex: 1 }}>
+                <Text numberOfLines={1} style={[headerStyles.name, { color: theme.ink }]}>{name}</Text>
+                {otherTyping || otherOnline ? (
+                  <View style={headerStyles.status}>
+                    <View style={[headerStyles.dot, { backgroundColor: theme.accent, borderColor: theme.ink }]} />
+                    <Text style={[headerStyles.statusText, { color: theme.ink }]}>{otherTyping ? t('chat.typing') : t('chat.online')}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </ProfileTap>
+            {callServiceId ? (
+              <Pressable accessibilityRole="button" accessibilityLabel={t('chat.callName', { name })} onPress={() => router.push({ pathname: '/call-start', params: { serviceId: callServiceId } })} style={[headerStyles.round, { backgroundColor: theme.ink }]}>
+                <Ionicons name="call" size={20} color="#FFFFFF" />
+              </Pressable>
+            ) : null}
+            <Pressable accessibilityRole="button" accessibilityLabel={t('chat.menu')} onPress={() => setPanel(panel === 'menu' ? null : 'menu')} style={[headerStyles.round, { backgroundColor: glassColor(theme.surface) }]}>
+              <Ionicons name="ellipsis-horizontal" size={20} color={theme.ink} />
+            </Pressable>
+          </View>
         {panel !== null ? (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 12, paddingBottom: 8 }}>
             {panel === 'menu' ? (
@@ -322,8 +328,11 @@ export default function ChatScreen() {
         ) : null}
         {info ? <Text style={{ color: theme.accent, paddingHorizontal: 12 }}>{info}</Text> : null}
         {errorKey ? <Text style={{ color: theme.danger, paddingHorizontal: 12 }}>{t(errorKey)}</Text> : null}
+        </View>
         <GiftedChat<ChatItem>
           keyboardAvoidingViewProps={{ enabled: false }}
+          listProps={listProps}
+          isDayAnimationEnabled={false}
           messages={items}
           onSend={(out) => void onSend(out)}
           user={{ _id: me }}
@@ -505,13 +514,14 @@ export default function ChatScreen() {
 }
 
 const headerStyles = StyleSheet.create({
-  head: { marginHorizontal: 8, marginTop: 8, paddingTop: 14, paddingBottom: 12, paddingHorizontal: 10, borderBottomLeftRadius: 32, borderBottomRightRadius: 32, borderTopLeftRadius: 8, borderTopRightRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  back: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.6)', alignItems: 'center', justifyContent: 'center' },
-  name: { fontFamily: fonts.semibold, fontSize: 17 },
-  status: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  dot: { width: 8, height: 8, borderRadius: 4, borderWidth: 1.5 },
-  statusText: { fontFamily: fonts.medium, fontSize: 13 },
-  call: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center' },
+  layer: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 },
+  row: { paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  pill: { flex: 1, height: 44, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 4, paddingRight: 14 },
+  name: { fontFamily: fonts.semibold, fontSize: 15 },
+  status: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  dot: { width: 7, height: 7, borderRadius: 4, borderWidth: 1.5 },
+  statusText: { fontFamily: fonts.medium, fontSize: 12 },
 });
 
 const recStyles = StyleSheet.create({

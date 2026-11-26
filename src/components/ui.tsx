@@ -5,6 +5,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { reportScroll } from '@/lib/chrome';
+import { ScrollViewMarker } from 'react-native-screens/experimental';
+import { glassColor, TopFade } from '@/components/TopFade';
 import { fonts, radius, type as typo, useTheme } from '@/theme';
 
 /** Contenitore di schermata: area sicura, tastiera che non copre i campi, contenuto centrato e largo al massimo 440. */
@@ -12,7 +14,11 @@ export function Screen({ children, tabs, top, wide, bare, footer, back, flush, s
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   // a tutto schermo: il contenuto scorre fino ai bordi (sotto l'orologio e sotto la barra in basso), come su Instagram
-  const Root = flush ? View : SafeAreaView;
+  // Parte alta trasparente (disegno B): il contenuto scorre fino in cima, sotto la sfocatura, e il tasto indietro galleggia sopra.
+  const fade = !bare;
+  const Root = (flush ? View : SafeAreaView) as typeof SafeAreaView;
+  const rootProps = fade && !flush ? ({ edges: ['left', 'right', 'bottom'] } as const) : {};
+  const BAR = 56;
   // Se un contenitore sopra la schermata la fa partire sotto l'orologio, la riporta in cima (misura dove parte davvero).
   const rootRef = useRef<View>(null);
   const [shift, setShift] = useState(0);
@@ -23,8 +29,8 @@ export function Screen({ children, tabs, top, wide, bare, footer, back, flush, s
     });
   };
   return (
-    <Root ref={rootRef} onLayout={measure} style={[styles.flex, { backgroundColor: flush ? theme.surface : theme.bg }, flush && shift > 0 ? { marginTop: -shift } : null]}>
-      {back ? (
+    <Root ref={rootRef} onLayout={measure} {...rootProps} style={[styles.flex, { backgroundColor: flush ? theme.surface : theme.bg }, flush && shift > 0 ? { marginTop: -shift } : null]}>
+      {back && !fade ? (
         <View style={[styles.screenColumn, wide && styles.screenColumnWide, styles.backBar]}>
           <Pressable
             accessibilityRole="button"
@@ -36,16 +42,49 @@ export function Screen({ children, tabs, top, wide, bare, footer, back, flush, s
         </View>
       ) : null}
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          ref={scrollRef}
-          contentContainerStyle={[styles.screenContent, (tabs || top) && styles.screenTabs, (bare || flush) && styles.screenBare, footer ? styles.screenFooter : null, flush ? { paddingTop: insets.top } : null]}
-          keyboardShouldPersistTaps="handled"
-          scrollEventThrottle={16}
-          onScroll={tabs ? (e) => reportScroll(e.nativeEvent.contentOffset.y) : undefined}
-          showsVerticalScrollIndicator={false}>
-          <View style={[styles.screenColumn, wide && styles.screenColumnWide]}>{children}</View>
-        </ScrollView>
+        {Platform.OS === 'ios' ? (
+          // iOS 26 disegna da solo una fascia chiara sfocata sotto l'orologio: qui si spegne, così la parte alta trasparente la decide TopFade
+          <ScrollViewMarker style={styles.flex} scrollEdgeEffects={{ top: 'hidden', bottom: 'hidden', left: 'hidden', right: 'hidden' }}>
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={[styles.screenContent, (tabs || top) && styles.screenTabs, (bare || flush) && styles.screenBare, footer ? styles.screenFooter : null, flush ? { paddingTop: insets.top } : null, fade && !flush ? { paddingTop: 24 + insets.top + (back ? BAR : 0) } : null]}
+            keyboardShouldPersistTaps="handled"
+            scrollEventThrottle={16}
+            onScroll={tabs ? (e) => reportScroll(e.nativeEvent.contentOffset.y) : undefined}
+            showsVerticalScrollIndicator={false}>
+            <View style={[styles.screenColumn, wide && styles.screenColumnWide]}>{children}</View>
+          </ScrollView>
+          </ScrollViewMarker>
+        ) : (
+          <ScrollView
+            ref={scrollRef}
+            contentContainerStyle={[styles.screenContent, (tabs || top) && styles.screenTabs, (bare || flush) && styles.screenBare, footer ? styles.screenFooter : null, flush ? { paddingTop: insets.top } : null, fade && !flush ? { paddingTop: 24 + insets.top + (back ? BAR : 0) } : null]}
+            keyboardShouldPersistTaps="handled"
+            scrollEventThrottle={16}
+            onScroll={tabs ? (e) => reportScroll(e.nativeEvent.contentOffset.y) : undefined}
+            showsVerticalScrollIndicator={false}>
+            <View style={[styles.screenColumn, wide && styles.screenColumnWide]}>{children}</View>
+          </ScrollView>
+        )}
       </KeyboardAvoidingView>
+      {fade ? (
+        <View pointerEvents="box-none" style={styles.fadeLayer}>
+          <TopFade height={insets.top + (back ? BAR : 0) + (flush ? 28 : 20)} color={flush ? theme.surface : theme.bg} />
+          {back ? (
+            <View pointerEvents="box-none" style={[styles.fadeBar, { top: insets.top + 8 }]}>
+              <View pointerEvents="box-none" style={[styles.screenColumn, wide && styles.screenColumnWide, { paddingHorizontal: 20 }]}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Indietro"
+                  onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+                  style={[styles.backBtn, { backgroundColor: glassColor(theme.surface) }]}>
+                  <Ionicons name="chevron-back" size={22} color={theme.ink} />
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
+        </View>
+      ) : null}
       {footer ? (
         <View pointerEvents="box-none" style={styles.footerWrap}>
           <View style={styles.footerColumn}>{footer}</View>
@@ -315,6 +354,8 @@ const styles = StyleSheet.create({
   screenTabs: { justifyContent: 'flex-start', paddingBottom: 130 },
   screenBare: { justifyContent: 'flex-start', paddingHorizontal: 0, paddingTop: 0, paddingBottom: 130 },
   screenFooter: { paddingBottom: 210 },
+  fadeLayer: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 },
+  fadeBar: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   backBar: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   backBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   statusVeil: { position: 'absolute', top: 0, left: 0, right: 0 },

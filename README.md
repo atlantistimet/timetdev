@@ -41,7 +41,9 @@ src/app/                        schermate (Expo Router): ogni file è una route
     privacy-consents,
     delete-account
 src/components/                 componenti condivisi (ui.tsx, Pressable, SheetModal, TimeWheel, TimeRangeSheet,
-                                AvailabilityPanel, CommentsSection, PostCard, ServiceCard, CallRoom, ...)
+                                AvailabilityPanel, CommentsSection, PostCard, ServiceCard, CallRoom, ...);
+                                settings.tsx = ritmo comune delle impostazioni (SettingsPage, Section, Group, GroupRow);
+                                TopFade.tsx = parte alta trasparente e sfocata, usata da Screen e dalla chat
 src/content/legal.ts            testi legali IT/EN, LEGAL_VERSION, dati dell'azienda (bozza da rivedere con un legale)
 src/i18n/                       configurazione lingue e file di traduzione (locales/it.json, en.json)
 src/lib/                        accesso ai dati e logica per area (auth, consents, booking, calls, chat, feed, explore,
