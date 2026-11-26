@@ -61,7 +61,10 @@ with c(migrazione, controllo, ok) as (values
   ('0043', 'secret cron_secret in Vault',   exists(select 1 from vault.secrets where name='cron_secret')),
   ('0043', 'function notif_send_push',      exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='notif_send_push')),
   ('0043', 'trigger notifications_push_insert', exists(select 1 from pg_trigger where tgname='notifications_push_insert')),
-  ('0043', 'trigger notifications_push_message', exists(select 1 from pg_trigger where tgname='notifications_push_message'))
+  ('0043', 'trigger notifications_push_message', exists(select 1 from pg_trigger where tgname='notifications_push_message')),
+
+  ('0044', 'table notification_prefs',      exists(select 1 from information_schema.tables where table_schema='public' and table_name='notification_prefs')),
+  ('0044', 'function set_push_category',    exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='set_push_category'))
 )
 select migrazione,
        case when bool_and(ok) then 'ok' else 'MANCA' end as stato,

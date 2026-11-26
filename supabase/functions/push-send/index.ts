@@ -1,8 +1,9 @@
 // Invio di una notifica push (Expo Push Service) a tutti i dispositivi di chi la riceve.
 // Chiamata dal database (trigger su `notifications`, via pg_net) con il segreto `CRON_SECRET` nell'header `x-cron-secret`; body: { id }.
-// Le notifiche di servizio partono sempre: `marketing_push` riguarda solo le promozioni, che oggi non esistono tra i tipi.
+// Parte se la categoria della notifica non è spenta dall'utente (`notification_prefs`, 0044). `marketing_push` riguarda solo le promozioni, che oggi non esistono tra i tipi.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { json } from '../_shared/http.ts';
+import { PUSH_CATEGORY } from '../_shared/push-categories.ts';
 import { pushBody } from '../_shared/push-texts.ts';
 
 const EXPO_URL = 'https://exp.host/--/api/v2/push/send';
@@ -16,6 +17,13 @@ Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const { data: n } = await admin.from('notifications').select('id, user_id, kind, payload, read_at').eq('id', id).maybeSingle();
   if (!n || n.read_at) return json({ sent: 0 });
+
+  // la categoria è spenta nelle scelte dell'utente: la notifica resta nell'app, ma sul telefono non arriva nulla
+  const category = PUSH_CATEGORY[n.kind];
+  if (category) {
+    const { data: pref } = await admin.from('notification_prefs').select('push').eq('user_id', n.user_id).eq('category', category).maybeSingle();
+    if (pref && pref.push === false) return json({ sent: 0, muted: true });
+  }
 
   const [{ data: devices }, { data: profile }, { count: unread }] = await Promise.all([
     admin.from('push_devices').select('token').eq('user_id', n.user_id),

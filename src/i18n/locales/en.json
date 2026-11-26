@@ -1600,6 +1600,10 @@
     "testText": "To check that it arrives.",
     "testSent": "Sent: it should arrive in a few seconds.",
     "testNone": "This phone isn’t registered: turn the switch off and on again, then retry.",
-    "testFailed": "Couldn’t send it. Try again shortly."
+    "testFailed": "Couldn’t send it. Try again shortly.",
+    "rcvCommunity": "Comments and new followers",
+    "rcvReviews": "Reviews",
+    "rcvAvailability": "Availability reminders",
+    "receiveNote": "Tap an item to turn it on or off. The Notifications list in the app always gets everything."
   }
 }

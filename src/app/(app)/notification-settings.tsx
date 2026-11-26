@@ -10,16 +10,20 @@ import { ErrorText, LoadingView } from '@/components/ui';
 import { Section, SettingsPage } from '@/components/settings';
 import { useAuth } from '@/lib/auth';
 import { loadConsents, setConsent, type ConsentPrefs } from '@/lib/consents';
+import { loadPushPrefs, setPushCategory, type PushCategory, type PushPrefs } from '@/lib/push-prefs';
 import { disablePush, getPushStatus, PUSH_SUPPORTED, sendTestPush, turnOnPush } from '@/lib/push';
 import { fonts, useTheme } from '@/theme';
 
 type Status = Awaited<ReturnType<typeof getPushStatus>>;
 
-const RECEIVE: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
-  { icon: 'calendar-outline', label: 'push.rcvBookings' },
-  { icon: 'chatbubble-outline', label: 'push.rcvMessages' },
-  { icon: 'card-outline', label: 'push.rcvPayments' },
-  { icon: 'call-outline', label: 'push.rcvCalls' },
+const RECEIVE: { category: PushCategory; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+  { category: 'bookings', icon: 'calendar-outline', label: 'push.rcvBookings' },
+  { category: 'messages', icon: 'chatbubble-outline', label: 'push.rcvMessages' },
+  { category: 'payments', icon: 'card-outline', label: 'push.rcvPayments' },
+  { category: 'calls', icon: 'call-outline', label: 'push.rcvCalls' },
+  { category: 'community', icon: 'people-outline', label: 'push.rcvCommunity' },
+  { category: 'reviews', icon: 'star-outline', label: 'push.rcvReviews' },
+  { category: 'availability', icon: 'flash-outline', label: 'push.rcvAvailability' },
 ];
 
 export default function NotificationSettings() {
@@ -29,6 +33,7 @@ export default function NotificationSettings() {
   const me = session?.user.id ?? null;
   const [status, setStatus] = useState<Status | null>(null);
   const [prefs, setPrefs] = useState<ConsentPrefs | null>(null);
+  const [cats, setCats] = useState<PushPrefs | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
   const [testKey, setTestKey] = useState<string | null>(null);
@@ -45,12 +50,13 @@ export default function NotificationSettings() {
     if (!me) return;
     let active = true;
     void loadConsents(me).then((p) => active && setPrefs(p));
+    void loadPushPrefs(me).then((p) => active && setCats(p));
     return () => {
       active = false;
     };
   }, [me]);
 
-  if (!status || !prefs) return <LoadingView />;
+  if (!status || !prefs || !cats) return <LoadingView />;
 
   const togglePhone = async (value: boolean) => {
     setTestKey(null);
@@ -62,6 +68,14 @@ export default function NotificationSettings() {
     const r = await turnOnPush();
     if (r === 'denied') void Linking.openSettings();
     reload();
+  };
+
+  const toggleCategory = async (category: PushCategory) => {
+    const value = !cats[category];
+    setCats({ ...cats, [category]: value });
+    const failure = await setPushCategory(category, value);
+    setErrorKey(failure);
+    if (failure) setCats((c) => (c ? { ...c, [category]: !value } : c));
   };
 
   const togglePromo = async (value: boolean) => {
@@ -119,16 +133,25 @@ export default function NotificationSettings() {
       ) : null}
 
       {PUSH_SUPPORTED ? (
-        <Section label={t('push.receiveTitle')}>
+        <Section label={t('push.receiveTitle')} note={t('push.receiveNote')}>
           <View style={[styles.list, { backgroundColor: theme.surface, opacity: on ? 1 : 0.55 }]}>
             {RECEIVE.map((r, i) => (
-              <View key={r.label} style={[styles.rcv, i > 0 && { borderTopWidth: 1, borderTopColor: theme.line }]}>
+              <Pressable
+                key={r.category}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: cats[r.category], disabled: !on }}
+                accessibilityLabel={t(r.label)}
+                disabled={!on}
+                onPress={() => void toggleCategory(r.category)}
+                style={[styles.rcv, i > 0 && { borderTopWidth: 1, borderTopColor: theme.line }]}>
                 <View style={[styles.chip, { backgroundColor: theme.bg }]}>
                   <Ionicons name={r.icon} size={18} color={theme.text} />
                 </View>
                 <Text style={[styles.rcvLabel, { color: theme.text }]}>{t(r.label)}</Text>
-                <Ionicons name={on ? 'checkmark' : 'remove'} size={18} color={on ? theme.success : theme.muted} />
-              </View>
+                <View style={[styles.flag, cats[r.category] ? { backgroundColor: theme.successSoft } : { borderWidth: 1.5, borderColor: theme.fill }]}>
+                  {cats[r.category] ? <Ionicons name="checkmark" size={18} color={theme.success} /> : null}
+                </View>
+              </Pressable>
             ))}
           </View>
         </Section>
@@ -185,6 +208,7 @@ const styles = StyleSheet.create({
   list: { borderRadius: 22, paddingHorizontal: 16 },
   rcv: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
   rcvLabel: { flex: 1, fontFamily: fonts.medium, fontSize: 15 },
+  flag: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   chip: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   chipBig: { width: 40, height: 40, borderRadius: 13 },
   title: { fontFamily: fonts.semibold, fontSize: 16 },

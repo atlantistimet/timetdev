@@ -1600,6 +1600,10 @@
     "testText": "Per controllare che arrivi.",
     "testSent": "Inviata: dovrebbe arrivare tra pochi secondi.",
     "testNone": "Questo telefono non è registrato: spegni e riaccendi l’interruttore, poi riprova.",
-    "testFailed": "Non sono riuscito a inviarla. Riprova tra poco."
+    "testFailed": "Non sono riuscito a inviarla. Riprova tra poco.",
+    "rcvCommunity": "Commenti e nuovi follower",
+    "rcvReviews": "Recensioni",
+    "rcvAvailability": "Promemoria disponibilità",
+    "receiveNote": "Tocca una voce per accenderla o spegnerla. Nell'elenco Notifiche dell'app arrivano sempre tutte."
   }
 }
